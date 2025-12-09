@@ -6,7 +6,7 @@ indicator("Ciphex Price Predictions", overlay=true, max_lines_count=500, max_lab
 // ============================================================================
 
 // IMPORTANT: Update this to your GitHub username/repo after pushing
-GITHUB_USER = "YOUR_GITHUB_USERNAME"
+GITHUB_USER = "Cipherion-Market-Research"
 GITHUB_REPO = "abacus-trading-view"
 GITHUB_SOURCE = GITHUB_USER + "/" + GITHUB_REPO
 
