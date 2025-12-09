@@ -1,11 +1,10 @@
-//@version=5
+//@version=6
 indicator("Ciphex Price Predictions", overlay=true, max_lines_count=500, max_labels_count=500)
 
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
 
-// IMPORTANT: Update this to your GitHub username/repo after pushing
 GITHUB_USER = "Cipherion-Market-Research"
 GITHUB_REPO = "abacus-trading-view"
 GITHUB_SOURCE = GITHUB_USER + "/" + GITHUB_REPO
@@ -18,13 +17,10 @@ i_showBands      = input.bool(true, "Show Prediction Bands", group="Display")
 i_showMidLine    = input.bool(true, "Show Mid Line", group="Display")
 i_showLabels     = input.bool(true, "Show Price Labels", group="Display")
 i_showInfoTable  = input.bool(true, "Show Info Table", group="Display")
-i_showStatus     = input.bool(true, "Show Settled/Pending Status", group="Display")
 
 i_highColor      = input.color(color.new(#00C853, 20), "High Prediction", group="Colors")
 i_midColor       = input.color(color.new(#FFD600, 20), "Mid Prediction", group="Colors")
 i_lowColor       = input.color(color.new(#FF5252, 20), "Low Prediction", group="Colors")
-i_fillColor      = input.color(color.new(#2196F3, 85), "Band Fill", group="Colors")
-i_pendingColor   = input.color(color.new(#9C27B0, 30), "Pending Prediction", group="Colors")
 
 i_lineWidth      = input.int(2, "Line Width", minval=1, maxval=4, group="Style")
 i_labelSize      = input.string("small", "Label Size", options=["tiny", "small", "normal"], group="Style")
@@ -33,12 +29,10 @@ i_labelSize      = input.string("small", "Label Size", options=["tiny", "small",
 // SYMBOL DETECTION
 // ============================================================================
 
-// Determine which CSV file to load based on current chart symbol
 getDataPath() =>
-    // Get base ticker without exchange prefix
     sym = str.lower(syminfo.ticker)
 
-    // Remove exchange prefix if present (e.g., "BINANCE:BTCUSDT" -> "btcusdt")
+    // Remove exchange prefix if present
     if str.contains(sym, ":")
         parts = str.split(sym, ":")
         sym := array.get(parts, 1)
@@ -48,13 +42,11 @@ getDataPath() =>
     sym := str.replace_all(sym, "perp", "")
 
     // Determine asset type subdirectory
-    // Crypto pairs end in "usdt" or "usd" and are typically longer
     isCrypto = str.endswith(sym, "usdt") or (str.endswith(sym, "usd") and str.length(sym) > 6)
     isDex = str.contains(sym, "trump") or str.contains(sym, "fart")
 
     subdir = isDex ? "dex" : (isCrypto ? "crypto" : "stock")
 
-    // Return full path: "crypto/btcusdt_predictions" or "stock/spy_predictions"
     subdir + "/" + sym + "_predictions"
 
 DATA_PATH = getDataPath()
@@ -63,18 +55,12 @@ DATA_PATH = getDataPath()
 // DATA LOADING VIA request.seed()
 // ============================================================================
 
-// request.seed() parameters:
-// - source: "github_user/repo_name"
-// - symbol: path to CSV file (without .csv extension)
-// - expression: column references matching CSV structure
-//
 // CSV columns: time, low, mid, high, probability, signal, direction, status, block, horizon_index
+// request.seed() maps CSV columns to built-in series names
 
-[predLow, predMid, predHigh, predProb, predBlock, predHorizon] = request.seed(
-    GITHUB_SOURCE,
-    DATA_PATH,
-    [low, mid, high, probability, block, horizon_index]
-)
+predLow = request.seed(GITHUB_SOURCE, DATA_PATH, low)
+predMid = request.seed(GITHUB_SOURCE, DATA_PATH, close)
+predHigh = request.seed(GITHUB_SOURCE, DATA_PATH, high)
 
 // Check if we have valid data
 hasData = not na(predLow) and not na(predMid) and not na(predHigh)
@@ -89,12 +75,10 @@ var line[] lowLines = array.new_line()
 var label[] predLabels = array.new_label()
 var linefill[] bandFills = array.new_linefill()
 
-// Previous values for drawing connecting lines
 var float prevHigh = na
 var float prevMid = na
 var float prevLow = na
 var int prevBarTime = na
-var int prevBlock = na
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -105,68 +89,38 @@ getLabelSize() =>
         "tiny" => size.tiny
         "small" => size.small
         "normal" => size.normal
+        => size.small
 
-getBlockColor(blockNum) =>
+getBlockColor(idx) =>
+    // Block 1: horizons 0-4, Block 2: 5-9, Block 3: 10-14
+    blockNum = math.floor(idx / 5) + 1
     switch blockNum
-        1 => color.new(#2196F3, 70)  // Blue - Outlook
-        2 => color.new(#4CAF50, 70)  // Green - Continuation
-        3 => color.new(#9C27B0, 70)  // Purple - Persistence
-        => color.new(#607D8B, 70)    // Gray - Unknown
+        1 => color.new(#2196F3, 70)
+        2 => color.new(#4CAF50, 70)
+        3 => color.new(#9C27B0, 70)
+        => color.new(#607D8B, 70)
 
 // ============================================================================
 // DRAWING FUNCTIONS
 // ============================================================================
 
-drawPredictionLines(int t1, float h1, float m1, float l1, int t2, float h2, float m2, float l2, int blockNum) =>
-    blockColor = getBlockColor(blockNum)
-
-    // High line
-    lineHigh = line.new(
-        x1=t1, y1=h1, x2=t2, y2=h2,
-        xloc=xloc.bar_time,
-        color=i_highColor,
-        width=i_lineWidth,
-        style=line.style_solid
-    )
+drawPredictionLines(int t1, float h1, float m1, float l1, int t2, float h2, float m2, float l2) =>
+    lineHigh = line.new(x1=t1, y1=h1, x2=t2, y2=h2, xloc=xloc.bar_time, color=i_highColor, width=i_lineWidth, style=line.style_solid)
     array.push(highLines, lineHigh)
 
-    // Mid line
     if i_showMidLine
-        lineMid = line.new(
-            x1=t1, y1=m1, x2=t2, y2=m2,
-            xloc=xloc.bar_time,
-            color=i_midColor,
-            width=i_lineWidth,
-            style=line.style_dashed
-        )
+        lineMid = line.new(x1=t1, y1=m1, x2=t2, y2=m2, xloc=xloc.bar_time, color=i_midColor, width=i_lineWidth, style=line.style_dashed)
         array.push(midLines, lineMid)
 
-    // Low line
-    lineLow = line.new(
-        x1=t1, y1=l1, x2=t2, y2=l2,
-        xloc=xloc.bar_time,
-        color=i_lowColor,
-        width=i_lineWidth,
-        style=line.style_solid
-    )
+    lineLow = line.new(x1=t1, y1=l1, x2=t2, y2=l2, xloc=xloc.bar_time, color=i_lowColor, width=i_lineWidth, style=line.style_solid)
     array.push(lowLines, lineLow)
 
-    // Fill between high and low
     if i_showBands
-        fill = linefill.new(lineHigh, lineLow, color=blockColor)
+        fill = linefill.new(lineHigh, lineLow, color=color.new(#2196F3, 85))
         array.push(bandFills, fill)
 
 drawPriceLabel(int barTime, float price, color col, string txt) =>
-    lbl = label.new(
-        x=barTime,
-        y=price,
-        text=txt + ": " + str.tostring(price, format.mintick),
-        xloc=xloc.bar_time,
-        color=color.new(col, 80),
-        textcolor=col,
-        style=label.style_label_left,
-        size=getLabelSize()
-    )
+    lbl = label.new(x=barTime, y=price, text=txt + ": " + str.tostring(price, format.mintick), xloc=xloc.bar_time, color=color.new(col, 80), textcolor=col, style=label.style_label_left, size=getLabelSize())
     array.push(predLabels, lbl)
 
 // ============================================================================
@@ -175,33 +129,22 @@ drawPriceLabel(int barTime, float price, color col, string txt) =>
 
 if hasData
     currentBarTime = time
-    currentBlock = int(predBlock)
 
-    // Draw connecting lines from previous point (within same block)
     if not na(prevHigh) and not na(prevBarTime)
-        // Only connect if same block or adjacent blocks
-        if na(prevBlock) or currentBlock == prevBlock or currentBlock == prevBlock + 1
-            drawPredictionLines(
-                prevBarTime, prevHigh, prevMid, prevLow,
-                currentBarTime, predHigh, predMid, predLow,
-                currentBlock
-            )
+        drawPredictionLines(prevBarTime, prevHigh, prevMid, prevLow, currentBarTime, predHigh, predMid, predLow)
 
-    // Draw labels at current prediction point (only on last bar)
     if i_showLabels and barstate.islast
         drawPriceLabel(currentBarTime, predHigh, i_highColor, "H")
         drawPriceLabel(currentBarTime, predMid, i_midColor, "M")
         drawPriceLabel(currentBarTime, predLow, i_lowColor, "L")
 
-    // Update previous values
     prevHigh := predHigh
     prevMid := predMid
     prevLow := predLow
     prevBarTime := currentBarTime
-    prevBlock := currentBlock
 
 // ============================================================================
-// ARRAY CLEANUP (prevent memory issues)
+// ARRAY CLEANUP
 // ============================================================================
 
 maxElements = 100
@@ -222,48 +165,24 @@ if array.size(bandFills) > maxElements
 // ============================================================================
 
 if i_showInfoTable
-    var table infoTable = table.new(
-        position.top_right,
-        2, 7,
-        bgcolor=color.new(color.black, 70),
-        border_width=1,
-        border_color=color.gray
-    )
+    var table infoTable = table.new(position.top_right, 2, 5, bgcolor=color.new(color.black, 70), border_width=1, border_color=color.gray)
 
     if barstate.islast
-        // Header
         table.cell(infoTable, 0, 0, "Ciphex Predictions", text_color=color.white, text_size=size.small)
         table.cell(infoTable, 1, 0, syminfo.ticker, text_color=color.white, text_size=size.small)
 
         if hasData
-            // High
             table.cell(infoTable, 0, 1, "High", text_color=i_highColor, text_size=size.small)
             table.cell(infoTable, 1, 1, str.tostring(predHigh, format.mintick), text_color=i_highColor, text_size=size.small)
 
-            // Mid
             table.cell(infoTable, 0, 2, "Mid", text_color=i_midColor, text_size=size.small)
             table.cell(infoTable, 1, 2, str.tostring(predMid, format.mintick), text_color=i_midColor, text_size=size.small)
 
-            // Low
             table.cell(infoTable, 0, 3, "Low", text_color=i_lowColor, text_size=size.small)
             table.cell(infoTable, 1, 3, str.tostring(predLow, format.mintick), text_color=i_lowColor, text_size=size.small)
 
-            // Probability
-            table.cell(infoTable, 0, 4, "Probability", text_color=color.gray, text_size=size.tiny)
-            table.cell(infoTable, 1, 4, str.tostring(predProb * 100, "#.#") + "%", text_color=color.gray, text_size=size.tiny)
-
-            // Block
-            blockName = switch int(predBlock)
-                1 => "Outlook"
-                2 => "Continuation"
-                3 => "Persistence"
-                => "Unknown"
-            table.cell(infoTable, 0, 5, "Block", text_color=color.gray, text_size=size.tiny)
-            table.cell(infoTable, 1, 5, blockName, text_color=getBlockColor(int(predBlock)), text_size=size.tiny)
-
-            // Horizon
-            table.cell(infoTable, 0, 6, "Horizon", text_color=color.gray, text_size=size.tiny)
-            table.cell(infoTable, 1, 6, str.tostring(int(predHorizon) + 1) + "/5", text_color=color.gray, text_size=size.tiny)
+            table.cell(infoTable, 0, 4, "Source", text_color=color.gray, text_size=size.tiny)
+            table.cell(infoTable, 1, 4, DATA_PATH, text_color=color.gray, text_size=size.tiny)
         else
             table.cell(infoTable, 0, 1, "No data", text_color=color.gray, text_size=size.small)
             table.cell(infoTable, 1, 1, "Check symbol", text_color=color.gray, text_size=size.small)
@@ -273,12 +192,4 @@ if i_showInfoTable
 // ============================================================================
 
 if barstate.islast and not hasData
-    label.new(
-        x=bar_index,
-        y=close,
-        text="No Ciphex predictions for " + syminfo.ticker + "\nPath: " + DATA_PATH,
-        color=color.new(color.orange, 20),
-        textcolor=color.white,
-        style=label.style_label_left,
-        size=size.normal
-    )
+    label.new(x=bar_index, y=close, text="No Ciphex predictions for " + syminfo.ticker + "\nPath: " + DATA_PATH, color=color.new(color.orange, 20), textcolor=color.white, style=label.style_label_left, size=size.normal)

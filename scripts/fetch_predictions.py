@@ -114,7 +114,7 @@ def extract_predictions(dashboard: dict) -> list[dict]:
             predictions.append({
                 "time": parse_timestamp(horizon["horizon_end_ts"]),
                 "low": float(pred.get("low_range", 0)),
-                "mid": float(pred.get("mid_range", 0)),
+                "close": float(pred.get("mid_range", 0)),  # 'close' maps to TradingView's built-in
                 "high": float(pred.get("high_range", 0)),
                 "probability": float(pred.get("probability", 0)),
                 "signal": pred.get("signal", ""),
@@ -143,7 +143,8 @@ def save_csv(predictions: list[dict], filepath: Path) -> None:
     df = pd.DataFrame(predictions)
 
     # Column order - time must be first for TradingView
-    columns = ["time", "low", "mid", "high", "probability", "signal", "direction", "status", "block", "horizon_index"]
+    # Using 'close' instead of 'mid' to match TradingView's built-in series name
+    columns = ["time", "low", "close", "high", "probability", "signal", "direction", "status", "block", "horizon_index"]
     df = df[columns]
 
     df.to_csv(filepath, index=False)

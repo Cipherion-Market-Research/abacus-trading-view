@@ -1,4 +1,4 @@
-time,low,mid,high,probability,signal,direction,status,block,horizon_index
+time,low,close,high,probability,signal,direction,status,block,horizon_index
 1765216548000,2.124742,2.12796,2.131183,0.6872,Favorable,Up,settled,1,0
 1765217448000,2.124964,2.131957,2.138973,0.6829,Favorable,Neutral,settled,1,1
 1765219248000,2.149882,2.15381,2.157745,0.7115,Ideal,Neutral,settled,1,2
