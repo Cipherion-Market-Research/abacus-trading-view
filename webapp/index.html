@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ciphex Price Predictions</title>
+    <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: #161b22;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo h1 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #f0f6fc;
+        }
+
+        .logo-badge {
+            background: linear-gradient(135deg, #238636, #2ea043);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        select, button {
+            background: #21262d;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        select:hover, button:hover {
+            background: #30363d;
+            border-color: #8b949e;
+        }
+
+        button.primary {
+            background: #238636;
+            border-color: #238636;
+            color: #fff;
+        }
+
+        button.primary:hover {
+            background: #2ea043;
+        }
+
+        .main-container {
+            display: flex;
+            height: calc(100vh - 53px);
+        }
+
+        .chart-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #chart {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Legend overlay */
+        .chart-legend {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: rgba(22, 27, 34, 0.9);
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 10px 14px;
+            z-index: 100;
+            backdrop-filter: blur(8px);
+        }
+
+        .legend-title {
+            font-size: 11px;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .legend-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 3px;
+            border-radius: 2px;
+        }
+
+        .legend-color.high { background: #58a6ff; }
+        .legend-color.mid { background: #a371f7; }
+        .legend-color.low { background: #58a6ff; }
+        .legend-color.band {
+            height: 12px;
+            background: rgba(88, 166, 255, 0.3);
+            border: 1px solid #58a6ff;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: #161b22;
+            border-left: 1px solid #30363d;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-header h2 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #f0f6fc;
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .prediction-card {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 10px;
+        }
+
+        .prediction-card.highlight {
+            border-color: #238636;
+            background: linear-gradient(135deg, rgba(35, 134, 54, 0.1), transparent);
+        }
+
+        .prediction-card h3 {
+            font-size: 11px;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .prediction-card h3 .badge {
+            background: #238636;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 9px;
+        }
+
+        .price-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+        }
+
+        .price-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #8b949e;
+        }
+
+        .price-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .price-dot.high { background: #58a6ff; }
+        .price-dot.mid { background: #a371f7; }
+        .price-dot.low { background: #58a6ff; }
+
+        .price-value {
+            font-size: 14px;
+            font-weight: 600;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            color: #f0f6fc;
+        }
+
+        .meta-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #8b949e;
+            padding-top: 10px;
+            margin-top: 10px;
+            border-top: 1px solid #30363d;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .status-badge.settled {
+            background: rgba(63, 185, 80, 0.15);
+            color: #3fb950;
+        }
+
+        .status-badge.pending {
+            background: rgba(210, 153, 34, 0.15);
+            color: #d29922;
+        }
+
+        .probability-bar {
+            height: 4px;
+            background: #30363d;
+            border-radius: 2px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .probability-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #238636, #3fb950);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        .cycle-info {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+
+        .cycle-progress {
+            margin-bottom: 12px;
+        }
+
+        .cycle-progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .cycle-progress-title {
+            font-size: 11px;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .cycle-progress-count {
+            font-size: 13px;
+            font-weight: 600;
+            color: #f0f6fc;
+        }
+
+        .cycle-track {
+            display: flex;
+            gap: 3px;
+            height: 8px;
+        }
+
+        .cycle-segment {
+            flex: 1;
+            border-radius: 2px;
+            transition: all 0.2s ease;
+        }
+
+        .cycle-segment.settled {
+            background: #3fb950;
+        }
+
+        .cycle-segment.pending {
+            background: #30363d;
+            border: 1px solid #484f58;
+        }
+
+        .cycle-segment.current {
+            background: #d29922;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .cycle-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 6px;
+            font-size: 10px;
+            color: #8b949e;
+        }
+
+        .cycle-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            padding: 3px 0;
+        }
+
+        .cycle-label { color: #8b949e; }
+        .cycle-value { color: #c9d1d9; }
+
+        .cycle-time-remaining {
+            text-align: center;
+            padding: 10px;
+            background: #161b22;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+
+        .cycle-time-remaining .time {
+            font-size: 20px;
+            font-weight: 600;
+            color: #f0f6fc;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .cycle-time-remaining .label {
+            font-size: 10px;
+            color: #8b949e;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+        .horizons-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .horizon-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            background: #21262d;
+            font-size: 12px;
+        }
+
+        .horizon-item.active {
+            background: rgba(35, 134, 54, 0.2);
+            border: 1px solid #238636;
+        }
+
+        .horizon-time { color: #8b949e; }
+        .horizon-price {
+            font-family: 'SF Mono', Monaco, monospace;
+            color: #f0f6fc;
+        }
+
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: #8b949e;
+            gap: 12px;
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #30363d;
+            border-top-color: #238636;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: rgba(248, 81, 73, 0.1);
+            border: 1px solid rgba(248, 81, 73, 0.4);
+            color: #f85149;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .refresh-info {
+            padding: 12px 16px;
+            border-top: 1px solid #30363d;
+            font-size: 11px;
+            color: #8b949e;
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <h1>Ciphex Predictions</h1>
+            <span class="logo-badge">Live</span>
+        </div>
+        <div class="header-controls">
+            <select id="symbolSelect">
+                <optgroup label="Crypto">
+                    <option value="BTCUSDT" data-asset-id="5d9a8088-6bcc-4956-9535-1175091fa9e2">BTC/USDT</option>
+                    <option value="ETHUSDT" data-asset-id="f7114ef2-077d-450d-be53-e45d2b7abb38">ETH/USDT</option>
+                    <option value="SOLUSDT" data-asset-id="b957624a-b741-491a-8843-d3fb066116a4">SOL/USDT</option>
+                    <option value="BNBUSDT" data-asset-id="ec972bb7-7912-4808-929a-d2d1356fc65e">BNB/USDT</option>
+                    <option value="XRPUSDT" data-asset-id="feb17d4e-a8d5-4e8f-8ec7-1c90e66989c3">XRP/USDT</option>
+                    <option value="ADAUSDT" data-asset-id="6eaaf1e9-079e-452f-a193-5d08347276b1">ADA/USDT</option>
+                    <option value="DOTUSDT" data-asset-id="df3fdfb1-5522-4569-a437-d4a03f81fa3d">DOT/USDT</option>
+                    <option value="ATOMUSDT" data-asset-id="b1bfc010-94aa-46ab-970a-474eacfb3cca">ATOM/USDT</option>
+                    <option value="TONUSDT" data-asset-id="f2362093-b5f6-45a1-96ad-f7953711369e">TON/USDT</option>
+                    <option value="TRXUSDT" data-asset-id="0fc7ccce-d076-434c-ad90-94952eba437d">TRX/USDT</option>
+                    <option value="ZECUSDT" data-asset-id="6db93b59-9dad-463c-9300-504b7e502f4a">ZEC/USDT</option>
+                </optgroup>
+            </select>
+            <select id="intervalSelect">
+                <option value="15m">15m</option>
+                <option value="1h" selected>1H</option>
+                <option value="4h">4H</option>
+            </select>
+            <button class="primary" onclick="refreshData()">↻ Refresh</button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="chart-container">
+            <div id="chart"></div>
+            <div class="chart-legend">
+                <div class="legend-title">Prediction Bands</div>
+                <div class="legend-item">
+                    <div class="legend-color band"></div>
+                    <span>Predicted Range</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color high"></div>
+                    <span>Upper / Lower Bounds</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color mid" style="border: 1px dashed #a371f7; background: transparent;"></div>
+                    <span>Mid Target</span>
+                </div>
+            </div>
+        </div>
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Predictions</h2>
+                <span class="status-badge pending" id="status-badge">Loading</span>
+            </div>
+            <div class="sidebar-content" id="predictions-content">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <span>Loading predictions...</span>
+                </div>
+            </div>
+            <div class="refresh-info">
+                <span id="last-updated">--</span>
+                <span>Auto-refresh: 5min</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================================
+        // CONFIGURATION
+        // ============================================================================
+
+        const CIPHEX_API_URL = '/api';
+        const BINANCE_API_URL = 'https://api.binance.com/api/v3';
+
+        // Colors - Using blue/purple for predictions to contrast with candle colors
+        const COLORS = {
+            // Prediction bands (Bollinger-style blue/purple)
+            high: '#58a6ff',        // Light blue for upper band
+            mid: '#a371f7',         // Purple for mid line
+            low: '#58a6ff',         // Light blue for lower band
+            band: 'rgba(88, 166, 255, 0.12)',  // Subtle blue fill
+            // Candles remain standard green/red
+            candleUp: '#3fb950',
+            candleDown: '#f85149',
+        };
+
+        // ============================================================================
+        // STATE
+        // ============================================================================
+
+        let chart = null;
+        let candlestickSeries = null;
+        let highLineSeries = null;
+        let midLineSeries = null;
+        let lowLineSeries = null;
+        let bandSeries = null;
+        let currentSymbol = 'BTCUSDT';
+        let currentAssetId = '5d9a8088-6bcc-4956-9535-1175091fa9e2';
+        let currentInterval = '1h';
+        let apiKey = localStorage.getItem('ciphex_api_key') || '';
+        let allPredictions = [];
+
+        // ============================================================================
+        // CHART INITIALIZATION
+        // ============================================================================
+
+        function initChart() {
+            const container = document.getElementById('chart');
+
+            chart = LightweightCharts.createChart(container, {
+                layout: {
+                    background: { type: 'solid', color: '#0d1117' },
+                    textColor: '#8b949e',
+                },
+                grid: {
+                    vertLines: { color: '#21262d' },
+                    horzLines: { color: '#21262d' },
+                },
+                crosshair: {
+                    mode: LightweightCharts.CrosshairMode.Normal,
+                    vertLine: {
+                        color: '#8b949e',
+                        width: 1,
+                        style: LightweightCharts.LineStyle.Dashed,
+                    },
+                    horzLine: {
+                        color: '#8b949e',
+                        width: 1,
+                        style: LightweightCharts.LineStyle.Dashed,
+                    },
+                },
+                rightPriceScale: {
+                    borderColor: '#30363d',
+                },
+                timeScale: {
+                    borderColor: '#30363d',
+                    timeVisible: true,
+                    secondsVisible: false,
+                },
+            });
+
+            // 1. Band area (background) - rendered first, behind everything
+            // We'll use two area series to create the band effect
+
+            // 2. Candlestick series (primary)
+            candlestickSeries = chart.addCandlestickSeries({
+                upColor: COLORS.candleUp,
+                downColor: COLORS.candleDown,
+                borderDownColor: COLORS.candleDown,
+                borderUpColor: COLORS.candleUp,
+                wickDownColor: COLORS.candleDown,
+                wickUpColor: COLORS.candleUp,
+            });
+
+            // 3. High line (top of prediction range)
+            highLineSeries = chart.addLineSeries({
+                color: COLORS.high,
+                lineWidth: 2,
+                lineStyle: LightweightCharts.LineStyle.Solid,
+                priceLineVisible: false,
+                lastValueVisible: false,
+            });
+
+            // 4. Mid line (center prediction - subtle)
+            midLineSeries = chart.addLineSeries({
+                color: COLORS.mid,
+                lineWidth: 1,
+                lineStyle: LightweightCharts.LineStyle.Dashed,
+                priceLineVisible: false,
+                lastValueVisible: false,
+            });
+
+            // 5. Low line (bottom of prediction range)
+            lowLineSeries = chart.addLineSeries({
+                color: COLORS.low,
+                lineWidth: 2,
+                lineStyle: LightweightCharts.LineStyle.Solid,
+                priceLineVisible: false,
+                lastValueVisible: false,
+            });
+
+            // Handle resize
+            const resizeObserver = new ResizeObserver(entries => {
+                for (const entry of entries) {
+                    chart.applyOptions({
+                        width: entry.contentRect.width,
+                        height: entry.contentRect.height,
+                    });
+                }
+            });
+            resizeObserver.observe(container);
+        }
+
+        // ============================================================================
+        // DATA FETCHING
+        // ============================================================================
+
+        async function fetchBinanceKlines(symbol, interval) {
+            // Calculate how many candles we need for ~48 hours of data
+            // (24 hours visible + some buffer for scrolling back)
+            const intervalMinutes = {
+                '15m': 15,
+                '1h': 60,
+                '4h': 240,
+            };
+            const mins = intervalMinutes[interval] || 60;
+            const candlesFor48h = Math.ceil((48 * 60) / mins);
+            const limit = Math.min(candlesFor48h, 500); // Binance max is 1000
+
+            const url = `${BINANCE_API_URL}/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Binance error: ${response.status}`);
+
+            const data = await response.json();
+            return data.map(candle => ({
+                time: Math.floor(candle[0] / 1000),
+                open: parseFloat(candle[1]),
+                high: parseFloat(candle[2]),
+                low: parseFloat(candle[3]),
+                close: parseFloat(candle[4]),
+            }));
+        }
+
+        async function fetchCiphexPredictions(assetId) {
+            if (!apiKey) {
+                apiKey = prompt('Enter your Ciphex API Key:');
+                if (apiKey) {
+                    localStorage.setItem('ciphex_api_key', apiKey);
+                } else {
+                    throw new Error('API key required');
+                }
+            }
+
+            const url = `${CIPHEX_API_URL}/v2/assets/${assetId}/dashboard`;
+            const response = await fetch(url, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-Key': apiKey,
+                },
+            });
+
+            if (response.status === 401) {
+                localStorage.removeItem('ciphex_api_key');
+                apiKey = '';
+                throw new Error('Invalid API key');
+            }
+
+            if (!response.ok) throw new Error(`Ciphex error: ${response.status}`);
+            return await response.json();
+        }
+
+        // ============================================================================
+        // DATA TRANSFORMATION
+        // ============================================================================
+
+        function extractPredictions(dashboard) {
+            const predictions = [];
+
+            for (const block of dashboard.blocks || []) {
+                for (const horizon of block.horizons || []) {
+                    const pred = horizon.prediction;
+                    if (!pred) continue;
+
+                    const timestamp = new Date(horizon.horizon_end_ts).getTime() / 1000;
+
+                    predictions.push({
+                        time: Math.floor(timestamp),
+                        low: pred.low_range,
+                        mid: pred.mid_range,
+                        high: pred.high_range,
+                        probability: pred.probability,
+                        signal: pred.signal,
+                        direction: pred.direction,
+                        status: horizon.status,
+                        block: block.block_number,
+                        blockType: block.block_type,
+                        horizonIndex: horizon.horizon_index,
+                    });
+                }
+            }
+
+            predictions.sort((a, b) => a.time - b.time);
+            return predictions;
+        }
+
+        // ============================================================================
+        // RENDERING
+        // ============================================================================
+
+        function renderPredictionLines(predictions) {
+            const highData = predictions.map(p => ({ time: p.time, value: p.high }));
+            const midData = predictions.map(p => ({ time: p.time, value: p.mid }));
+            const lowData = predictions.map(p => ({ time: p.time, value: p.low }));
+
+            highLineSeries.setData(highData);
+            midLineSeries.setData(midData);
+            lowLineSeries.setData(lowData);
+        }
+
+        function renderSidebar(predictions, cycle) {
+            const container = document.getElementById('predictions-content');
+            const statusBadge = document.getElementById('status-badge');
+
+            if (!predictions || predictions.length === 0) {
+                container.innerHTML = '<div class="error">No predictions available</div>';
+                statusBadge.textContent = 'Error';
+                statusBadge.className = 'status-badge';
+                return;
+            }
+
+            // Find next pending prediction
+            const now = Date.now() / 1000;
+            const nextPred = predictions.find(p => p.time > now && p.status === 'pending');
+            const currentPred = nextPred || predictions[predictions.length - 1];
+
+            // Update status badge
+            const pendingCount = predictions.filter(p => p.status === 'pending').length;
+            statusBadge.textContent = `${pendingCount} Pending`;
+            statusBadge.className = `status-badge ${pendingCount > 0 ? 'pending' : 'settled'}`;
+
+            let html = '';
+
+            // Cycle progress visualization
+            const settledCount = predictions.filter(p => p.status === 'settled').length;
+            const totalHorizons = predictions.length;
+
+            // Find the current horizon (first pending one) - reuse 'now' from above
+            let currentHorizonIndex = predictions.findIndex(p => p.status === 'pending');
+            if (currentHorizonIndex === -1) currentHorizonIndex = totalHorizons - 1;
+
+            // Calculate time remaining in cycle
+            let timeRemainingStr = '--:--:--';
+            if (cycle && cycle.cycle_end) {
+                const cycleEnd = new Date(cycle.cycle_end);
+                const timeRemaining = cycleEnd - new Date();
+                if (timeRemaining > 0) {
+                    const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
+                    const mins = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+                    const secs = Math.floor((timeRemaining % (1000 * 60)) / 1000);
+                    timeRemainingStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                } else {
+                    timeRemainingStr = 'Cycle Complete';
+                }
+            }
+
+            // Build cycle progress segments
+            let segmentsHtml = '';
+            for (let i = 0; i < totalHorizons; i++) {
+                const pred = predictions[i];
+                let segmentClass = 'cycle-segment ';
+                if (i === currentHorizonIndex) {
+                    segmentClass += 'current';
+                } else if (pred.status === 'settled') {
+                    segmentClass += 'settled';
+                } else {
+                    segmentClass += 'pending';
+                }
+                segmentsHtml += `<div class="${segmentClass}" title="Horizon ${i + 1}: ${pred.status}"></div>`;
+            }
+
+            html += `
+                <div class="cycle-info">
+                    <div class="cycle-progress">
+                        <div class="cycle-progress-header">
+                            <span class="cycle-progress-title">Cycle Progress</span>
+                            <span class="cycle-progress-count">${settledCount} / ${totalHorizons} Settled</span>
+                        </div>
+                        <div class="cycle-track">
+                            ${segmentsHtml}
+                        </div>
+                        <div class="cycle-labels">
+                            <span>Block 1 (Outlook)</span>
+                            <span>Block 2 (Continuation)</span>
+                            <span>Block 3 (Persistence)</span>
+                        </div>
+                    </div>
+                    <div class="cycle-time-remaining">
+                        <div class="time">${timeRemainingStr}</div>
+                        <div class="label">Until Cycle Reset</div>
+                    </div>
+                </div>
+            `;
+
+            // Current/Next prediction card
+            if (currentPred) {
+                const predTime = new Date(currentPred.time * 1000);
+                const isNext = currentPred.status === 'pending';
+
+                html += `
+                    <div class="prediction-card ${isNext ? 'highlight' : ''}">
+                        <h3>
+                            ${isNext ? 'Next Prediction' : 'Latest Prediction'}
+                            <span class="badge">${currentPred.blockType}</span>
+                        </h3>
+                        <div class="price-row">
+                            <span class="price-label">
+                                <span class="price-dot high"></span>
+                                High
+                            </span>
+                            <span class="price-value">${formatPrice(currentPred.high)}</span>
+                        </div>
+                        <div class="price-row">
+                            <span class="price-label">
+                                <span class="price-dot mid"></span>
+                                Mid
+                            </span>
+                            <span class="price-value">${formatPrice(currentPred.mid)}</span>
+                        </div>
+                        <div class="price-row">
+                            <span class="price-label">
+                                <span class="price-dot low"></span>
+                                Low
+                            </span>
+                            <span class="price-value">${formatPrice(currentPred.low)}</span>
+                        </div>
+                        <div class="meta-row">
+                            <span>${predTime.toLocaleTimeString()}</span>
+                            <span class="status-badge ${currentPred.status}">${currentPred.status}</span>
+                        </div>
+                        <div class="probability-bar">
+                            <div class="probability-fill" style="width: ${currentPred.probability * 100}%"></div>
+                        </div>
+                        <div class="meta-row" style="border: none; margin-top: 4px; padding-top: 4px;">
+                            <span>Confidence</span>
+                            <span>${(currentPred.probability * 100).toFixed(1)}% • ${currentPred.signal}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // All horizons - grouped by block
+            html += `
+                <div class="prediction-card">
+                    <h3>All Horizons</h3>
+                    <div class="horizons-list">
+            `;
+
+            let currentBlock = 0;
+            const blockNames = ['', 'Outlook', 'Continuation', 'Persistence'];
+
+            for (let i = 0; i < predictions.length; i++) {
+                const pred = predictions[i];
+                const predTime = new Date(pred.time * 1000);
+                const isActive = i === currentHorizonIndex;
+                const isPast = pred.status === 'settled';
+
+                // Add block header if new block
+                if (pred.block !== currentBlock) {
+                    currentBlock = pred.block;
+                    html += `<div style="font-size: 10px; color: #8b949e; padding: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.5px;">Block ${currentBlock}: ${blockNames[currentBlock]}</div>`;
+                }
+
+                html += `
+                    <div class="horizon-item ${isActive ? 'active' : ''}" style="${isPast ? 'opacity: 0.6;' : ''}">
+                        <span class="horizon-time">${predTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                        <span class="horizon-price">${formatPrice(pred.mid)}</span>
+                        <span class="status-badge ${pred.status}">${pred.status === 'settled' ? '✓' : '◯'}</span>
+                    </div>
+                `;
+            }
+
+            html += '</div></div>';
+
+            container.innerHTML = html;
+
+            // Update last updated time
+            document.getElementById('last-updated').textContent = `Updated: ${new Date().toLocaleTimeString()}`;
+        }
+
+        function formatPrice(price) {
+            if (price >= 10000) return price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            if (price >= 1000) return price.toFixed(2);
+            if (price >= 1) return price.toFixed(4);
+            return price.toFixed(6);
+        }
+
+        // ============================================================================
+        // MAIN FUNCTIONS
+        // ============================================================================
+
+        async function loadData() {
+            const container = document.getElementById('predictions-content');
+
+            try {
+                container.innerHTML = `
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <span>Loading data...</span>
+                    </div>
+                `;
+
+                // Fetch in parallel
+                const [klines, dashboard] = await Promise.all([
+                    fetchBinanceKlines(currentSymbol, currentInterval),
+                    fetchCiphexPredictions(currentAssetId),
+                ]);
+
+                // Set candlestick data
+                candlestickSeries.setData(klines);
+
+                // Process predictions
+                allPredictions = extractPredictions(dashboard);
+                console.log(`Loaded ${klines.length} candles, ${allPredictions.length} predictions`);
+
+                // Render prediction lines
+                renderPredictionLines(allPredictions);
+
+                // Set cycle end time for countdown
+                if (dashboard.cycle && dashboard.cycle.cycle_end) {
+                    cycleEndTime = new Date(dashboard.cycle.cycle_end);
+                }
+
+                // Render sidebar
+                renderSidebar(allPredictions, dashboard.cycle);
+
+                // Set visible range to last 24 hours + predictions
+                const nowTimestamp = Math.floor(Date.now() / 1000);
+                const twentyFourHoursAgo = nowTimestamp - (24 * 60 * 60);
+
+                // Find the furthest future prediction
+                const lastPredTime = allPredictions.length > 0
+                    ? Math.max(...allPredictions.map(p => p.time))
+                    : nowTimestamp;
+
+                // Set range from 24h ago to last prediction (or now + 2h if no predictions)
+                const rangeEnd = Math.max(lastPredTime, nowTimestamp) + (2 * 60 * 60); // Add 2h buffer
+
+                chart.timeScale().setVisibleRange({
+                    from: twentyFourHoursAgo,
+                    to: rangeEnd,
+                });
+
+            } catch (error) {
+                console.error('Error loading data:', error);
+                container.innerHTML = `<div class="error">${error.message}</div>`;
+            }
+        }
+
+        function refreshData() {
+            loadData();
+        }
+
+        // Event listeners
+        document.getElementById('symbolSelect').addEventListener('change', (e) => {
+            const option = e.target.selectedOptions[0];
+            currentSymbol = e.target.value;
+            currentAssetId = option.dataset.assetId;
+            loadData();
+        });
+
+        document.getElementById('intervalSelect').addEventListener('change', (e) => {
+            currentInterval = e.target.value;
+            loadData();
+        });
+
+        // Live countdown timer
+        let cycleEndTime = null;
+
+        function updateCountdown() {
+            if (!cycleEndTime) return;
+
+            const now = new Date();
+            const remaining = cycleEndTime - now;
+
+            const timerEl = document.querySelector('.cycle-time-remaining .time');
+            if (!timerEl) return;
+
+            if (remaining <= 0) {
+                timerEl.textContent = 'Cycle Complete';
+                return;
+            }
+
+            const hours = Math.floor(remaining / (1000 * 60 * 60));
+            const mins = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+            const secs = Math.floor((remaining % (1000 * 60)) / 1000);
+            timerEl.textContent = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            loadData();
+
+            // Auto-refresh data every 5 minutes
+            setInterval(loadData, 5 * 60 * 1000);
+
+            // Update countdown every second
+            setInterval(updateCountdown, 1000);
+        });
+    </script>
+</body>
+</html>

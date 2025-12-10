@@ -10,7 +10,7 @@ export async function fetchKlines(
   const url = `${BINANCE_API_URL}/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
 
   const response = await fetch(url, {
-    next: { revalidate: 60 }, // Cache for 1 minute
+    cache: 'no-store', // Don't cache interval-specific data to ensure fresh data on switch
   });
 
   if (!response.ok) {
@@ -29,7 +29,8 @@ export async function fetchKlines(
   }));
 }
 
-// Calculate appropriate limit for a given interval to get ~48 hours of data
+// Calculate appropriate limit for a given interval to get ~6 hours of data
+// Reduced from 48h for faster loading - predictions only show ~2-3h of data anyway
 export function calculateLimit(interval: Interval): number {
   const intervalMinutes: Record<Interval, number> = {
     '1m': 1,
@@ -38,7 +39,8 @@ export function calculateLimit(interval: Interval): number {
     '4h': 240,
   };
   const mins = intervalMinutes[interval];
-  const candlesFor48h = Math.ceil((48 * 60) / mins);
-  // For 1m candles, 48h = 2880 candles, but limit to 1000 (Binance max)
-  return Math.min(candlesFor48h, 1000);
+  // 6 hours = 360 minutes
+  const candlesFor6h = Math.ceil((6 * 60) / mins);
+  // For 1m candles, 6h = 360 candles (much faster than 1000)
+  return Math.min(candlesFor6h, 500);
 }

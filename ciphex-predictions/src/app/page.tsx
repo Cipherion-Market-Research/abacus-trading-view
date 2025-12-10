@@ -64,6 +64,8 @@ export default function Dashboard() {
             predictions={predictions?.allPredictions || []}
             blocks={predictions?.blocks}
             className="w-full h-full"
+            assetType={selectedAsset?.type}
+            interval={selectedInterval}
           />
         </div>
 

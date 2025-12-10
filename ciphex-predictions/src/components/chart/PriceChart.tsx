@@ -16,21 +16,23 @@ import {
 } from 'lightweight-charts';
 import { Candle, Horizon, Block } from '@/types';
 
+// Professional color palette inspired by TradingView and Kraken
+// Uses a cohesive gradient across blocks: Blue → Purple → Teal
 const COLORS = {
-  high: '#58a6ff',
-  mid: '#a371f7',
-  low: '#58a6ff',
+  high: '#2962FF',   // TradingView blue
+  mid: '#7434f3',    // Kraken purple
+  low: '#2962FF',
   background: '#0d1117', // Chart background color for masking
-  candleUp: '#3fb950',
-  candleDown: '#f85149',
-  // Block colors - muted fills for the prediction band
-  block1Fill: 'rgba(63, 185, 80, 0.12)',   // Muted green - Outlook
-  block2Fill: 'rgba(240, 136, 62, 0.12)',  // Muted orange - Continuation
-  block3Fill: 'rgba(163, 113, 247, 0.12)', // Muted purple - Persistence
-  // Block marker colors (solid, for markers)
-  block1: '#3fb950', // Green - Outlook
-  block2: '#f0883e', // Orange - Continuation
-  block3: '#a371f7', // Purple - Persistence
+  candleUp: '#0ECB81',   // TradingView green (vibrant)
+  candleDown: '#F6465D', // TradingView red (vibrant)
+  // Block colors - muted fills for the prediction band (TradingView/Kraken style)
+  block1Fill: 'rgba(41, 98, 255, 0.15)',   // TradingView Blue - Outlook
+  block2Fill: 'rgba(116, 52, 243, 0.15)',  // Kraken Purple - Continuation
+  block3Fill: 'rgba(0, 188, 212, 0.15)',   // Teal/Cyan - Persistence
+  // Block marker/line colors (solid)
+  block1: '#2962FF', // TradingView Blue - Outlook
+  block2: '#7434f3', // Kraken Purple - Continuation
+  block3: '#00BCD4', // Teal/Cyan - Persistence
 };
 
 interface PriceChartProps {
@@ -38,9 +40,46 @@ interface PriceChartProps {
   predictions: Horizon[];
   blocks?: Block[];
   className?: string;
+  assetType?: 'crypto' | 'dex' | 'stock';
+  interval?: '1m' | '15m' | '1h' | '4h';
 }
 
-export function PriceChart({ candles, predictions, blocks, className }: PriceChartProps) {
+// Check if a timestamp falls within Regular Trading Hours (9:30 AM - 4:00 PM ET)
+// RTH in UTC: 14:30 - 21:00 (accounting for EST/EDT would need more logic)
+function isWithinRTH(timestamp: number): boolean {
+  const date = new Date(timestamp * 1000);
+  const utcHours = date.getUTCHours();
+  const utcMinutes = date.getUTCMinutes();
+  const timeInMinutes = utcHours * 60 + utcMinutes;
+
+  // RTH: 14:30 UTC (870 min) to 21:00 UTC (1260 min)
+  // During EST (Nov-Mar): RTH is 14:30-21:00 UTC
+  // During EDT (Mar-Nov): RTH is 13:30-20:00 UTC
+  // For simplicity, we'll use a broader window that covers both: 13:30-21:00 UTC
+  const rthStart = 13 * 60 + 30;  // 13:30 UTC (9:30 AM EDT / 8:30 AM EST)
+  const rthEnd = 21 * 60;          // 21:00 UTC (4:00 PM EST / 5:00 PM EDT)
+
+  return timeInMinutes >= rthStart && timeInMinutes <= rthEnd;
+}
+
+// Map interval strings to seconds
+const INTERVAL_TO_SECONDS: Record<string, number> = {
+  '1m': 60,
+  '15m': 15 * 60,
+  '1h': 60 * 60,
+  '4h': 4 * 60 * 60,
+};
+
+// Bar spacing settings for different intervals (pixels per bar)
+// These values control the visual density of candles on screen
+const INTERVAL_BAR_SPACING: Record<string, { barSpacing: number; minBarSpacing: number }> = {
+  '1m': { barSpacing: 12, minBarSpacing: 8 },   // Original working values
+  '15m': { barSpacing: 12, minBarSpacing: 8 },  // Same density as 1m
+  '1h': { barSpacing: 12, minBarSpacing: 8 },   // Same density as 1m
+  '4h': { barSpacing: 12, minBarSpacing: 8 },   // Same density as 1m
+};
+
+export function PriceChart({ candles, predictions, blocks, className, assetType, interval = '1m' }: PriceChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candlestickSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
@@ -87,8 +126,8 @@ export function PriceChart({ candles, predictions, blocks, className }: PriceCha
         fixLeftEdge: false,
         fixRightEdge: false,
         shiftVisibleRangeOnNewBar: false,
-        barSpacing: 12,
-        minBarSpacing: 8,
+        barSpacing: INTERVAL_BAR_SPACING[interval]?.barSpacing || 12,
+        minBarSpacing: INTERVAL_BAR_SPACING[interval]?.minBarSpacing || 6,
       },
       localization: {
         timeFormatter: (timestamp: number) => {
@@ -103,7 +142,7 @@ export function PriceChart({ candles, predictions, blocks, className }: PriceCha
     // Create 3 pairs of area series for block-colored bands
     // Each block gets a HIGH area (colored fill) and LOW area (background mask)
     const blockFillColors = [COLORS.block1Fill, COLORS.block2Fill, COLORS.block3Fill];
-    const blockLineColors = ['#3fb950', '#f0883e', '#a371f7']; // Matching line colors
+    const blockLineColors = [COLORS.block1, COLORS.block2, COLORS.block3]; // Matching line colors
 
     const highSeries: ISeriesApi<'Area'>[] = [];
     const lowSeries: ISeriesApi<'Area'>[] = [];
@@ -192,7 +231,21 @@ export function PriceChart({ candles, predictions, blocks, className }: PriceCha
     };
   }, []);
 
+  // Update timeScale settings when interval changes (for proper bar spacing)
+  useEffect(() => {
+    if (!chartRef.current) return;
+
+    const spacing = INTERVAL_BAR_SPACING[interval] || { barSpacing: 12, minBarSpacing: 6 };
+    chartRef.current.applyOptions({
+      timeScale: {
+        barSpacing: spacing.barSpacing,
+        minBarSpacing: spacing.minBarSpacing,
+      },
+    });
+  }, [interval]);
+
   // Update candle data - only show candles within the prediction time window
+  // For stocks, additionally filter to RTH (Regular Trading Hours) only
   useEffect(() => {
     if (!candlestickSeriesRef.current || !volumeSeriesRef.current || candles.length === 0) return;
 
@@ -203,6 +256,11 @@ export function PriceChart({ candles, predictions, blocks, className }: PriceCha
       // Show candles from 1 hour before first prediction (for some context)
       const cutoffTime = firstPredTime - 60 * 60;
       filteredCandles = candles.filter((c) => c.time >= cutoffTime);
+    }
+
+    // For stocks, filter to RTH only (9:30 AM - 4:00 PM ET)
+    if (assetType === 'stock') {
+      filteredCandles = filteredCandles.filter((c) => isWithinRTH(c.time));
     }
 
     const candleData: CandlestickData<Time>[] = filteredCandles.map((c) => ({
@@ -224,11 +282,33 @@ export function PriceChart({ candles, predictions, blocks, className }: PriceCha
 
     candlestickSeriesRef.current.setData(candleData);
     volumeSeriesRef.current.setData(volumeData);
-  }, [candles, predictions]);
+  }, [candles, predictions, assetType]);
 
-  // Interpolate between prediction points to create smooth lines
-  // IMPORTANT: Interval must roughly match candle interval to keep candles readable
-  // (lightweight-charts uses the highest-frequency data to set bar width)
+  // Catmull-Rom spline interpolation for smooth curves through all data points
+  // This creates natural-looking curves that pass through each prediction exactly
+  // Uses centripetal Catmull-Rom which is well-behaved and avoids overshooting
+  const catmullRomInterpolate = (
+    p0: number, p1: number, p2: number, p3: number,
+    t: number
+  ): number => {
+    // Standard Catmull-Rom with alpha=0.5 (centripetal)
+    // At t=0 returns p1, at t=1 returns p2
+    const t2 = t * t;
+    const t3 = t2 * t;
+
+    // Catmull-Rom basis matrix coefficients (tau = 0.5)
+    // This formula is normalized so output is between p1 and p2
+    return 0.5 * (
+      (2 * p1) +
+      (-p0 + p2) * t +
+      (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 +
+      (-p0 + 3 * p1 - 3 * p2 + p3) * t3
+    );
+  };
+
+  // Interpolate between prediction points to create smooth curved lines
+  // Uses Catmull-Rom splines for natural, visually appealing curves
+  // CRITICAL: Timestamps must be snapped to candle boundaries to avoid gaps
   const interpolatePredictions = (predictions: Horizon[], key: 'high' | 'low' | 'close'): LineData<Time>[] => {
     if (predictions.length < 2) {
       return predictions.map(p => ({ time: p.time as Time, value: p[key] }));
@@ -236,27 +316,44 @@ export function PriceChart({ candles, predictions, blocks, className }: PriceCha
 
     const sorted = [...predictions].sort((a, b) => a.time - b.time);
     const result: LineData<Time>[] = [];
-    const INTERVAL = 60; // Generate a point every 1 minute (matches 1m candles)
+    const INTERVAL = INTERVAL_TO_SECONDS[interval] || 60; // Match candle interval
+
+    // Snap a timestamp to the nearest candle boundary (floor to interval)
+    const snapToGrid = (timestamp: number): number => {
+      return Math.floor(timestamp / INTERVAL) * INTERVAL;
+    };
 
     for (let i = 0; i < sorted.length - 1; i++) {
       const current = sorted[i];
       const next = sorted[i + 1];
-      const timeDiff = next.time - current.time;
-      const valueDiff = next[key] - current[key];
-      const steps = Math.floor(timeDiff / INTERVAL);
 
-      // Add points from current to just before next
-      for (let step = 0; step < steps; step++) {
-        const t = current.time + step * INTERVAL;
-        const ratio = step / steps;
-        const value = current[key] + valueDiff * ratio;
+      // Snap start and end times to candle grid
+      const startTime = snapToGrid(current.time);
+      const endTime = snapToGrid(next.time);
+      const timeDiff = next.time - current.time; // Use original times for ratio calculation
+
+      // Get the 4 control points for Catmull-Rom spline
+      // For edge cases, extend the boundary points by mirroring the slope
+      const p0 = i > 0 ? sorted[i - 1][key] : current[key] - (next[key] - current[key]);
+      const p1 = current[key];
+      const p2 = next[key];
+      const p3 = i < sorted.length - 2
+        ? sorted[i + 2][key]
+        : next[key] + (next[key] - current[key]);
+
+      // Generate points on the candle grid from startTime to endTime
+      for (let t = startTime; t < endTime; t += INTERVAL) {
+        // Calculate ratio based on where t falls between current and next prediction times
+        const ratio = Math.max(0, Math.min(1, (t - current.time) / timeDiff));
+        const value = catmullRomInterpolate(p0, p1, p2, p3, ratio);
         result.push({ time: t as Time, value });
       }
     }
 
-    // Add the final point
+    // Add the final point (snapped to grid)
     const last = sorted[sorted.length - 1];
-    result.push({ time: last.time as Time, value: last[key] });
+    const lastSnapped = snapToGrid(last.time);
+    result.push({ time: lastSnapped as Time, value: last[key] });
 
     return result;
   };
@@ -293,25 +390,61 @@ export function PriceChart({ candles, predictions, blocks, className }: PriceCha
           return;
         }
 
-        // Get next block's first horizon to extend this block's data to connect
-        const nextBlock = sortedBlocks[index + 1];
+        // Build extended horizons with context from adjacent blocks for smooth transitions
+        // We need points BEFORE and AFTER the block boundaries for Catmull-Rom to calculate proper slopes
         let extendedHorizons = [...blockHorizons];
 
-        if (nextBlock && nextBlock.horizons.length > 0) {
-          // Find the first horizon of next block
-          const nextFirstHorizon = nextBlock.horizons.reduce((min, h) =>
-            h.time < min.time ? h : min, nextBlock.horizons[0]);
-          // Add it to this block's horizons to close the gap
-          extendedHorizons.push(nextFirstHorizon);
+        // Add previous block's last horizon as context (for smooth entry)
+        const prevBlock = index > 0 ? sortedBlocks[index - 1] : null;
+        if (prevBlock && prevBlock.horizons.length > 0) {
+          const prevLastHorizon = prevBlock.horizons.reduce((max, h) =>
+            h.time > max.time ? h : max, prevBlock.horizons[0]);
+          extendedHorizons.unshift(prevLastHorizon);
         }
 
-        // Interpolate this block's predictions (extended to next block start)
+        // Add next block's first TWO horizons as context (for smooth exit)
+        // Two points give Catmull-Rom the trajectory information it needs
+        const nextBlock = sortedBlocks[index + 1];
+        if (nextBlock && nextBlock.horizons.length > 0) {
+          const sortedNextHorizons = [...nextBlock.horizons].sort((a, b) => a.time - b.time);
+          // Add first horizon of next block
+          extendedHorizons.push(sortedNextHorizons[0]);
+          // Add second horizon if available for better trajectory
+          if (sortedNextHorizons.length > 1) {
+            extendedHorizons.push(sortedNextHorizons[1]);
+          }
+        }
+
+        // Interpolate with extended context
         const highData = interpolatePredictions(extendedHorizons, 'high');
         const lowData = interpolatePredictions(extendedHorizons, 'low');
 
-        // Set data for this block's area series
-        blockHighSeriesRef.current[index]?.setData(highData as AreaData<Time>[]);
-        blockLowSeriesRef.current[index]?.setData(lowData as AreaData<Time>[]);
+        // Filter to keep points within THIS block's time range
+        // IMPORTANT: Use snapped boundaries since interpolated points are on the grid
+        const INTERVAL = INTERVAL_TO_SECONDS[interval] || 60;
+        const snapToGrid = (t: number) => Math.floor(t / INTERVAL) * INTERVAL;
+
+        const blockStartRaw = Math.min(...blockHorizons.map(h => h.time));
+        const blockEndRaw = nextBlock && nextBlock.horizons.length > 0
+          ? Math.min(...nextBlock.horizons.map(h => h.time))
+          : Math.max(...blockHorizons.map(h => h.time));
+
+        // Snap boundaries to grid, but be inclusive
+        const blockStart = snapToGrid(blockStartRaw);
+        const blockEnd = snapToGrid(blockEndRaw);
+
+        const filteredHighData = highData.filter(d => {
+          const t = d.time as number;
+          return t >= blockStart && t <= blockEnd;
+        });
+        const filteredLowData = lowData.filter(d => {
+          const t = d.time as number;
+          return t >= blockStart && t <= blockEnd;
+        });
+
+        // Set data for this block's area series (using filtered data for clean block boundaries)
+        blockHighSeriesRef.current[index]?.setData(filteredHighData as AreaData<Time>[]);
+        blockLowSeriesRef.current[index]?.setData(filteredLowData as AreaData<Time>[]);
 
         // Add marker for THIS block's start on THIS block's series
         const firstHorizon = blockHorizons.reduce((min, h) =>
@@ -344,21 +477,35 @@ export function PriceChart({ candles, predictions, blocks, className }: PriceCha
     midLineSeriesRef.current.setData(midData);
   }, [predictions, blocks]);
 
-  // Set visible range - dynamically anchor on current block's start marker
-  // Shows the current block marker on the left side of the chart
+  // Set visible range - anchor current candle in rightmost third of chart
+  // Primary: Current candle visible in rightmost-third
+  // Secondary: Block marker visible on left (if it fits)
   useEffect(() => {
     if (!chartRef.current || candles.length === 0) return;
 
-    setTimeout(() => {
+    // Use requestAnimationFrame for smoother updates instead of setTimeout
+    requestAnimationFrame(() => {
       if (!chartRef.current) return;
 
       const now = Math.floor(Date.now() / 1000);
-      let rangeStart: number;
-      let rangeEnd: number;
+      const lastCandleTime = Math.max(...candles.map((c) => c.time));
+      const currentTime = Math.max(now, lastCandleTime);
 
-      // If we have blocks, find the current block and anchor on its start
+      // Default visible duration based on interval (show more candles for larger intervals)
+      const intervalSeconds = INTERVAL_TO_SECONDS[interval] || 60;
+      // Show roughly 60-100 candles worth of time
+      const defaultDuration = intervalSeconds * 80;
+
+      // Calculate range to put current candle at ~66% (rightmost third)
+      // If currentTime is at 66% of the range, then:
+      // rangeStart + 0.66 * duration = currentTime
+      // rangeStart = currentTime - 0.66 * duration
+      const rightOffset = 0.66;
+      let rangeStart = currentTime - (defaultDuration * rightOffset);
+      let rangeEnd = rangeStart + defaultDuration;
+
+      // Try to include block marker if we have blocks
       if (blocks && blocks.length > 0) {
-        // Build block time ranges (start time of first horizon, end time of last horizon)
         const blockRanges = blocks
           .map((block) => {
             if (block.horizons.length === 0) return null;
@@ -371,15 +518,13 @@ export function PriceChart({ candles, predictions, blocks, className }: PriceCha
           })
           .filter((b): b is NonNullable<typeof b> => b !== null);
 
-        // Sort by start time
         blockRanges.sort((a, b) => a.start - b.start);
 
-        // Find the block we're currently in (now is between start and end)
+        // Find current block
         let currentBlock = blockRanges.find(
           (range) => now >= range.start && now <= range.end
         );
 
-        // If not currently in a block, find the most recent one that has started
         if (!currentBlock) {
           for (let i = blockRanges.length - 1; i >= 0; i--) {
             if (now >= blockRanges[i].start) {
@@ -389,34 +534,53 @@ export function PriceChart({ candles, predictions, blocks, className }: PriceCha
           }
         }
 
-        // If still no block (we're before all blocks), use the first one
         if (!currentBlock && blockRanges.length > 0) {
           currentBlock = blockRanges[0];
         }
 
         if (currentBlock) {
-          // Anchor view so the block start marker is on the left side
-          // Add 30 min buffer before block start to show some candle context
-          const buffer = 30 * 60;
-          rangeStart = currentBlock.start - buffer;
-          // Show 3 hours total from rangeStart
-          rangeEnd = rangeStart + 3 * 60 * 60;
+          const blockStart = currentBlock.start;
+
+          // Check if block marker would be visible with our calculated range
+          if (blockStart >= rangeStart) {
+            // Block marker is visible - great, keep current range
+            // But add a small buffer before block start for context
+            const bufferTime = intervalSeconds * 5;
+            if (blockStart - bufferTime < rangeStart) {
+              rangeStart = blockStart - bufferTime;
+              // Recalculate rangeEnd to maintain the same duration
+              rangeEnd = rangeStart + defaultDuration;
+            }
+          } else {
+            // Block marker is too far left to fit
+            // Option 1: Expand range to include it (may make current candle too small)
+            // Option 2: Keep current candle priority (user's preference)
+            // Going with Option 2: current candle takes priority
+            const blockToCurrentDiff = currentTime - blockStart;
+            const maxExpandRatio = 1.5; // Don't expand more than 1.5x
+
+            if (blockToCurrentDiff <= defaultDuration * maxExpandRatio) {
+              // Block is close enough - expand range to include both
+              const bufferTime = intervalSeconds * 5;
+              rangeStart = blockStart - bufferTime;
+              // Put current candle at ~70% instead of 66% when expanding
+              rangeEnd = currentTime + ((currentTime - rangeStart) * 0.43);
+            }
+            // Otherwise, keep current candle priority (block won't be visible)
+          }
         }
       }
 
-      // Fallback to candle-based positioning if no blocks
-      if (!rangeStart! || !rangeEnd!) {
-        const lastCandleTime = Math.max(...candles.map((c) => c.time));
-        rangeStart = lastCandleTime - 1 * 60 * 60;
-        rangeEnd = lastCandleTime + 2 * 60 * 60;
-      }
+      // Add some future space for predictions
+      const futureBuffer = intervalSeconds * 15;
+      rangeEnd = Math.max(rangeEnd, currentTime + futureBuffer);
 
       chartRef.current.timeScale().setVisibleRange({
         from: rangeStart as Time,
         to: rangeEnd as Time,
       });
-    }, 150);
-  }, [candles, predictions, blocks]);
+    });
+  }, [candles, predictions, blocks, interval]);
 
   return (
     <div className={`relative ${className || ''}`}>
@@ -434,29 +598,29 @@ function ChartLegend() {
       </div>
       <div className="flex items-center gap-2 text-xs mb-1">
         <div
-          className="w-4 h-3 rounded-sm border border-[#3fb950]"
-          style={{ background: COLORS.block1Fill }}
+          className="w-4 h-3 rounded-sm"
+          style={{ background: COLORS.block1Fill, borderColor: COLORS.block1, borderWidth: 1, borderStyle: 'solid' }}
         />
         <span>Outlook</span>
       </div>
       <div className="flex items-center gap-2 text-xs mb-1">
         <div
-          className="w-4 h-3 rounded-sm border border-[#f0883e]"
-          style={{ background: COLORS.block2Fill }}
+          className="w-4 h-3 rounded-sm"
+          style={{ background: COLORS.block2Fill, borderColor: COLORS.block2, borderWidth: 1, borderStyle: 'solid' }}
         />
         <span>Continuation</span>
       </div>
       <div className="flex items-center gap-2 text-xs mb-1">
         <div
-          className="w-4 h-3 rounded-sm border border-[#a371f7]"
-          style={{ background: COLORS.block3Fill }}
+          className="w-4 h-3 rounded-sm"
+          style={{ background: COLORS.block3Fill, borderColor: COLORS.block3, borderWidth: 1, borderStyle: 'solid' }}
         />
         <span>Persistence</span>
       </div>
       <div className="flex items-center gap-2 text-xs mt-2 pt-2 border-t border-[#30363d]">
         <div
           className="w-4 h-0.5 rounded"
-          style={{ background: '#a371f7' }}
+          style={{ background: COLORS.mid }}
         />
         <span className="text-[#8b949e]">Mid Target</span>
       </div>

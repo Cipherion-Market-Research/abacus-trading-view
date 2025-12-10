@@ -30,7 +30,8 @@ export function Sidebar({ predictions, loading, error, onRefresh }: SidebarProps
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
-          onRefresh();
+          // Schedule refresh for next tick to avoid setState during render
+          setTimeout(() => onRefresh(), 0);
           return AUTO_REFRESH_INTERVAL;
         }
         return prev - 1;
