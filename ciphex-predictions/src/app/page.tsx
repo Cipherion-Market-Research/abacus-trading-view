@@ -31,13 +31,16 @@ export default function Dashboard() {
     symbol: selectedAsset?.binanceSymbol || selectedAsset?.databentoSymbol || '',
     interval: selectedInterval,
     assetType: selectedAsset?.type || 'crypto',
-    enableStreaming: selectedAsset?.type === 'stock',
+    enableStreaming: true, // Enable realtime WebSocket for crypto, SSE for stocks
   });
 
   const handleRefresh = useCallback(() => {
     refreshPredictions();
-    refreshPrices();
-  }, [refreshPredictions, refreshPrices]);
+    // Only refresh prices if not streaming (WebSocket provides realtime updates)
+    if (!streaming) {
+      refreshPrices();
+    }
+  }, [refreshPredictions, refreshPrices, streaming]);
 
   const handleAssetChange = useCallback((assetId: string) => {
     setSelectedAssetId(assetId);
@@ -55,6 +58,7 @@ export default function Dashboard() {
         onAssetChange={handleAssetChange}
         onIntervalChange={handleIntervalChange}
         onRefresh={handleRefresh}
+        streaming={streaming}
       />
 
       <div className="flex flex-1 overflow-hidden">

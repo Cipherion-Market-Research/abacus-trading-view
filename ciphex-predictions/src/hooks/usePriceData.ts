@@ -3,6 +3,30 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Candle, Interval } from '@/types';
 
+// Binance WebSocket URL for kline streams
+const BINANCE_WS_URL = 'wss://stream.binance.com:9443/ws';
+
+// Binance kline WebSocket message type
+interface BinanceKlineMessage {
+  e: string; // Event type
+  E: number; // Event time
+  s: string; // Symbol
+  k: {
+    t: number; // Kline start time
+    T: number; // Kline close time
+    s: string; // Symbol
+    i: string; // Interval
+    o: string; // Open price
+    c: string; // Close price
+    h: string; // High price
+    l: string; // Low price
+    v: string; // Base asset volume
+    n: number; // Number of trades
+    x: boolean; // Is this kline closed?
+    q: string; // Quote asset volume
+  };
+}
+
 interface UsePriceDataOptions {
   symbol: string;
   interval: Interval;
@@ -31,6 +55,7 @@ export function usePriceData({
   const [error, setError] = useState<string | null>(null);
   const [streaming, setStreaming] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
   const fetchPrices = useCallback(async () => {
     if (!symbol) return;
@@ -63,8 +88,10 @@ export function usePriceData({
     }
   }, [symbol, interval, assetType, limit]);
 
-  // Initial fetch
+  // Fetch prices on mount and when interval/symbol changes
+  // Clear existing candles first to avoid mixing different interval data
   useEffect(() => {
+    setCandles([]); // Clear old data immediately
     fetchPrices();
   }, [fetchPrices]);
 
@@ -122,6 +149,94 @@ export function usePriceData({
       setStreaming(false);
     };
   }, [enableStreaming, assetType, symbol]);
+
+  // WebSocket streaming for crypto (Binance)
+  useEffect(() => {
+    if (!enableStreaming || (assetType !== 'crypto' && assetType !== 'dex') || !symbol) {
+      return;
+    }
+
+    // Clean up existing connection (don't set streaming to false here -
+    // we're reconnecting immediately, so keep showing "Live" during transition)
+    if (wsRef.current) {
+      wsRef.current.close();
+    }
+
+    // Convert symbol format: "BTCUSDT" -> "btcusdt"
+    const wsSymbol = symbol.toLowerCase();
+    const wsUrl = `${BINANCE_WS_URL}/${wsSymbol}@kline_${interval}`;
+
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
+
+    // Track if this effect has been cleaned up
+    let isCleanedUp = false;
+
+    ws.onopen = () => {
+      if (!isCleanedUp) {
+        setStreaming(true);
+      }
+    };
+
+    ws.onmessage = (event) => {
+      if (isCleanedUp) return;
+
+      try {
+        const message: BinanceKlineMessage = JSON.parse(event.data);
+
+        if (message.e !== 'kline') return;
+
+        const kline = message.k;
+        const candle: Candle = {
+          time: Math.floor(kline.t / 1000), // Convert ms to seconds
+          open: parseFloat(kline.o),
+          high: parseFloat(kline.h),
+          low: parseFloat(kline.l),
+          close: parseFloat(kline.c),
+          volume: parseFloat(kline.v),
+        };
+
+        setCandles((prev) => {
+          if (prev.length === 0) return prev;
+
+          const lastCandle = prev[prev.length - 1];
+
+          if (lastCandle.time === candle.time) {
+            // Update existing candle (still forming)
+            return [...prev.slice(0, -1), candle];
+          } else if (candle.time > lastCandle.time) {
+            // New candle started
+            return [...prev, candle];
+          }
+
+          return prev;
+        });
+      } catch (err) {
+        console.error('Error parsing WebSocket message:', err);
+      }
+    };
+
+    ws.onerror = (event) => {
+      console.error('WebSocket error:', event);
+      if (!isCleanedUp) {
+        setStreaming(false);
+      }
+    };
+
+    ws.onclose = () => {
+      // Only set offline if this wasn't an intentional cleanup (e.g., interval change)
+      if (!isCleanedUp) {
+        setStreaming(false);
+      }
+    };
+
+    return () => {
+      isCleanedUp = true;
+      ws.close();
+      wsRef.current = null;
+      // Don't set streaming to false here - the new effect will set it to true on connect
+    };
+  }, [enableStreaming, assetType, symbol, interval]);
 
   return {
     candles,

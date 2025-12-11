@@ -79,6 +79,16 @@ const INTERVAL_BAR_SPACING: Record<string, { barSpacing: number; minBarSpacing: 
   '4h': { barSpacing: 12, minBarSpacing: 8 },   // Same density as 1m
 };
 
+// Default visible candle window for each interval
+// Defines how many candles to show by default when switching intervals
+// For 15m/1h/4h: 24-hour cycle. For 1m: ~1 hour of data
+const INTERVAL_CANDLE_WINDOW: Record<string, { back: number; forward: number }> = {
+  '1m': { back: 60, forward: 15 },      // 60 candles back (~1h), 15 forward (~15min)
+  '15m': { back: 96, forward: 4 },      // 96 candles back (24h), 4 forward (~1h)
+  '1h': { back: 24, forward: 4 },       // 24 candles back (24h), 4 forward (~4h)
+  '4h': { back: 6, forward: 2 },        // 6 candles back (24h), 2 forward (~8h)
+};
+
 export function PriceChart({ candles, predictions, blocks, className, assetType, interval = '1m' }: PriceChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -88,6 +98,10 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
   const blockHighSeriesRef = useRef<ISeriesApi<'Area'>[]>([]);
   const blockLowSeriesRef = useRef<ISeriesApi<'Area'>[]>([]);
   const midLineSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+  // Track if we've set the initial visible range (to avoid resetting on every candle update)
+  const hasSetInitialRangeRef = useRef<boolean>(false);
+  // Track the last interval to detect changes
+  const lastIntervalRef = useRef<string>(interval);
 
   // Initialize chart
   useEffect(() => {
@@ -247,7 +261,14 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
   // Update candle data - only show candles within the prediction time window
   // For stocks, additionally filter to RTH (Regular Trading Hours) only
   useEffect(() => {
-    if (!candlestickSeriesRef.current || !volumeSeriesRef.current || candles.length === 0) return;
+    if (!candlestickSeriesRef.current || !volumeSeriesRef.current) return;
+
+    // Clear chart when candles array is empty (e.g., during interval switch)
+    if (candles.length === 0) {
+      candlestickSeriesRef.current.setData([]);
+      volumeSeriesRef.current.setData([]);
+      return;
+    }
 
     // If we have predictions, only show candles from the first prediction onwards
     let filteredCandles = candles;
@@ -282,7 +303,7 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
 
     candlestickSeriesRef.current.setData(candleData);
     volumeSeriesRef.current.setData(volumeData);
-  }, [candles, predictions, assetType]);
+  }, [candles, predictions, assetType, interval]);
 
   // Catmull-Rom spline interpolation for smooth curves through all data points
   // This creates natural-looking curves that pass through each prediction exactly
@@ -480,105 +501,84 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
   // Set visible range - anchor current candle in rightmost third of chart
   // Primary: Current candle visible in rightmost-third
   // Secondary: Block marker visible on left (if it fits)
+  // Only runs on initial load or when interval changes (not on every candle update)
   useEffect(() => {
-    if (!chartRef.current || candles.length === 0) return;
+    if (!chartRef.current) return;
+
+    // Check if interval changed to reset the flag (but DON'T update lastIntervalRef yet)
+    const intervalChanged = lastIntervalRef.current !== interval;
+    if (intervalChanged) {
+      hasSetInitialRangeRef.current = false;
+    }
+
+    // Now check if we have data to work with
+    if (candles.length === 0) return;
+
+    // CRITICAL: When interval changes, wait for enough candles before setting range
+    // If we have too few candles, it means we're still loading the new interval's data
+    const candleWindow = INTERVAL_CANDLE_WINDOW[interval] || { back: 60, forward: 15 };
+    const minimumCandles = Math.min(candleWindow.back / 2, 10); // Need at least 50% of target or 10 candles
+    if (intervalChanged && candles.length < minimumCandles) {
+      // Still loading new interval data, skip this run
+      return;
+    }
+
+    // Skip if we've already set the initial range for this interval (user may have panned/zoomed)
+    if (hasSetInitialRangeRef.current) return;
 
     // Use requestAnimationFrame for smoother updates instead of setTimeout
     requestAnimationFrame(() => {
       if (!chartRef.current) return;
 
-      const now = Math.floor(Date.now() / 1000);
-      const lastCandleTime = Math.max(...candles.map((c) => c.time));
-      const currentTime = Math.max(now, lastCandleTime);
+      // CRITICAL: Check interval change again INSIDE requestAnimationFrame
+      // Only update lastIntervalRef AFTER successfully calling resetTimeScale
+      const intervalChanged = lastIntervalRef.current !== interval;
+      if (intervalChanged) {
+        chartRef.current.timeScale().resetTimeScale();
+        lastIntervalRef.current = interval; // Update tracking ref AFTER reset
+      }
 
-      // Default visible duration based on interval (show more candles for larger intervals)
+      // Use candle-based windowing instead of time-based for predictable results
+      const candleWindow = INTERVAL_CANDLE_WINDOW[interval] || { back: 60, forward: 15 };
+
+      // Sort candles by time to ensure correct indexing
+      const sortedCandles = [...candles].sort((a, b) => a.time - b.time);
+
+      // Find the current/latest candle (last in sorted array)
+      const currentIndex = sortedCandles.length - 1;
+
+      // Calculate indices for visible window
+      const startIndex = Math.max(0, currentIndex - candleWindow.back);
+      const endIndex = Math.min(sortedCandles.length - 1, currentIndex + candleWindow.forward);
+
+      // Get timestamps from those indices
+      let rangeStart = sortedCandles[startIndex].time;
+      let rangeEnd = sortedCandles[endIndex].time;
+
+      // Add a small buffer at the end for prediction overlay
       const intervalSeconds = INTERVAL_TO_SECONDS[interval] || 60;
-      // Show roughly 60-100 candles worth of time
-      const defaultDuration = intervalSeconds * 80;
+      rangeEnd += intervalSeconds * 5; // 5 candles worth of buffer
 
-      // Calculate range to put current candle at ~66% (rightmost third)
-      // If currentTime is at 66% of the range, then:
-      // rangeStart + 0.66 * duration = currentTime
-      // rangeStart = currentTime - 0.66 * duration
-      const rightOffset = 0.66;
-      let rangeStart = currentTime - (defaultDuration * rightOffset);
-      let rangeEnd = rangeStart + defaultDuration;
-
-      // Try to include block marker if we have blocks
+      // Try to include the first block marker if it's close
+      // This is a best-effort attempt - we prioritize showing the configured candle count
       if (blocks && blocks.length > 0) {
-        const blockRanges = blocks
-          .map((block) => {
-            if (block.horizons.length === 0) return null;
-            const times = block.horizons.map((h) => h.time);
-            return {
-              start: Math.min(...times),
-              end: Math.max(...times),
-              label: block.label,
-            };
-          })
-          .filter((b): b is NonNullable<typeof b> => b !== null);
-
-        blockRanges.sort((a, b) => a.start - b.start);
-
-        // Find current block
-        let currentBlock = blockRanges.find(
-          (range) => now >= range.start && now <= range.end
-        );
-
-        if (!currentBlock) {
-          for (let i = blockRanges.length - 1; i >= 0; i--) {
-            if (now >= blockRanges[i].start) {
-              currentBlock = blockRanges[i];
-              break;
-            }
-          }
-        }
-
-        if (!currentBlock && blockRanges.length > 0) {
-          currentBlock = blockRanges[0];
-        }
-
-        if (currentBlock) {
-          const blockStart = currentBlock.start;
-
-          // Check if block marker would be visible with our calculated range
-          if (blockStart >= rangeStart) {
-            // Block marker is visible - great, keep current range
-            // But add a small buffer before block start for context
-            const bufferTime = intervalSeconds * 5;
-            if (blockStart - bufferTime < rangeStart) {
-              rangeStart = blockStart - bufferTime;
-              // Recalculate rangeEnd to maintain the same duration
-              rangeEnd = rangeStart + defaultDuration;
-            }
-          } else {
-            // Block marker is too far left to fit
-            // Option 1: Expand range to include it (may make current candle too small)
-            // Option 2: Keep current candle priority (user's preference)
-            // Going with Option 2: current candle takes priority
-            const blockToCurrentDiff = currentTime - blockStart;
-            const maxExpandRatio = 1.5; // Don't expand more than 1.5x
-
-            if (blockToCurrentDiff <= defaultDuration * maxExpandRatio) {
-              // Block is close enough - expand range to include both
-              const bufferTime = intervalSeconds * 5;
-              rangeStart = blockStart - bufferTime;
-              // Put current candle at ~70% instead of 66% when expanding
-              rangeEnd = currentTime + ((currentTime - rangeStart) * 0.43);
-            }
-            // Otherwise, keep current candle priority (block won't be visible)
+        const firstBlock = blocks.find(b => b.horizons.length > 0);
+        if (firstBlock) {
+          const blockStart = Math.min(...firstBlock.horizons.map(h => h.time));
+          // If block marker is just slightly before our range, expand to include it
+          if (blockStart < rangeStart && blockStart > rangeStart - (intervalSeconds * 10)) {
+            rangeStart = blockStart - (intervalSeconds * 2); // Small buffer before block
           }
         }
       }
-
-      // Add some future space for predictions
-      const futureBuffer = intervalSeconds * 15;
-      rangeEnd = Math.max(rangeEnd, currentTime + futureBuffer);
 
       chartRef.current.timeScale().setVisibleRange({
         from: rangeStart as Time,
         to: rangeEnd as Time,
       });
+
+      // Mark that we've set the initial range
+      hasSetInitialRangeRef.current = true;
     });
   }, [candles, predictions, blocks, interval]);
 

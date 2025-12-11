@@ -19,6 +19,7 @@ interface HeaderProps {
   onAssetChange: (assetId: string) => void;
   onIntervalChange: (interval: Interval) => void;
   onRefresh: () => void;
+  streaming?: boolean;
 }
 
 export function Header({
@@ -27,13 +28,26 @@ export function Header({
   onAssetChange,
   onIntervalChange,
   onRefresh,
+  streaming = false,
 }: HeaderProps) {
   return (
     <header className="bg-[#161b22] px-5 py-3 flex items-center justify-between border-b border-[#30363d]">
       <div className="flex items-center gap-2.5">
         <h1 className="text-lg font-semibold text-[#f0f6fc]">Ciphex Predictions</h1>
-        <span className="bg-gradient-to-br from-[#238636] to-[#2ea043] px-2 py-0.5 rounded text-[10px] font-semibold uppercase">
-          Live
+        <span
+          className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${
+            streaming
+              ? 'bg-gradient-to-br from-[#238636] to-[#2ea043]'
+              : 'bg-[#30363d] text-[#8b949e]'
+          }`}
+        >
+          {streaming && (
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+            </span>
+          )}
+          {streaming ? 'Live' : 'Offline'}
         </span>
       </div>
 
