@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   createChart,
   IChartApi,
@@ -15,6 +15,7 @@ import {
   Time,
 } from 'lightweight-charts';
 import { Candle, Horizon, Block } from '@/types';
+import { calculateMACD, calculateEMA } from '@/lib/indicators';
 
 // Professional color palette inspired by TradingView and Kraken
 // Uses a cohesive gradient across blocks: Blue → Purple → Teal
@@ -33,10 +34,16 @@ const COLORS = {
   block1: '#2962FF', // TradingView Blue - Outlook
   block2: '#7434f3', // Kraken Purple - Continuation
   block3: '#00BCD4', // Teal/Cyan - Persistence
+  // Technical indicator colors
+  ema200d: '#FF9800',      // Orange for 200-day EMA (the classic)
+  ema20: '#FFD700',        // Gold/Yellow for 20-period EMA (short-term momentum)
+  macdPositive: '#0ECB81', // Green for bullish histogram
+  macdNegative: '#F6465D', // Red for bearish histogram
 };
 
 interface PriceChartProps {
   candles: Candle[];
+  dailyCandles?: Candle[];
   predictions: Horizon[];
   blocks?: Block[];
   className?: string;
@@ -89,11 +96,18 @@ const INTERVAL_CANDLE_WINDOW: Record<string, { back: number; forward: number }> 
   '4h': { back: 6, forward: 2 },        // 6 candles back (24h), 2 forward (~8h)
 };
 
-export function PriceChart({ candles, predictions, blocks, className, assetType, interval = '1m' }: PriceChartProps) {
+export function PriceChart({ candles, dailyCandles, predictions, blocks, className, assetType, interval = '1m' }: PriceChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candlestickSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
-  const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
+  const macdSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
+  const ema200dPriceLineRef = useRef<ReturnType<ISeriesApi<'Candlestick'>['createPriceLine']> | null>(null);  // 200-day EMA as price line
+  const ema20SeriesRef = useRef<ISeriesApi<'Line'> | null>(null);    // 20-period EMA (current timeframe)
+
+  // State for displaying EMA 200D value in legend and Y-axis indicator
+  const [ema200dValue, setEma200dValue] = useState<number | null>(null);
+  const [ema200dPosition, setEma200dPosition] = useState<'above' | 'below' | 'visible' | null>(null);
+
   // Per-block area series for colored bands (high fills + low masks)
   const blockHighSeriesRef = useRef<ISeriesApi<'Area'>[]>([]);
   const blockLowSeriesRef = useRef<ISeriesApi<'Area'>[]>([]);
@@ -131,6 +145,10 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       },
       rightPriceScale: {
         borderColor: '#30363d',
+        scaleMargins: {
+          top: 0.05,    // 5% margin at top
+          bottom: 0.25, // 25% margin at bottom (room for MACD)
+        },
       },
       timeScale: {
         borderColor: '#30363d',
@@ -194,21 +212,35 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       lastValueVisible: false,
     });
 
-    // Volume histogram - separate price scale at bottom, renders behind everything
-    const volumeSeries = chart.addHistogramSeries({
+    // MACD histogram - separate price scale at bottom, renders behind everything
+    const macdSeries = chart.addHistogramSeries({
       priceFormat: {
-        type: 'volume',
+        type: 'price',
+        precision: 6,
+        minMove: 0.000001,
       },
-      priceScaleId: 'volume',
+      priceScaleId: 'macd',
     });
 
-    // Configure volume price scale (bottom 15% of chart)
-    chart.priceScale('volume').applyOptions({
+    // Configure MACD price scale (bottom 20% of chart)
+    chart.priceScale('macd').applyOptions({
       scaleMargins: {
-        top: 0.85,
+        top: 0.8,
         bottom: 0,
       },
       borderVisible: false,
+    });
+
+    // 200-day EMA is added as a price line (not a series) to avoid affecting auto-scaling
+    // It will be created dynamically when daily candle data is available
+
+    // 20-period EMA line overlay (short-term momentum on current timeframe)
+    const ema20Series = chart.addLineSeries({
+      color: COLORS.ema20,
+      lineWidth: 1,
+      priceLineVisible: false,
+      lastValueVisible: true,
+      title: 'EMA 20',
     });
 
     // Candlestick series - added LAST so it renders on top of prediction band
@@ -223,7 +255,8 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
 
     chartRef.current = chart;
     candlestickSeriesRef.current = candlestickSeries;
-    volumeSeriesRef.current = volumeSeries;
+    macdSeriesRef.current = macdSeries;
+    ema20SeriesRef.current = ema20Series;
     blockHighSeriesRef.current = highSeries;
     blockLowSeriesRef.current = lowSeries;
     midLineSeriesRef.current = midLineSeries;
@@ -261,12 +294,13 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
   // Update candle data - only show candles within the prediction time window
   // For stocks, additionally filter to RTH (Regular Trading Hours) only
   useEffect(() => {
-    if (!candlestickSeriesRef.current || !volumeSeriesRef.current) return;
+    if (!candlestickSeriesRef.current || !macdSeriesRef.current || !ema20SeriesRef.current) return;
 
     // Clear chart when candles array is empty (e.g., during interval switch)
     if (candles.length === 0) {
       candlestickSeriesRef.current.setData([]);
-      volumeSeriesRef.current.setData([]);
+      macdSeriesRef.current.setData([]);
+      ema20SeriesRef.current.setData([]);
       return;
     }
 
@@ -292,18 +326,106 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       close: c.close,
     }));
 
-    // Volume data with colors based on candle direction
-    const volumeData: HistogramData<Time>[] = filteredCandles.map((c) => ({
-      time: c.time as Time,
-      value: c.volume || 0,
-      color: c.close >= c.open
-        ? 'rgba(63, 185, 80, 0.5)'  // Green (up) with transparency
-        : 'rgba(248, 81, 73, 0.5)', // Red (down) with transparency
-    }));
-
     candlestickSeriesRef.current.setData(candleData);
-    volumeSeriesRef.current.setData(volumeData);
+
+    // Calculate MACD (12/26/9) from ALL candles for accurate indicator values
+    const sortedAllCandles = [...candles].sort((a, b) => a.time - b.time);
+    const closesForIndicators = sortedAllCandles.map((c) => ({ time: c.time, close: c.close }));
+
+    // Calculate MACD histogram
+    const macdData = calculateMACD(closesForIndicators, 12, 26, 9);
+    const macdHistogramData: HistogramData<Time>[] = macdData.map((m) => ({
+      time: m.time as Time,
+      value: m.histogram,
+      color: m.histogram >= 0 ? COLORS.macdPositive : COLORS.macdNegative,
+    }));
+    macdSeriesRef.current.setData(macdHistogramData);
+
+    // Calculate 20-period EMA (short-term momentum on current timeframe)
+    const ema20Data = calculateEMA(closesForIndicators, 20);
+    const ema20LineData: LineData<Time>[] = ema20Data.map((e) => ({
+      time: e.time as Time,
+      value: e.value,
+    }));
+    ema20SeriesRef.current.setData(ema20LineData);
   }, [candles, predictions, assetType, interval]);
+
+  // Update 200-day EMA from daily candles as a PRICE LINE (not a series)
+  // Using a price line instead of a line series prevents it from affecting auto-scaling
+  // This is critical because the 200-day EMA can be far from current price
+  useEffect(() => {
+    // Don't add price line if no daily candles
+    if (!dailyCandles || dailyCandles.length === 0) {
+      setEma200dValue(null);
+      return;
+    }
+
+    // Calculate 200-day EMA from daily candles
+    const sortedDailyCandles = [...dailyCandles].sort((a, b) => a.time - b.time);
+    const dailyCloses = sortedDailyCandles.map((c) => ({ time: c.time, close: c.close }));
+
+    const ema200dData = calculateEMA(dailyCloses, 200);
+
+    if (ema200dData.length === 0) {
+      setEma200dValue(null);
+      return;
+    }
+
+    // Get the latest 200-day EMA value and store it for display
+    const lastEmaValue = ema200dData[ema200dData.length - 1].value;
+    setEma200dValue(lastEmaValue);
+
+    // Create price line on candlestick series if available
+    if (!candlestickSeriesRef.current) return;
+
+    // Remove existing price line if any
+    if (ema200dPriceLineRef.current) {
+      candlestickSeriesRef.current.removePriceLine(ema200dPriceLineRef.current);
+      ema200dPriceLineRef.current = null;
+    }
+
+    // Create a price line at the 200-day EMA level
+    // This shows as a horizontal reference line with a label, but doesn't affect scaling
+    const priceLine = candlestickSeriesRef.current.createPriceLine({
+      price: lastEmaValue,
+      color: COLORS.ema200d,
+      lineWidth: 2,
+      lineStyle: LineStyle.Solid,
+      axisLabelVisible: true,
+      title: 'EMA 200D',
+    });
+
+    ema200dPriceLineRef.current = priceLine;
+  }, [dailyCandles]);
+
+  // Determine EMA 200D position relative to visible price range (from candle data)
+  useEffect(() => {
+    if (ema200dValue === null || candles.length === 0) {
+      setEma200dPosition(null);
+      return;
+    }
+
+    // Calculate visible price range from candle data
+    // Include predictions if they extend the range
+    const candleHighs = candles.map(c => c.high);
+    const candleLows = candles.map(c => c.low);
+    const predictionHighs = predictions.map(p => p.high);
+    const predictionLows = predictions.map(p => p.low);
+
+    const maxPrice = Math.max(...candleHighs, ...predictionHighs);
+    const minPrice = Math.min(...candleLows, ...predictionLows);
+
+    // Add some buffer (5%) to account for chart padding
+    const buffer = (maxPrice - minPrice) * 0.05;
+
+    if (ema200dValue > maxPrice + buffer) {
+      setEma200dPosition('above');
+    } else if (ema200dValue < minPrice - buffer) {
+      setEma200dPosition('below');
+    } else {
+      setEma200dPosition('visible');
+    }
+  }, [ema200dValue, candles, predictions]);
 
   // Catmull-Rom spline interpolation for smooth curves through all data points
   // This creates natural-looking curves that pass through each prediction exactly
@@ -582,15 +704,47 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
     });
   }, [candles, predictions, blocks, interval]);
 
+  // Format price for display
+  const formatPrice = (price: number) => {
+    return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
   return (
     <div className={`relative ${className || ''}`}>
       <div ref={containerRef} className="w-full h-full" />
-      <ChartLegend />
+      <ChartLegend ema200dValue={ema200dValue} />
+
+      {/* EMA 200D Y-axis indicator - shows when EMA is off-screen */}
+      {ema200dValue !== null && ema200dPosition === 'above' && (
+        <div
+          className="absolute right-[60px] top-3 flex items-center gap-1 bg-[#FF9800] text-black text-xs font-semibold px-2 py-1 rounded shadow-lg z-20"
+          style={{ borderLeft: '3px solid #FF9800' }}
+        >
+          <span>▲</span>
+          <span>EMA 200D</span>
+          <span>${formatPrice(ema200dValue)}</span>
+        </div>
+      )}
+      {ema200dValue !== null && ema200dPosition === 'below' && (
+        <div
+          className="absolute right-[60px] bottom-[25%] flex items-center gap-1 bg-[#FF9800] text-black text-xs font-semibold px-2 py-1 rounded shadow-lg z-20"
+          style={{ borderLeft: '3px solid #FF9800' }}
+        >
+          <span>▼</span>
+          <span>EMA 200D</span>
+          <span>${formatPrice(ema200dValue)}</span>
+        </div>
+      )}
     </div>
   );
 }
 
-function ChartLegend() {
+function ChartLegend({ ema200dValue }: { ema200dValue: number | null }) {
+  // Format large numbers with commas
+  const formatPrice = (price: number) => {
+    return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
   return (
     <div className="absolute top-3 left-3 bg-[#161b22]/90 border border-[#30363d] rounded-lg px-3.5 py-2.5 backdrop-blur-sm z-10">
       <div className="text-[11px] text-[#8b949e] uppercase tracking-wider mb-2">
@@ -623,6 +777,38 @@ function ChartLegend() {
           style={{ background: COLORS.mid }}
         />
         <span className="text-[#8b949e]">Mid Target</span>
+      </div>
+      <div className="text-[11px] text-[#8b949e] uppercase tracking-wider mt-3 mb-2">
+        Indicators
+      </div>
+      <div className="flex items-center gap-2 text-xs mb-1">
+        <div
+          className="w-4 h-0.5 rounded"
+          style={{ background: COLORS.ema200d }}
+        />
+        <span className="text-[#8b949e]">
+          EMA 200D {ema200dValue !== null && <span className="text-[#FF9800] font-medium">${formatPrice(ema200dValue)}</span>}
+        </span>
+      </div>
+      <div className="flex items-center gap-2 text-xs mb-1">
+        <div
+          className="w-4 h-0.5 rounded"
+          style={{ background: COLORS.ema20 }}
+        />
+        <span className="text-[#8b949e]">EMA 20</span>
+      </div>
+      <div className="flex items-center gap-2 text-xs">
+        <div className="flex gap-0.5">
+          <div
+            className="w-1.5 h-3 rounded-sm"
+            style={{ background: COLORS.macdPositive }}
+          />
+          <div
+            className="w-1.5 h-2 rounded-sm"
+            style={{ background: COLORS.macdNegative }}
+          />
+        </div>
+        <span className="text-[#8b949e]">MACD (12,26,9)</span>
       </div>
     </div>
   );

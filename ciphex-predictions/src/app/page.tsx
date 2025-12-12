@@ -23,6 +23,7 @@ export default function Dashboard() {
 
   const {
     candles,
+    dailyCandles,
     loading: pricesLoading,
     error: pricesError,
     refresh: refreshPrices,
@@ -65,6 +66,7 @@ export default function Dashboard() {
         <div className="flex-1 relative">
           <PriceChart
             candles={candles}
+            dailyCandles={dailyCandles}
             predictions={predictions?.allPredictions || []}
             blocks={predictions?.blocks}
             className="w-full h-full"

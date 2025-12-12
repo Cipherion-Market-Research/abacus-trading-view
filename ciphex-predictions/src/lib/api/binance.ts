@@ -23,10 +23,13 @@ function parseKline(candle: (string | number)[]): Candle {
   };
 }
 
+// Extended interval type for internal use (includes daily for 200-day EMA)
+type ExtendedInterval = Interval | '1d';
+
 // Fetch a single batch of klines from Binance
 async function fetchKlinesBatch(
   symbol: string,
-  interval: Interval,
+  interval: ExtendedInterval,
   limit: number,
   startTime?: number,
   endTime?: number
@@ -118,7 +121,10 @@ export async function fetchKlines(
   return deduped.sort((a, b) => a.time - b.time);
 }
 
-// Calculate appropriate limit for a given interval to get 24 hours of data
+/**
+ * Calculate appropriate limit for a given interval.
+ * Returns 24 hours of data for each interval, with minimum 50 candles for EMA 20 to work.
+ */
 export function calculateLimit(interval: Interval): number {
   const intervalMinutes: Record<Interval, number> = {
     '1m': 1,
@@ -127,8 +133,23 @@ export function calculateLimit(interval: Interval): number {
     '4h': 240,
   };
   const mins = intervalMinutes[interval];
+
   // 24 hours = 1440 minutes
   const candlesFor24h = Math.ceil((24 * 60) / mins);
-  // For 1m: 1440 candles, 15m: 96, 1h: 24, 4h: 6
-  return candlesFor24h;
+
+  // Minimum candles needed for EMA 20 (with buffer for stabilization)
+  const minForEMA20 = 50;
+
+  // Return the larger of: 24h worth of candles OR enough for EMA 20
+  return Math.max(candlesFor24h, minForEMA20);
+}
+
+/**
+ * Fetch daily candles for calculating 200-day EMA.
+ * This is a separate function since daily candles aren't part of the main interval selection.
+ * Fetches 250 daily candles (~250 days) to ensure 200-day EMA has enough data.
+ */
+export async function fetchDailyKlines(symbol: string): Promise<Candle[]> {
+  // Fetch 250 daily candles for 200-day EMA calculation
+  return fetchKlinesBatch(symbol, '1d', 250);
 }
