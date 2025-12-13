@@ -13,4 +13,4 @@ time,low,close,high,probability,signal,direction,status,block,horizon_index
 1765622400000,0.410921,0.4116,0.412279,0.6798,Favorable,Down,settled,3,1
 1765631040000,0.411631,0.412899,0.414172,0.6798,Favorable,Down,settled,3,2
 1765639680000,0.421621,0.423613,0.425613,0.8192,Certain,Down,settled,3,3
-1765648320000,0.412212,0.413801,0.415397,0.6799,Favorable,Down,pending,3,4
+1765648320000,0.41123,0.413553,0.41589,0.6945,Favorable,Down,pending,3,4
