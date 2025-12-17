@@ -1,7 +1,7 @@
 time,low,close,high,probability,signal,direction,status,block,horizon_index
 1765994148000,0.27956,0.2798,0.28004,0.6792,Favorable,Up,settled,1,0
 1765995048000,0.279376,0.2798,0.280225,0.5,Favorable,Up,settled,1,1
-1765996848000,0.2792,0.2798,0.2804,0.5622,Favorable,Up,pending,1,2
+1765996848000,0.2792,0.2798,0.2804,0.5622,Favorable,Up,settled,1,2
 1765999548000,0.279066,0.2798,0.280536,0.5,Favorable,Up,pending,1,3
 1766001060000,0.27925,0.2798,0.28035,0.5374,Favorable,Up,pending,1,4
 1766002500000,0.27901,0.2798,0.280987,0.6813,Favorable,Up,pending,2,0
