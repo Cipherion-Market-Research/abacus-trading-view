@@ -1,6 +1,14 @@
 import { Candle, Interval } from '@/types';
 
-const BINANCE_API_URL = 'https://api.binance.com/api/v3';
+// Binance API endpoints - use fallbacks if main endpoint is blocked
+// api.binance.com is often blocked from US cloud providers
+const BINANCE_API_ENDPOINTS = [
+  'https://api1.binance.com/api/v3',  // Alternative endpoint 1
+  'https://api2.binance.com/api/v3',  // Alternative endpoint 2
+  'https://api3.binance.com/api/v3',  // Alternative endpoint 3
+  'https://api4.binance.com/api/v3',  // Alternative endpoint 4
+  'https://api.binance.com/api/v3',   // Main endpoint (often blocked in US)
+];
 const BINANCE_MAX_LIMIT = 1000;
 
 // Interval durations in milliseconds
@@ -26,7 +34,7 @@ function parseKline(candle: (string | number)[]): Candle {
 // Extended interval type for internal use (includes daily for 200-day EMA)
 type ExtendedInterval = Interval | '1d';
 
-// Fetch a single batch of klines from Binance
+// Fetch a single batch of klines from Binance with endpoint fallback
 async function fetchKlinesBatch(
   symbol: string,
   interval: ExtendedInterval,
@@ -34,25 +42,43 @@ async function fetchKlinesBatch(
   startTime?: number,
   endTime?: number
 ): Promise<Candle[]> {
-  let url = `${BINANCE_API_URL}/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+  let lastError: Error | null = null;
 
-  if (startTime) {
-    url += `&startTime=${startTime}`;
+  // Try each endpoint until one works
+  for (const baseUrl of BINANCE_API_ENDPOINTS) {
+    try {
+      let url = `${baseUrl}/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+
+      if (startTime) {
+        url += `&startTime=${startTime}`;
+      }
+      if (endTime) {
+        url += `&endTime=${endTime}`;
+      }
+
+      const response = await fetch(url, {
+        cache: 'no-store',
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(`Binance API error: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      return data.map(parseKline);
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      // Continue to next endpoint
+      console.warn(`Binance endpoint ${baseUrl} failed:`, lastError.message);
+    }
   }
-  if (endTime) {
-    url += `&endTime=${endTime}`;
-  }
 
-  const response = await fetch(url, {
-    cache: 'no-store',
-  });
-
-  if (!response.ok) {
-    throw new Error(`Binance API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  return data.map(parseKline);
+  // All endpoints failed
+  throw lastError || new Error('All Binance API endpoints failed');
 }
 
 /**
