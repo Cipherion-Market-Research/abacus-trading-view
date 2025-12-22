@@ -11,6 +11,8 @@ import { Interval } from '@/types';
 export default function Dashboard() {
   const [selectedAssetId, setSelectedAssetId] = useState(DEFAULT_ASSET_ID);
   const [selectedInterval, setSelectedInterval] = useState<Interval>('1m');
+  // Key to trigger chart visible range recalculation on refresh/interval change
+  const [chartRefreshKey, setChartRefreshKey] = useState(0);
 
   const selectedAsset = getAssetById(selectedAssetId);
 
@@ -41,6 +43,8 @@ export default function Dashboard() {
     if (!streaming) {
       refreshPrices();
     }
+    // Trigger chart to recalculate visible range and center on current candle
+    setChartRefreshKey((prev) => prev + 1);
   }, [refreshPredictions, refreshPrices, streaming]);
 
   const handleAssetChange = useCallback((assetId: string) => {
@@ -49,7 +53,12 @@ export default function Dashboard() {
 
   const handleIntervalChange = useCallback((interval: Interval) => {
     setSelectedInterval(interval);
-  }, []);
+    // Refresh predictions when changing intervals
+    // NOTE: usePriceData automatically re-fetches prices when interval changes
+    refreshPredictions();
+    // Trigger chart to recalculate visible range after new data loads
+    setChartRefreshKey((prev) => prev + 1);
+  }, [refreshPredictions]);
 
   return (
     <div className="flex flex-col h-screen bg-[#0d1117] text-[#c9d1d9]">
@@ -72,6 +81,7 @@ export default function Dashboard() {
             className="w-full h-full"
             assetType={selectedAsset?.type}
             interval={selectedInterval}
+            refreshKey={chartRefreshKey}
           />
         </div>
 

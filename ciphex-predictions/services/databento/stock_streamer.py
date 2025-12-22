@@ -205,11 +205,14 @@ async def fetch_historical_data():
         log("Fetching historical OHLCV data...")
         client = db.Historical(key=api_key)
 
-        # Fetch last 8 hours of data (with 15min delay)
+        # Fetch from the previous trading day to avoid data availability issues
+        # Markets are delayed by ~15 minutes, and historical data may not be available for current day
         from datetime import timezone
         now = datetime.now(timezone.utc)
-        end = (now - timedelta(minutes=15)).isoformat()
-        start = (now - timedelta(hours=8)).isoformat()
+        
+        # Fetch from 2 days ago to yesterday (to ensure data is available)
+        end = (now - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+        start = (now - timedelta(days=2)).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
 
         log(f"Fetching from {start} to {end}")
 
@@ -241,8 +244,7 @@ async def fetch_historical_data():
 
     except Exception as e:
         log(f"Error fetching historical data: {e}")
-        import traceback
-        traceback.print_exc()
+        log("Skipping historical data, will rely on live stream only")
 
 
 async def start_databento_stream():

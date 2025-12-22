@@ -123,7 +123,10 @@ export async function fetchKlines(
 
 /**
  * Calculate appropriate limit for a given interval.
- * Returns 24 hours of data for each interval, with minimum 50 candles for EMA 20 to work.
+ * Returns enough candles for:
+ * 1. Technical indicators to stabilize (EMA 200 needs 200+ candles, MACD needs 35+)
+ * 2. At least 48 hours of visible history for context
+ * 3. More historical data for larger timeframes to ensure good indicator values
  */
 export function calculateLimit(interval: Interval): number {
   const intervalMinutes: Record<Interval, number> = {
@@ -134,22 +137,67 @@ export function calculateLimit(interval: Interval): number {
   };
   const mins = intervalMinutes[interval];
 
-  // 24 hours = 1440 minutes
-  const candlesFor24h = Math.ceil((24 * 60) / mins);
+  // Minimum candles needed for EMA 200 to be meaningful (with buffer for stabilization)
+  const minForEMA200 = 250;
 
-  // Minimum candles needed for EMA 20 (with buffer for stabilization)
-  const minForEMA20 = 50;
+  // 48 hours of data for good visual context
+  const candlesFor48h = Math.ceil((48 * 60) / mins);
 
-  // Return the larger of: 24h worth of candles OR enough for EMA 20
-  return Math.max(candlesFor24h, minForEMA20);
+  // Return the larger of: 48h worth of candles OR enough for EMA 200
+  return Math.max(candlesFor48h, minForEMA200);
 }
 
 /**
  * Fetch daily candles for calculating 200-day EMA.
  * This is a separate function since daily candles aren't part of the main interval selection.
- * Fetches 250 daily candles (~250 days) to ensure 200-day EMA has enough data.
+ *
+ * IMPORTANT: EMA is recursive and needs ALL available historical data to match TradingView.
+ * TradingView uses the full history from when the pair was listed (e.g., 2017 for BTCUSDT).
+ * We paginate forwards from 2017 to fetch the complete history for accurate EMA calculation.
  */
 export async function fetchDailyKlines(symbol: string): Promise<Candle[]> {
-  // Fetch 250 daily candles for 200-day EMA calculation
-  return fetchKlinesBatch(symbol, '1d', 250);
+  const allCandles: Candle[] = [];
+  const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+  // Start from 2017 (when most Binance pairs were listed) and work forwards
+  // Using Jan 1, 2017 as a safe starting point
+  let startTime = new Date('2017-01-01').getTime();
+  const now = Date.now();
+
+  while (startTime < now) {
+    const batch = await fetchKlinesBatch(symbol, '1d', BINANCE_MAX_LIMIT, startTime, undefined);
+
+    if (batch.length === 0) {
+      break;
+    }
+
+    allCandles.push(...batch);
+
+    // Move startTime to after the last candle we received
+    const lastTime = batch[batch.length - 1].time * 1000;
+    startTime = lastTime + ONE_DAY_MS;
+
+    // If we got fewer than max, we've reached the end
+    if (batch.length < BINANCE_MAX_LIMIT) {
+      break;
+    }
+
+    // Safety limit: don't fetch more than 10 years of data
+    if (allCandles.length > 3650) {
+      break;
+    }
+  }
+
+  // Deduplicate by timestamp (in case of overlapping data)
+  const seen = new Set<number>();
+  const deduped = allCandles.filter((candle) => {
+    if (seen.has(candle.time)) {
+      return false;
+    }
+    seen.add(candle.time);
+    return true;
+  });
+
+  // Sort by time ascending
+  return deduped.sort((a, b) => a.time - b.time);
 }

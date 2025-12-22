@@ -13,9 +13,10 @@ import {
   LineStyle,
   ColorType,
   Time,
+  MouseEventParams,
 } from 'lightweight-charts';
 import { Candle, Horizon, Block } from '@/types';
-import { calculateMACD, calculateEMA } from '@/lib/indicators';
+import { calculateMACD, calculateEMA, compareEMAImplementations } from '@/lib/indicators';
 
 // Professional color palette inspired by TradingView and Kraken
 // Uses a cohesive gradient across blocks: Blue → Purple → Teal
@@ -34,12 +35,32 @@ const COLORS = {
   block1: '#2962FF', // TradingView Blue - Outlook
   block2: '#7434f3', // Kraken Purple - Continuation
   block3: '#00BCD4', // Teal/Cyan - Persistence
-  // Technical indicator colors
-  ema200d: '#FF9800',      // Orange for 200-day EMA (the classic)
-  ema20: '#FFD700',        // Gold/Yellow for 20-period EMA (short-term momentum)
+  // Technical indicator colors (distinct from prediction bands)
+  ema200d: '#FF9800',      // Orange for 200-day EMA (industry standard)
+  ema200: '#B0BEC5',       // Silver/White for 200-period EMA (neutral reference)
+  ema20: '#FF4081',        // Pink for 20-period EMA (short-term momentum)
   macdPositive: '#0ECB81', // Green for bullish histogram
   macdNegative: '#F6465D', // Red for bearish histogram
 };
+
+// Indicator visibility state type
+interface IndicatorVisibility {
+  ema200d: boolean;  // EMA 200 · 1D (daily)
+  ema200: boolean;   // EMA 200 (chart timeframe)
+  ema20: boolean;    // EMA 20
+  macd: boolean;     // MACD histogram
+}
+
+// Default indicator visibility - all visible by default
+const DEFAULT_INDICATOR_VISIBILITY: IndicatorVisibility = {
+  ema200d: true,
+  ema200: true,
+  ema20: true,
+  macd: true,
+};
+
+// localStorage key for persisting preferences
+const INDICATOR_PREFS_KEY = 'ciphex-indicator-visibility';
 
 interface PriceChartProps {
   candles: Candle[];
@@ -49,6 +70,7 @@ interface PriceChartProps {
   className?: string;
   assetType?: 'crypto' | 'dex' | 'stock';
   interval?: '1m' | '15m' | '1h' | '4h';
+  refreshKey?: number;  // Increments to trigger visible range recalculation
 }
 
 // Check if a timestamp falls within Regular Trading Hours (9:30 AM - 4:00 PM ET)
@@ -96,17 +118,61 @@ const INTERVAL_CANDLE_WINDOW: Record<string, { back: number; forward: number }> 
   '4h': { back: 6, forward: 2 },        // 6 candles back (24h), 2 forward (~8h)
 };
 
-export function PriceChart({ candles, dailyCandles, predictions, blocks, className, assetType, interval = '1m' }: PriceChartProps) {
+export function PriceChart({ candles, dailyCandles, predictions, blocks, className, assetType, interval = '1m', refreshKey = 0 }: PriceChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candlestickSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const macdSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
   const ema200dPriceLineRef = useRef<ReturnType<ISeriesApi<'Candlestick'>['createPriceLine']> | null>(null);  // 200-day EMA as price line
+  const ema200SeriesRef = useRef<ISeriesApi<'Line'> | null>(null);   // 200-period EMA (current timeframe)
   const ema20SeriesRef = useRef<ISeriesApi<'Line'> | null>(null);    // 20-period EMA (current timeframe)
 
   // State for displaying EMA 200D value in legend and Y-axis indicator
   const [ema200dValue, setEma200dValue] = useState<number | null>(null);
   const [ema200dPosition, setEma200dPosition] = useState<'above' | 'below' | 'visible' | null>(null);
+
+  // State for crosshair hover - prediction band values
+  const [crosshairBandValues, setCrosshairBandValues] = useState<{
+    high: number | null;
+    low: number | null;
+    mid: number | null;
+    highY: number | null;
+    lowY: number | null;
+    midY: number | null;
+  }>({ high: null, low: null, mid: null, highY: null, lowY: null, midY: null });
+
+  // Refs to store interpolated prediction data for crosshair lookup
+  const interpolatedHighRef = useRef<Map<number, number>>(new Map());
+  const interpolatedLowRef = useRef<Map<number, number>>(new Map());
+  const interpolatedMidRef = useRef<Map<number, number>>(new Map());
+
+  // Indicator visibility state with localStorage persistence
+  const [indicatorVisibility, setIndicatorVisibility] = useState<IndicatorVisibility>(() => {
+    // Initialize from localStorage on client-side only
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(INDICATOR_PREFS_KEY);
+      if (saved) {
+        try {
+          return { ...DEFAULT_INDICATOR_VISIBILITY, ...JSON.parse(saved) };
+        } catch {
+          return DEFAULT_INDICATOR_VISIBILITY;
+        }
+      }
+    }
+    return DEFAULT_INDICATOR_VISIBILITY;
+  });
+
+  // Toggle indicator visibility
+  const toggleIndicator = (indicator: keyof IndicatorVisibility) => {
+    setIndicatorVisibility((prev) => {
+      const updated = { ...prev, [indicator]: !prev[indicator] };
+      // Persist to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(INDICATOR_PREFS_KEY, JSON.stringify(updated));
+      }
+      return updated;
+    });
+  };
 
   // Per-block area series for colored bands (high fills + low masks)
   const blockHighSeriesRef = useRef<ISeriesApi<'Area'>[]>([]);
@@ -116,6 +182,8 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
   const hasSetInitialRangeRef = useRef<boolean>(false);
   // Track the last interval to detect changes
   const lastIntervalRef = useRef<string>(interval);
+  // Track the last refreshKey to detect manual refresh triggers
+  const lastRefreshKeyRef = useRef<number>(refreshKey);
 
   // Initialize chart
   useEffect(() => {
@@ -243,6 +311,15 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       title: 'EMA 20',
     });
 
+    // 200-period EMA line overlay (current timeframe)
+    const ema200Series = chart.addLineSeries({
+      color: COLORS.ema200,
+      lineWidth: 2,
+      priceLineVisible: false,
+      lastValueVisible: true,
+      title: 'EMA 200',
+    });
+
     // Candlestick series - added LAST so it renders on top of prediction band
     const candlestickSeries = chart.addCandlestickSeries({
       upColor: COLORS.candleUp,
@@ -257,6 +334,7 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
     candlestickSeriesRef.current = candlestickSeries;
     macdSeriesRef.current = macdSeries;
     ema20SeriesRef.current = ema20Series;
+    ema200SeriesRef.current = ema200Series;
     blockHighSeriesRef.current = highSeries;
     blockLowSeriesRef.current = lowSeries;
     midLineSeriesRef.current = midLineSeries;
@@ -291,16 +369,74 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
     });
   }, [interval]);
 
+  // Subscribe to crosshair move events for prediction band values on Y-axis
+  useEffect(() => {
+    if (!chartRef.current || !candlestickSeriesRef.current) return;
+
+    const chart = chartRef.current;
+    const series = candlestickSeriesRef.current;
+
+    const handleCrosshairMove = (param: MouseEventParams<Time>) => {
+      if (!param.time || !param.point) {
+        // Mouse left the chart, clear values
+        setCrosshairBandValues({
+          high: null, low: null, mid: null,
+          highY: null, lowY: null, midY: null,
+        });
+        return;
+      }
+
+      // Time can be a number (Unix timestamp) or a BusinessDay object
+      // For our use case with Unix timestamps, we need to handle both
+      const timestamp = typeof param.time === 'number' ? param.time : (param.time as { year: number; month: number; day: number }).year;
+
+      // Look up band values at this timestamp
+      const highValue = interpolatedHighRef.current.get(timestamp);
+      const lowValue = interpolatedLowRef.current.get(timestamp);
+      const midValue = interpolatedMidRef.current.get(timestamp);
+
+      if (highValue === undefined && lowValue === undefined) {
+        // No prediction data at this timestamp
+        setCrosshairBandValues({
+          high: null, low: null, mid: null,
+          highY: null, lowY: null, midY: null,
+        });
+        return;
+      }
+
+      // Convert prices to Y coordinates
+      const highY = highValue !== undefined ? series.priceToCoordinate(highValue) : null;
+      const lowY = lowValue !== undefined ? series.priceToCoordinate(lowValue) : null;
+      const midY = midValue !== undefined ? series.priceToCoordinate(midValue) : null;
+
+      setCrosshairBandValues({
+        high: highValue ?? null,
+        low: lowValue ?? null,
+        mid: midValue ?? null,
+        highY: highY,
+        lowY: lowY,
+        midY: midY,
+      });
+    };
+
+    chart.subscribeCrosshairMove(handleCrosshairMove);
+
+    return () => {
+      chart.unsubscribeCrosshairMove(handleCrosshairMove);
+    };
+  }, []);
+
   // Update candle data - only show candles within the prediction time window
   // For stocks, additionally filter to RTH (Regular Trading Hours) only
   useEffect(() => {
-    if (!candlestickSeriesRef.current || !macdSeriesRef.current || !ema20SeriesRef.current) return;
+    if (!candlestickSeriesRef.current || !macdSeriesRef.current || !ema20SeriesRef.current || !ema200SeriesRef.current) return;
 
     // Clear chart when candles array is empty (e.g., during interval switch)
     if (candles.length === 0) {
       candlestickSeriesRef.current.setData([]);
       macdSeriesRef.current.setData([]);
       ema20SeriesRef.current.setData([]);
+      ema200SeriesRef.current.setData([]);
       return;
     }
 
@@ -328,41 +464,76 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
 
     candlestickSeriesRef.current.setData(candleData);
 
-    // Calculate MACD (12/26/9) from ALL candles for accurate indicator values
+    // Calculate indicators from ALL candles for accurate values
     const sortedAllCandles = [...candles].sort((a, b) => a.time - b.time);
     const closesForIndicators = sortedAllCandles.map((c) => ({ time: c.time, close: c.close }));
 
-    // Calculate MACD histogram
-    const macdData = calculateMACD(closesForIndicators, 12, 26, 9);
-    const macdHistogramData: HistogramData<Time>[] = macdData.map((m) => ({
-      time: m.time as Time,
-      value: m.histogram,
-      color: m.histogram >= 0 ? COLORS.macdPositive : COLORS.macdNegative,
-    }));
-    macdSeriesRef.current.setData(macdHistogramData);
+    // MACD histogram - show/hide based on visibility
+    if (indicatorVisibility.macd) {
+      const macdData = calculateMACD(closesForIndicators, 12, 26, 9);
+      const macdHistogramData: HistogramData<Time>[] = macdData.map((m) => ({
+        time: m.time as Time,
+        value: m.histogram,
+        color: m.histogram >= 0 ? COLORS.macdPositive : COLORS.macdNegative,
+      }));
+      macdSeriesRef.current.setData(macdHistogramData);
+    } else {
+      macdSeriesRef.current.setData([]);
+    }
 
-    // Calculate 20-period EMA (short-term momentum on current timeframe)
-    const ema20Data = calculateEMA(closesForIndicators, 20);
-    const ema20LineData: LineData<Time>[] = ema20Data.map((e) => ({
-      time: e.time as Time,
-      value: e.value,
-    }));
-    ema20SeriesRef.current.setData(ema20LineData);
-  }, [candles, predictions, assetType, interval]);
+    // EMA 20 - show/hide based on visibility
+    if (indicatorVisibility.ema20) {
+      const ema20Data = calculateEMA(closesForIndicators, 20);
+      const ema20LineData: LineData<Time>[] = ema20Data.map((e) => ({
+        time: e.time as Time,
+        value: e.value,
+      }));
+      ema20SeriesRef.current.setData(ema20LineData);
+    } else {
+      ema20SeriesRef.current.setData([]);
+    }
+
+    // EMA 200 (chart timeframe) - show/hide based on visibility
+    if (indicatorVisibility.ema200) {
+      const ema200Data = calculateEMA(closesForIndicators, 200);
+      const ema200LineData: LineData<Time>[] = ema200Data.map((e) => ({
+        time: e.time as Time,
+        value: e.value,
+      }));
+      ema200SeriesRef.current.setData(ema200LineData);
+    } else {
+      ema200SeriesRef.current.setData([]);
+    }
+  }, [candles, predictions, assetType, interval, indicatorVisibility]);
 
   // Update 200-day EMA from daily candles as a PRICE LINE (not a series)
   // Using a price line instead of a line series prevents it from affecting auto-scaling
   // This is critical because the 200-day EMA can be far from current price
   useEffect(() => {
-    // Don't add price line if no daily candles
-    if (!dailyCandles || dailyCandles.length === 0) {
-      setEma200dValue(null);
+    // Remove existing price line first
+    if (candlestickSeriesRef.current && ema200dPriceLineRef.current) {
+      candlestickSeriesRef.current.removePriceLine(ema200dPriceLineRef.current);
+      ema200dPriceLineRef.current = null;
+    }
+
+    // Don't add price line if no daily candles or indicator is hidden
+    if (!dailyCandles || dailyCandles.length === 0 || !indicatorVisibility.ema200d) {
+      if (!indicatorVisibility.ema200d) {
+        // Keep the value for legend display even when hidden
+      } else {
+        setEma200dValue(null);
+      }
       return;
     }
 
     // Calculate 200-day EMA from daily candles
     const sortedDailyCandles = [...dailyCandles].sort((a, b) => a.time - b.time);
     const dailyCloses = sortedDailyCandles.map((c) => ({ time: c.time, close: c.close }));
+
+    // Compare legacy vs library implementations (logs to console) - only once
+    if (dailyCloses.length > 0) {
+      compareEMAImplementations(dailyCloses, 200);
+    }
 
     const ema200dData = calculateEMA(dailyCloses, 200);
 
@@ -375,14 +546,8 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
     const lastEmaValue = ema200dData[ema200dData.length - 1].value;
     setEma200dValue(lastEmaValue);
 
-    // Create price line on candlestick series if available
-    if (!candlestickSeriesRef.current) return;
-
-    // Remove existing price line if any
-    if (ema200dPriceLineRef.current) {
-      candlestickSeriesRef.current.removePriceLine(ema200dPriceLineRef.current);
-      ema200dPriceLineRef.current = null;
-    }
+    // Create price line on candlestick series if available and visible
+    if (!candlestickSeriesRef.current || !indicatorVisibility.ema200d) return;
 
     // Create a price line at the 200-day EMA level
     // This shows as a horizontal reference line with a label, but doesn't affect scaling
@@ -392,11 +557,11 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       lineWidth: 2,
       lineStyle: LineStyle.Solid,
       axisLabelVisible: true,
-      title: 'EMA 200D',
+      title: 'EMA 200 · 1D',
     });
 
     ema200dPriceLineRef.current = priceLine;
-  }, [dailyCandles]);
+  }, [dailyCandles, indicatorVisibility.ema200d]);
 
   // Determine EMA 200D position relative to visible price range (from candle data)
   useEffect(() => {
@@ -618,78 +783,142 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
     // Mid line uses all predictions (continuous dashed line)
     const midData = interpolatePredictions(predictions, 'close');
     midLineSeriesRef.current.setData(midData);
+
+    // Store interpolated data in refs for crosshair lookup
+    // This allows us to efficiently find band values at any hovered timestamp
+    const allHighData = interpolatePredictions(predictions, 'high');
+    const allLowData = interpolatePredictions(predictions, 'low');
+
+    interpolatedHighRef.current.clear();
+    interpolatedLowRef.current.clear();
+    interpolatedMidRef.current.clear();
+
+    allHighData.forEach((d) => {
+      interpolatedHighRef.current.set(d.time as number, d.value);
+    });
+    allLowData.forEach((d) => {
+      interpolatedLowRef.current.set(d.time as number, d.value);
+    });
+    midData.forEach((d) => {
+      interpolatedMidRef.current.set(d.time as number, d.value);
+    });
   }, [predictions, blocks]);
 
-  // Set visible range - anchor current candle in rightmost third of chart
-  // Primary: Current candle visible in rightmost-third
-  // Secondary: Block marker visible on left (if it fits)
-  // Only runs on initial load or when interval changes (not on every candle update)
+  // Set visible range - position current candle based on prediction cycle progress
+  // Early in cycle (predictions mostly future): current candle on LEFT side
+  // Late in cycle (predictions mostly elapsed): current candle on RIGHT side
+  // Runs on initial load, interval changes, or manual refresh
   useEffect(() => {
     if (!chartRef.current) return;
 
-    // Check if interval changed to reset the flag (but DON'T update lastIntervalRef yet)
+    const expectedIntervalSeconds = INTERVAL_TO_SECONDS[interval] || 60;
+
+    // Check if interval changed
     const intervalChanged = lastIntervalRef.current !== interval;
-    if (intervalChanged) {
+
+    // Check if refreshKey changed (manual refresh)
+    const refreshTriggered = lastRefreshKeyRef.current !== refreshKey;
+    if (refreshTriggered) {
+      lastRefreshKeyRef.current = refreshKey;
       hasSetInitialRangeRef.current = false;
     }
 
-    // Now check if we have data to work with
-    if (candles.length === 0) return;
+    // If interval changed, reset everything and wait for new data
+    if (intervalChanged) {
+      hasSetInitialRangeRef.current = false;
+      // Update the ref immediately to prevent re-triggering
+      lastIntervalRef.current = interval;
+      // Reset time scale to clear old interval formatting
+      chartRef.current.timeScale().resetTimeScale();
+    }
 
-    // CRITICAL: When interval changes, wait for enough candles before setting range
-    // If we have too few candles, it means we're still loading the new interval's data
-    const candleWindow = INTERVAL_CANDLE_WINDOW[interval] || { back: 60, forward: 15 };
-    const minimumCandles = Math.min(candleWindow.back / 2, 10); // Need at least 50% of target or 10 candles
-    if (intervalChanged && candles.length < minimumCandles) {
-      // Still loading new interval data, skip this run
+    // Need candle data to proceed
+    if (candles.length < 2) return;
+
+    // CRITICAL: Verify candles match the expected interval before setting range
+    // Check the gap between recent candles to ensure they're the right interval
+    const sortedCandles = [...candles].sort((a, b) => a.time - b.time);
+    const recentGap = sortedCandles[sortedCandles.length - 1].time - sortedCandles[sortedCandles.length - 2].time;
+
+    // Allow some tolerance (0.5x to 2x expected interval) to handle gaps
+    const isCorrectInterval = recentGap >= expectedIntervalSeconds * 0.5 && recentGap <= expectedIntervalSeconds * 2;
+    if (!isCorrectInterval) {
+      // Candles don't match expected interval - still loading or stale data
       return;
     }
 
-    // Skip if we've already set the initial range for this interval (user may have panned/zoomed)
+    // Skip if we've already set the range for this data (preserve user pan/zoom)
     if (hasSetInitialRangeRef.current) return;
 
-    // Use requestAnimationFrame for smoother updates instead of setTimeout
-    requestAnimationFrame(() => {
+    // Use setTimeout to ensure chart is ready (requestAnimationFrame wasn't enough)
+    setTimeout(() => {
       if (!chartRef.current) return;
 
-      // CRITICAL: Check interval change again INSIDE requestAnimationFrame
-      // Only update lastIntervalRef AFTER successfully calling resetTimeScale
-      const intervalChanged = lastIntervalRef.current !== interval;
-      if (intervalChanged) {
-        chartRef.current.timeScale().resetTimeScale();
-        lastIntervalRef.current = interval; // Update tracking ref AFTER reset
+      const now = Math.floor(Date.now() / 1000);
+
+      // Calculate prediction cycle progress (0 = start, 1 = end)
+      let cycleProgress = 0.5; // Default to middle if no predictions
+      if (predictions.length > 0) {
+        const predictionTimes = predictions.map(p => p.time);
+        const firstPredTime = Math.min(...predictionTimes);
+        const lastPredTime = Math.max(...predictionTimes);
+        const cycleDuration = lastPredTime - firstPredTime;
+
+        if (cycleDuration > 0) {
+          cycleProgress = Math.max(0, Math.min(1, (now - firstPredTime) / cycleDuration));
+        }
       }
 
-      // Use candle-based windowing instead of time-based for predictable results
+      // Get window configuration for this interval
       const candleWindow = INTERVAL_CANDLE_WINDOW[interval] || { back: 60, forward: 15 };
+      const totalWindowCandles = candleWindow.back + candleWindow.forward;
 
-      // Sort candles by time to ensure correct indexing
-      const sortedCandles = [...candles].sort((a, b) => a.time - b.time);
+      // Calculate position factor: 0.3 (left) to 0.7 (right) based on cycle progress
+      const positionFactor = 0.3 + (cycleProgress * 0.4);
 
-      // Find the current/latest candle (last in sorted array)
-      const currentIndex = sortedCandles.length - 1;
+      // Candles to show before and after current candle
+      const candlesBefore = Math.floor(totalWindowCandles * positionFactor);
+      const candlesAfter = totalWindowCandles - candlesBefore;
+
+      // Find the current candle index (closest to now)
+      let currentIndex = sortedCandles.length - 1;
+      for (let i = sortedCandles.length - 1; i >= 0; i--) {
+        if (sortedCandles[i].time <= now) {
+          currentIndex = i;
+          break;
+        }
+      }
 
       // Calculate indices for visible window
-      const startIndex = Math.max(0, currentIndex - candleWindow.back);
-      const endIndex = Math.min(sortedCandles.length - 1, currentIndex + candleWindow.forward);
+      const startIndex = Math.max(0, currentIndex - candlesBefore);
+      const endIndex = currentIndex + candlesAfter;
 
-      // Get timestamps from those indices
+      // Get timestamps
       let rangeStart = sortedCandles[startIndex].time;
-      let rangeEnd = sortedCandles[endIndex].time;
+      let rangeEnd: number;
 
-      // Add a small buffer at the end for prediction overlay
-      const intervalSeconds = INTERVAL_TO_SECONDS[interval] || 60;
-      rangeEnd += intervalSeconds * 5; // 5 candles worth of buffer
+      if (endIndex < sortedCandles.length) {
+        rangeEnd = sortedCandles[endIndex].time;
+      } else {
+        const lastCandle = sortedCandles[sortedCandles.length - 1];
+        rangeEnd = lastCandle.time + (endIndex - sortedCandles.length + 1) * expectedIntervalSeconds;
+      }
 
-      // Try to include the first block marker if it's close
-      // This is a best-effort attempt - we prioritize showing the configured candle count
+      // Extend to show prediction horizons if visible
+      if (predictions.length > 0) {
+        const lastPredTime = Math.max(...predictions.map(p => p.time));
+        if (lastPredTime > rangeEnd && lastPredTime < rangeEnd + expectedIntervalSeconds * candlesAfter * 2) {
+          rangeEnd = lastPredTime + expectedIntervalSeconds * 2;
+        }
+      }
+
+      // Try to include the first block marker if close
       if (blocks && blocks.length > 0) {
         const firstBlock = blocks.find(b => b.horizons.length > 0);
         if (firstBlock) {
           const blockStart = Math.min(...firstBlock.horizons.map(h => h.time));
-          // If block marker is just slightly before our range, expand to include it
-          if (blockStart < rangeStart && blockStart > rangeStart - (intervalSeconds * 10)) {
-            rangeStart = blockStart - (intervalSeconds * 2); // Small buffer before block
+          if (blockStart < rangeStart && blockStart > rangeStart - (expectedIntervalSeconds * 10)) {
+            rangeStart = blockStart - (expectedIntervalSeconds * 2);
           }
         }
       }
@@ -699,10 +928,9 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
         to: rangeEnd as Time,
       });
 
-      // Mark that we've set the initial range
       hasSetInitialRangeRef.current = true;
-    });
-  }, [candles, predictions, blocks, interval]);
+    }, 100); // Small delay to ensure data is settled
+  }, [candles, predictions, blocks, interval, refreshKey]);
 
   // Format price for display
   const formatPrice = (price: number) => {
@@ -712,7 +940,11 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
   return (
     <div className={`relative ${className || ''}`}>
       <div ref={containerRef} className="w-full h-full" />
-      <ChartLegend ema200dValue={ema200dValue} />
+      <ChartLegend
+        ema200dValue={ema200dValue}
+        visibility={indicatorVisibility}
+        onToggle={toggleIndicator}
+      />
 
       {/* EMA 200D Y-axis indicator - shows when EMA is off-screen */}
       {ema200dValue !== null && ema200dPosition === 'above' && (
@@ -735,14 +967,112 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
           <span>${formatPrice(ema200dValue)}</span>
         </div>
       )}
+
+      {/* Prediction band Y-axis labels on crosshair hover */}
+      {crosshairBandValues.high !== null && crosshairBandValues.highY !== null && (
+        <div
+          className="absolute right-0 px-1.5 py-0.5 text-[11px] font-medium rounded-l pointer-events-none z-30 transition-opacity duration-75"
+          style={{
+            top: crosshairBandValues.highY - 9,
+            backgroundColor: COLORS.high,
+            color: '#ffffff',
+          }}
+        >
+          {formatPrice(crosshairBandValues.high)}
+        </div>
+      )}
+      {crosshairBandValues.low !== null && crosshairBandValues.lowY !== null && (
+        <div
+          className="absolute right-0 px-1.5 py-0.5 text-[11px] font-medium rounded-l pointer-events-none z-30 transition-opacity duration-75"
+          style={{
+            top: crosshairBandValues.lowY - 9,
+            backgroundColor: COLORS.high,
+            color: '#ffffff',
+          }}
+        >
+          {formatPrice(crosshairBandValues.low)}
+        </div>
+      )}
+      {crosshairBandValues.mid !== null && crosshairBandValues.midY !== null && (
+        <div
+          className="absolute right-0 px-1.5 py-0.5 text-[11px] font-medium rounded-l pointer-events-none z-30 transition-opacity duration-75"
+          style={{
+            top: crosshairBandValues.midY - 9,
+            backgroundColor: COLORS.mid,
+            color: '#ffffff',
+          }}
+        >
+          {formatPrice(crosshairBandValues.mid)}
+        </div>
+      )}
     </div>
   );
 }
 
-function ChartLegend({ ema200dValue }: { ema200dValue: number | null }) {
+interface ChartLegendProps {
+  ema200dValue: number | null;
+  visibility: IndicatorVisibility;
+  onToggle: (indicator: keyof IndicatorVisibility) => void;
+}
+
+function ChartLegend({ ema200dValue, visibility, onToggle }: ChartLegendProps) {
   // Format large numbers with commas
   const formatPrice = (price: number) => {
     return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  // Reusable indicator toggle row component
+  const IndicatorRow = ({
+    indicator,
+    color,
+    label,
+    value,
+    isMACD = false,
+  }: {
+    indicator: keyof IndicatorVisibility;
+    color: string;
+    label: string;
+    value?: string;
+    isMACD?: boolean;
+  }) => {
+    const isVisible = visibility[indicator];
+    return (
+      <button
+        onClick={() => onToggle(indicator)}
+        className={`flex flex-col text-xs mb-1 w-full text-left transition-all duration-150 hover:bg-[#21262d] rounded px-1 py-0.5 -mx-1 ${
+          isVisible ? '' : 'opacity-40'
+        }`}
+        title={`Click to ${isVisible ? 'hide' : 'show'} ${label}`}
+      >
+        <div className="flex items-center gap-2">
+          {isMACD ? (
+            <div className="flex gap-0.5">
+              <div
+                className="w-1.5 h-3 rounded-sm transition-opacity"
+                style={{ background: COLORS.macdPositive, opacity: isVisible ? 1 : 0.3 }}
+              />
+              <div
+                className="w-1.5 h-2 rounded-sm transition-opacity"
+                style={{ background: COLORS.macdNegative, opacity: isVisible ? 1 : 0.3 }}
+              />
+            </div>
+          ) : (
+            <div
+              className="w-4 h-0.5 rounded transition-opacity"
+              style={{ background: color, opacity: isVisible ? 1 : 0.3 }}
+            />
+          )}
+          <span className={`text-[#8b949e] ${!isVisible ? 'line-through' : ''}`}>
+            {label}
+          </span>
+        </div>
+        {value && isVisible && (
+          <div className="pl-6 font-medium text-[11px]" style={{ color }}>
+            {value}
+          </div>
+        )}
+      </button>
+    );
   };
 
   return (
@@ -778,38 +1108,36 @@ function ChartLegend({ ema200dValue }: { ema200dValue: number | null }) {
         />
         <span className="text-[#8b949e]">Mid Target</span>
       </div>
+
       <div className="text-[11px] text-[#8b949e] uppercase tracking-wider mt-3 mb-2">
-        Indicators
+        Indicators <span className="text-[10px] normal-case opacity-60">(click to toggle)</span>
       </div>
-      <div className="flex items-center gap-2 text-xs mb-1">
-        <div
-          className="w-4 h-0.5 rounded"
-          style={{ background: COLORS.ema200d }}
-        />
-        <span className="text-[#8b949e]">
-          EMA 200D {ema200dValue !== null && <span className="text-[#FF9800] font-medium">${formatPrice(ema200dValue)}</span>}
-        </span>
-      </div>
-      <div className="flex items-center gap-2 text-xs mb-1">
-        <div
-          className="w-4 h-0.5 rounded"
-          style={{ background: COLORS.ema20 }}
-        />
-        <span className="text-[#8b949e]">EMA 20</span>
-      </div>
-      <div className="flex items-center gap-2 text-xs">
-        <div className="flex gap-0.5">
-          <div
-            className="w-1.5 h-3 rounded-sm"
-            style={{ background: COLORS.macdPositive }}
-          />
-          <div
-            className="w-1.5 h-2 rounded-sm"
-            style={{ background: COLORS.macdNegative }}
-          />
-        </div>
-        <span className="text-[#8b949e]">MACD (12,26,9)</span>
-      </div>
+
+      <IndicatorRow
+        indicator="ema200d"
+        color={COLORS.ema200d}
+        label="EMA 200 · 1D"
+        value={ema200dValue !== null ? `$${formatPrice(ema200dValue)}` : undefined}
+      />
+
+      <IndicatorRow
+        indicator="ema200"
+        color={COLORS.ema200}
+        label="EMA 200"
+      />
+
+      <IndicatorRow
+        indicator="ema20"
+        color={COLORS.ema20}
+        label="EMA 20"
+      />
+
+      <IndicatorRow
+        indicator="macd"
+        color=""
+        label="MACD"
+        isMACD
+      />
     </div>
   );
 }
