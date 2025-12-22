@@ -24,8 +24,9 @@ export async function GET(
     return NextResponse.json(candles);
   } catch (error) {
     console.error('Error fetching crypto prices:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: 'Failed to fetch crypto prices' },
+      { error: 'Failed to fetch crypto prices', details: errorMessage },
       { status: 500 }
     );
   }
