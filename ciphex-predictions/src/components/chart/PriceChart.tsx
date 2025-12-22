@@ -946,8 +946,8 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
         onToggle={toggleIndicator}
       />
 
-      {/* EMA 200D Y-axis indicator - shows when EMA is off-screen */}
-      {ema200dValue !== null && ema200dPosition === 'above' && (
+      {/* EMA 200D Y-axis indicator - shows when EMA is off-screen and indicator is enabled */}
+      {indicatorVisibility.ema200d && ema200dValue !== null && ema200dPosition === 'above' && (
         <div
           className="absolute right-[60px] top-3 flex items-center gap-1 bg-[#FF9800] text-black text-xs font-semibold px-2 py-1 rounded shadow-lg z-20"
           style={{ borderLeft: '3px solid #FF9800' }}
@@ -957,7 +957,7 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
           <span>${formatPrice(ema200dValue)}</span>
         </div>
       )}
-      {ema200dValue !== null && ema200dPosition === 'below' && (
+      {indicatorVisibility.ema200d && ema200dValue !== null && ema200dPosition === 'below' && (
         <div
           className="absolute right-[60px] bottom-[25%] flex items-center gap-1 bg-[#FF9800] text-black text-xs font-semibold px-2 py-1 rounded shadow-lg z-20"
           style={{ borderLeft: '3px solid #FF9800' }}
