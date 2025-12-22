@@ -1,15 +1,14 @@
 import { Candle, Interval } from '@/types';
 
 // Binance API endpoints - use fallbacks if main endpoint is blocked
-// api.binance.com is often blocked from US cloud providers
-// Binance.US is specifically designed for US access
+// Global Binance has better liquidity; Binance.US is fallback for US-based servers
 const BINANCE_API_ENDPOINTS = [
-  'https://api.binance.us/api/v3',    // Binance US (best for US cloud providers)
+  'https://api.binance.com/api/v3',   // Main endpoint (best liquidity)
   'https://api1.binance.com/api/v3',  // Alternative endpoint 1
   'https://api2.binance.com/api/v3',  // Alternative endpoint 2
   'https://api3.binance.com/api/v3',  // Alternative endpoint 3
   'https://api4.binance.com/api/v3',  // Alternative endpoint 4
-  'https://api.binance.com/api/v3',   // Main endpoint (often blocked in US)
+  'https://api.binance.us/api/v3',    // Binance US (fallback for US servers)
 ];
 const BINANCE_MAX_LIMIT = 1000;
 
