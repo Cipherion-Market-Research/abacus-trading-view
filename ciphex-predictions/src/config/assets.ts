@@ -226,20 +226,26 @@ export const ASSETS: Record<string, Asset> = {
   },
 };
 
+// Feature flags for asset types
+// Set to true to enable in production
+const ENABLE_DEX = false;    // DEX tokens (coming soon)
+const ENABLE_STOCKS = false; // Stocks & ETFs (coming soon)
+
 // Group assets by type
 export const ASSET_GROUPS: AssetGroup[] = [
   {
     label: 'Crypto',
     assets: Object.values(ASSETS).filter((a) => a.type === 'crypto'),
   },
-  {
+  // DEX and Stocks are hidden until ready for production
+  ...(ENABLE_DEX ? [{
     label: 'DEX Tokens',
     assets: Object.values(ASSETS).filter((a) => a.type === 'dex'),
-  },
-  {
+  }] : []),
+  ...(ENABLE_STOCKS ? [{
     label: 'Stocks & ETFs',
     assets: Object.values(ASSETS).filter((a) => a.type === 'stock'),
-  },
+  }] : []),
 ];
 
 // Default asset (Bitcoin)
