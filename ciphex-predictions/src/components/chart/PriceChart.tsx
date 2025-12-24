@@ -228,9 +228,15 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
         shiftVisibleRangeOnNewBar: false,
         barSpacing: INTERVAL_BAR_SPACING[interval]?.barSpacing || 12,
         minBarSpacing: INTERVAL_BAR_SPACING[interval]?.minBarSpacing || 6,
+        tickMarkFormatter: (timestamp: number) => {
+          // Format x-axis tick labels in user's local time
+          const date = new Date(timestamp * 1000);
+          return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        },
       },
       localization: {
         timeFormatter: (timestamp: number) => {
+          // Format crosshair/hover tooltip in user's local time
           const date = new Date(timestamp * 1000);
           return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         },
