@@ -800,9 +800,7 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
     });
   }, [predictions, blocks]);
 
-  // Set visible range - position current candle based on prediction cycle progress
-  // Early in cycle (predictions mostly future): current candle on LEFT side
-  // Late in cycle (predictions mostly elapsed): current candle on RIGHT side
+  // Set visible range to show full prediction overlay (Block 1 start to Block 3 end)
   // Runs on initial load, interval changes, or manual refresh
   useEffect(() => {
     if (!chartRef.current) return;
@@ -822,102 +820,41 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
     // If interval changed, reset everything and wait for new data
     if (intervalChanged) {
       hasSetInitialRangeRef.current = false;
-      // Update the ref immediately to prevent re-triggering
       lastIntervalRef.current = interval;
-      // Reset time scale to clear old interval formatting
       chartRef.current.timeScale().resetTimeScale();
     }
 
-    // Need candle data to proceed
-    if (candles.length < 2) return;
+    // Need candle data and predictions to proceed
+    if (candles.length < 2 || predictions.length === 0) return;
 
     // CRITICAL: Verify candles match the expected interval before setting range
-    // Check the gap between recent candles to ensure they're the right interval
     const sortedCandles = [...candles].sort((a, b) => a.time - b.time);
     const recentGap = sortedCandles[sortedCandles.length - 1].time - sortedCandles[sortedCandles.length - 2].time;
 
-    // Allow some tolerance (0.5x to 2x expected interval) to handle gaps
     const isCorrectInterval = recentGap >= expectedIntervalSeconds * 0.5 && recentGap <= expectedIntervalSeconds * 2;
-    if (!isCorrectInterval) {
-      // Candles don't match expected interval - still loading or stale data
-      return;
-    }
+    if (!isCorrectInterval) return;
 
     // Skip if we've already set the range for this data (preserve user pan/zoom)
     if (hasSetInitialRangeRef.current) return;
 
-    // Use setTimeout to ensure chart is ready (requestAnimationFrame wasn't enough)
+    // Use setTimeout to ensure chart is ready
     setTimeout(() => {
       if (!chartRef.current) return;
 
-      const now = Math.floor(Date.now() / 1000);
+      // Calculate visible range to show FULL prediction overlay
+      // Left side: Start of Block 1 (first prediction)
+      // Right side: End of Block 3 (last prediction)
+      const predictionTimes = predictions.map(p => p.time);
+      const firstPredTime = Math.min(...predictionTimes);
+      const lastPredTime = Math.max(...predictionTimes);
 
-      // Calculate prediction cycle progress (0 = start, 1 = end)
-      let cycleProgress = 0.5; // Default to middle if no predictions
-      if (predictions.length > 0) {
-        const predictionTimes = predictions.map(p => p.time);
-        const firstPredTime = Math.min(...predictionTimes);
-        const lastPredTime = Math.max(...predictionTimes);
-        const cycleDuration = lastPredTime - firstPredTime;
+      // Add padding: ~10% of prediction duration on each side for context
+      const predictionDuration = lastPredTime - firstPredTime;
+      const leftPadding = Math.max(predictionDuration * 0.1, expectedIntervalSeconds * 5);
+      const rightPadding = Math.max(predictionDuration * 0.05, expectedIntervalSeconds * 2);
 
-        if (cycleDuration > 0) {
-          cycleProgress = Math.max(0, Math.min(1, (now - firstPredTime) / cycleDuration));
-        }
-      }
-
-      // Get window configuration for this interval
-      const candleWindow = INTERVAL_CANDLE_WINDOW[interval] || { back: 60, forward: 15 };
-      const totalWindowCandles = candleWindow.back + candleWindow.forward;
-
-      // Calculate position factor: 0.3 (left) to 0.7 (right) based on cycle progress
-      const positionFactor = 0.3 + (cycleProgress * 0.4);
-
-      // Candles to show before and after current candle
-      const candlesBefore = Math.floor(totalWindowCandles * positionFactor);
-      const candlesAfter = totalWindowCandles - candlesBefore;
-
-      // Find the current candle index (closest to now)
-      let currentIndex = sortedCandles.length - 1;
-      for (let i = sortedCandles.length - 1; i >= 0; i--) {
-        if (sortedCandles[i].time <= now) {
-          currentIndex = i;
-          break;
-        }
-      }
-
-      // Calculate indices for visible window
-      const startIndex = Math.max(0, currentIndex - candlesBefore);
-      const endIndex = currentIndex + candlesAfter;
-
-      // Get timestamps
-      let rangeStart = sortedCandles[startIndex].time;
-      let rangeEnd: number;
-
-      if (endIndex < sortedCandles.length) {
-        rangeEnd = sortedCandles[endIndex].time;
-      } else {
-        const lastCandle = sortedCandles[sortedCandles.length - 1];
-        rangeEnd = lastCandle.time + (endIndex - sortedCandles.length + 1) * expectedIntervalSeconds;
-      }
-
-      // Extend to show prediction horizons if visible
-      if (predictions.length > 0) {
-        const lastPredTime = Math.max(...predictions.map(p => p.time));
-        if (lastPredTime > rangeEnd && lastPredTime < rangeEnd + expectedIntervalSeconds * candlesAfter * 2) {
-          rangeEnd = lastPredTime + expectedIntervalSeconds * 2;
-        }
-      }
-
-      // Try to include the first block marker if close
-      if (blocks && blocks.length > 0) {
-        const firstBlock = blocks.find(b => b.horizons.length > 0);
-        if (firstBlock) {
-          const blockStart = Math.min(...firstBlock.horizons.map(h => h.time));
-          if (blockStart < rangeStart && blockStart > rangeStart - (expectedIntervalSeconds * 10)) {
-            rangeStart = blockStart - (expectedIntervalSeconds * 2);
-          }
-        }
-      }
+      const rangeStart = firstPredTime - leftPadding;
+      const rangeEnd = lastPredTime + rightPadding;
 
       chartRef.current.timeScale().setVisibleRange({
         from: rangeStart as Time,
@@ -925,7 +862,7 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       });
 
       hasSetInitialRangeRef.current = true;
-    }, 100); // Small delay to ensure data is settled
+    }, 100);
   }, [candles, predictions, blocks, interval, refreshKey]);
 
   // Format price for display
