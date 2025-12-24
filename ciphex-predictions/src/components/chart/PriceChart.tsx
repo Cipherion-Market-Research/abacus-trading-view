@@ -259,10 +259,11 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       });
       highSeries.push(high);
 
-      // LOW area for this block (background mask)
+      // LOW area for this block (transparent fill, only draws the lower boundary line)
+      // Using transparent instead of background color so grid lines remain visible
       const low = chart.addAreaSeries({
-        topColor: COLORS.background,
-        bottomColor: COLORS.background,
+        topColor: 'transparent',
+        bottomColor: 'transparent',
         lineColor: blockLineColors[i],
         lineWidth: 2,
         priceLineVisible: false,
@@ -440,14 +441,9 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       return;
     }
 
-    // If we have predictions, only show candles from the first prediction onwards
+    // Show all candles (no filtering) so they match MACD/EMA data range
+    // The visible range is controlled separately, allowing users to scroll for more history
     let filteredCandles = candles;
-    if (predictions.length > 0) {
-      const firstPredTime = Math.min(...predictions.map((p) => p.time));
-      // Show candles from 1 hour before first prediction (for some context)
-      const cutoffTime = firstPredTime - 60 * 60;
-      filteredCandles = candles.filter((c) => c.time >= cutoffTime);
-    }
 
     // For stocks, filter to RTH only (9:30 AM - 4:00 PM ET)
     if (assetType === 'stock') {

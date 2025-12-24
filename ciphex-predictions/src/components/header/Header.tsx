@@ -77,6 +77,7 @@ export function Header({
           </SelectContent>
         </Select>
 
+{/* Interval selector - hidden for now, keeping code for future use
         <Select
           value={selectedInterval}
           onValueChange={(value) => onIntervalChange(value as Interval)}
@@ -99,6 +100,7 @@ export function Header({
             </SelectItem>
           </SelectContent>
         </Select>
+        */}
 
         <Button
           onClick={onRefresh}

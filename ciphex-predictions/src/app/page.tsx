@@ -10,7 +10,7 @@ import { Interval } from '@/types';
 
 export default function Dashboard() {
   const [selectedAssetId, setSelectedAssetId] = useState(DEFAULT_ASSET_ID);
-  const [selectedInterval, setSelectedInterval] = useState<Interval>('1m');
+  const [selectedInterval, setSelectedInterval] = useState<Interval>('15m');
   // Key to trigger chart visible range recalculation on refresh/interval change
   const [chartRefreshKey, setChartRefreshKey] = useState(0);
 
