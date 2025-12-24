@@ -152,7 +152,7 @@ export async function fetchKlines(
  * Calculate appropriate limit for a given interval.
  * Returns enough candles for:
  * 1. Technical indicators to stabilize (EMA 200 needs 200+ candles, MACD needs 35+)
- * 2. At least 48 hours of visible history for context
+ * 2. Sufficient visible history with EMA 200 line displayed
  * 3. More historical data for larger timeframes to ensure good indicator values
  */
 export function calculateLimit(interval: Interval): number {
@@ -164,14 +164,22 @@ export function calculateLimit(interval: Interval): number {
   };
   const mins = intervalMinutes[interval];
 
-  // Minimum candles needed for EMA 200 to be meaningful (with buffer for stabilization)
-  const minForEMA200 = 250;
+  // EMA 200 warm-up period (first 200 candles don't produce EMA values)
+  const emaWarmup = 200;
 
-  // 48 hours of data for good visual context
-  const candlesFor48h = Math.ceil((48 * 60) / mins);
+  // Desired candles WITH EMA visible (7 days worth for good historical context)
+  const desiredVisibleWithEMA = Math.ceil((7 * 24 * 60) / mins);
 
-  // Return the larger of: 48h worth of candles OR enough for EMA 200
-  return Math.max(candlesFor48h, minForEMA200);
+  // Total candles needed: warm-up + visible history with EMA
+  // Cap at reasonable limits per interval to avoid excessive API calls
+  const maxLimits: Record<Interval, number> = {
+    '1m': 1500,   // ~25 hours total, ~4.5 hours with EMA
+    '15m': 1000,  // ~10 days total, ~5 days with EMA
+    '1h': 1000,   // ~41 days total, ~33 days with EMA
+    '4h': 700,    // ~116 days total, ~83 days with EMA
+  };
+
+  return Math.min(emaWarmup + desiredVisibleWithEMA, maxLimits[interval]);
 }
 
 /**
