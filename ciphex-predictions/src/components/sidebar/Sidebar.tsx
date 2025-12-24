@@ -12,10 +12,11 @@ interface SidebarProps {
   predictions: PredictionData | null;
   loading: boolean;
   error: string | null;
-  onRefresh: () => void;
+  onRefresh: () => void;      // Manual refresh - resets chart view
+  onAutoRefresh: () => void;  // Auto refresh - preserves chart view
 }
 
-export function Sidebar({ predictions, loading, error, onRefresh }: SidebarProps) {
+export function Sidebar({ predictions, loading, error, onRefresh, onAutoRefresh }: SidebarProps) {
   const [lastUpdated, setLastUpdated] = useState<string>('--:--:--');
   const [countdown, setCountdown] = useState<number>(AUTO_REFRESH_INTERVAL);
 
@@ -25,13 +26,14 @@ export function Sidebar({ predictions, loading, error, onRefresh }: SidebarProps
     setCountdown(AUTO_REFRESH_INTERVAL); // Reset countdown on data update
   }, [predictions]);
 
-  // Auto-refresh countdown timer
+  // Auto-refresh countdown timer - uses onAutoRefresh to preserve chart pan/zoom
   useEffect(() => {
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           // Schedule refresh for next tick to avoid setState during render
-          setTimeout(() => onRefresh(), 0);
+          // Use onAutoRefresh to preserve user's chart position
+          setTimeout(() => onAutoRefresh(), 0);
           return AUTO_REFRESH_INTERVAL;
         }
         return prev - 1;
@@ -39,7 +41,7 @@ export function Sidebar({ predictions, loading, error, onRefresh }: SidebarProps
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [onRefresh]);
+  }, [onAutoRefresh]);
 
   // Find next pending prediction
   const nextPred = predictions?.allPredictions.find(

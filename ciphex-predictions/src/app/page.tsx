@@ -37,14 +37,23 @@ export default function Dashboard() {
     enableStreaming: true, // Enable realtime WebSocket for crypto, SSE for stocks
   });
 
+  // Manual refresh - resets chart view to default position
   const handleRefresh = useCallback(() => {
     refreshPredictions();
-    // Only refresh prices if not streaming (WebSocket provides realtime updates)
     if (!streaming) {
       refreshPrices();
     }
     // Trigger chart to recalculate visible range and center on current candle
     setChartRefreshKey((prev) => prev + 1);
+  }, [refreshPredictions, refreshPrices, streaming]);
+
+  // Auto-refresh - only refreshes data, preserves user's chart pan/zoom position
+  const handleAutoRefresh = useCallback(() => {
+    refreshPredictions();
+    if (!streaming) {
+      refreshPrices();
+    }
+    // Do NOT reset chart view - preserve user's pan/zoom position
   }, [refreshPredictions, refreshPrices, streaming]);
 
   const handleAssetChange = useCallback((assetId: string) => {
@@ -90,6 +99,7 @@ export default function Dashboard() {
           loading={predictionsLoading}
           error={predictionsError}
           onRefresh={handleRefresh}
+          onAutoRefresh={handleAutoRefresh}
         />
       </div>
     </div>
