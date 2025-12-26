@@ -50,8 +50,8 @@ export function CycleProgress({ predictions, cycle }: CycleProgressProps) {
   }, [nextPendingPrediction]);
 
   return (
-    <div className="bg-[#21262d] border border-[#30363d] rounded-lg p-3.5 mb-3">
-      <div className="mb-3">
+    <div className="bg-[#21262d] border border-[#30363d] rounded-lg p-3 md:p-3.5 mb-2 md:mb-3">
+      <div className="mb-2 md:mb-3">
         <div className="flex justify-between items-center mb-2">
           <span className="text-[11px] text-[#8b949e] uppercase tracking-wider">
             Cycle Progress
@@ -85,8 +85,8 @@ export function CycleProgress({ predictions, cycle }: CycleProgressProps) {
           <span>Persistence</span>
         </div>
       </div>
-      <div className="text-center p-2.5 bg-[#161b22] rounded-md">
-        <div className="text-xl font-semibold text-[#f0f6fc] font-mono">
+      <div className="text-center p-2 md:p-2.5 bg-[#161b22] rounded-md">
+        <div className="text-lg md:text-xl font-semibold text-[#f0f6fc] font-mono">
           {timeRemaining}
         </div>
         <div className="text-[10px] text-[#8b949e] uppercase mt-0.5">

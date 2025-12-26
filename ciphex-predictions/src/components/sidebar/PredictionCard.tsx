@@ -13,7 +13,7 @@ export function PredictionCard({ prediction, isNext }: PredictionCardProps) {
 
   return (
     <div
-      className={`bg-[#21262d] border rounded-lg p-3.5 mb-2.5 ${
+      className={`bg-[#21262d] border rounded-lg p-3 md:p-3.5 mb-2 md:mb-2.5 ${
         isNext
           ? 'border-[#238636] bg-gradient-to-br from-[rgba(35,134,54,0.1)] to-transparent'
           : 'border-[#30363d]'

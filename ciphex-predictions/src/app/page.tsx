@@ -1,9 +1,13 @@
 'use client';
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Header } from '@/components/header/Header';
+import { MobileHeader } from '@/components/header/MobileHeader';
 import { PriceChart } from '@/components/chart/PriceChart';
 import { Sidebar } from '@/components/sidebar/Sidebar';
+import { SidebarContent } from '@/components/sidebar/SidebarContent';
+import { BottomSheet, SheetState } from '@/components/mobile/BottomSheet';
+import { MobileMenu } from '@/components/mobile/MobileMenu';
 import { usePredictions, usePriceData } from '@/hooks';
 import { DEFAULT_ASSET_ID, getAssetById } from '@/config/assets';
 import { Interval } from '@/types';
@@ -11,8 +15,13 @@ import { Interval } from '@/types';
 export default function Dashboard() {
   const [selectedAssetId, setSelectedAssetId] = useState(DEFAULT_ASSET_ID);
   const [selectedInterval, setSelectedInterval] = useState<Interval>('15m');
-  // Key to trigger chart visible range recalculation on refresh/interval change
   const [chartRefreshKey, setChartRefreshKey] = useState(0);
+
+  // Mobile UI state
+  const [sheetState, setSheetState] = useState<SheetState>('collapsed');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [priceDirection, setPriceDirection] = useState<'up' | 'down' | 'neutral'>('neutral');
+  const prevPriceRef = useRef<number | undefined>(undefined);
 
   const selectedAsset = getAssetById(selectedAssetId);
 
@@ -34,7 +43,7 @@ export default function Dashboard() {
     symbol: selectedAsset?.binanceSymbol || selectedAsset?.databentoSymbol || '',
     interval: selectedInterval,
     assetType: selectedAsset?.type || 'crypto',
-    enableStreaming: true, // Enable realtime WebSocket for crypto, SSE for stocks
+    enableStreaming: true,
   });
 
   // Manual refresh - resets chart view to default position
@@ -43,7 +52,6 @@ export default function Dashboard() {
     if (!streaming) {
       refreshPrices();
     }
-    // Trigger chart to recalculate visible range and center on current candle
     setChartRefreshKey((prev) => prev + 1);
   }, [refreshPredictions, refreshPrices, streaming]);
 
@@ -53,7 +61,6 @@ export default function Dashboard() {
     if (!streaming) {
       refreshPrices();
     }
-    // Do NOT reset chart view - preserve user's pan/zoom position
   }, [refreshPredictions, refreshPrices, streaming]);
 
   const handleAssetChange = useCallback((assetId: string) => {
@@ -62,10 +69,7 @@ export default function Dashboard() {
 
   const handleIntervalChange = useCallback((interval: Interval) => {
     setSelectedInterval(interval);
-    // Refresh predictions when changing intervals
-    // NOTE: usePriceData automatically re-fetches prices when interval changes
     refreshPredictions();
-    // Trigger chart to recalculate visible range after new data loads
     setChartRefreshKey((prev) => prev + 1);
   }, [refreshPredictions]);
 
@@ -74,6 +78,18 @@ export default function Dashboard() {
     if (candles.length === 0) return undefined;
     return candles[candles.length - 1].close;
   }, [candles]);
+
+  // Track price direction
+  useEffect(() => {
+    if (currentPrice !== undefined && prevPriceRef.current !== undefined) {
+      if (currentPrice > prevPriceRef.current) {
+        setPriceDirection('up');
+      } else if (currentPrice < prevPriceRef.current) {
+        setPriceDirection('down');
+      }
+    }
+    prevPriceRef.current = currentPrice;
+  }, [currentPrice]);
 
   // Find the next pending prediction
   const nextPrediction = useMemo(() => {
@@ -100,7 +116,8 @@ export default function Dashboard() {
   }, [currentPrice, nextPrediction, selectedAsset]);
 
   return (
-    <div className="flex flex-col h-screen bg-[#0d1117] text-[#c9d1d9]">
+    <div className="flex flex-col h-dvh md:h-screen bg-[#0d1117] text-[#c9d1d9]">
+      {/* Desktop Header */}
       <Header
         selectedAsset={selectedAsset || null}
         selectedInterval={selectedInterval}
@@ -110,10 +127,24 @@ export default function Dashboard() {
         streaming={streaming}
         currentPrice={currentPrice}
         nextPrediction={nextPrediction}
+        priceDirection={priceDirection}
+        className="hidden md:flex"
       />
 
+      {/* Mobile Header */}
+      <MobileHeader
+        currentPrice={currentPrice}
+        nextPrediction={nextPrediction}
+        streaming={streaming}
+        onMenuOpen={() => setMobileMenuOpen(true)}
+        priceDirection={priceDirection}
+        className="flex md:hidden"
+      />
+
+      {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
-        <div className="flex-1 min-w-0 relative">
+        {/* Chart Area - accounts for bottom sheet on mobile */}
+        <div className="flex-1 min-w-0 relative pb-20 md:pb-0">
           <PriceChart
             candles={candles}
             dailyCandles={dailyCandles}
@@ -126,6 +157,7 @@ export default function Dashboard() {
           />
         </div>
 
+        {/* Desktop Sidebar */}
         <Sidebar
           predictions={predictions}
           loading={predictionsLoading}
@@ -134,6 +166,33 @@ export default function Dashboard() {
           onAutoRefresh={handleAutoRefresh}
         />
       </div>
+
+      {/* Mobile Bottom Sheet */}
+      <BottomSheet
+        state={sheetState}
+        onStateChange={setSheetState}
+        className="md:hidden"
+      >
+        <SidebarContent
+          predictions={predictions}
+          loading={predictionsLoading}
+          error={predictionsError}
+          onRefresh={handleRefresh}
+          onAutoRefresh={handleAutoRefresh}
+          showFooter={true}
+        />
+      </BottomSheet>
+
+      {/* Mobile Menu Overlay */}
+      <MobileMenu
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        selectedAsset={selectedAsset || null}
+        selectedInterval={selectedInterval}
+        onAssetChange={handleAssetChange}
+        onIntervalChange={handleIntervalChange}
+        onRefresh={handleRefresh}
+      />
     </div>
   );
 }

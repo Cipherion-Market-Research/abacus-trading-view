@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Asset, Interval, Horizon } from '@/types';
 import { ASSET_GROUPS } from '@/config/assets';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import {
   Select,
   SelectContent,
@@ -23,6 +24,8 @@ interface HeaderProps {
   streaming?: boolean;
   currentPrice?: number;
   nextPrediction?: Horizon | null;
+  priceDirection?: 'up' | 'down' | 'neutral';
+  className?: string;
 }
 
 export function Header({
@@ -34,44 +37,33 @@ export function Header({
   streaming = false,
   currentPrice,
   nextPrediction,
+  priceDirection = 'neutral',
+  className,
 }: HeaderProps) {
-  // Track price movement direction
-  const prevPriceRef = useRef<number | undefined>(undefined);
-  const [priceDirection, setPriceDirection] = useState<'up' | 'down' | 'neutral'>('neutral');
-
-  // Displayed deviation (updates every 5 seconds)
-  const [displayedDeviation, setDisplayedDeviation] = useState<number | null>(null);
-
   // Calculate percentage deviation from prediction mid price
   const predictionMid = nextPrediction ? (nextPrediction.high + nextPrediction.low) / 2 : null;
   const deviation = currentPrice && predictionMid
     ? ((currentPrice - predictionMid) / predictionMid) * 100
     : null;
 
-  // Update price direction when price changes
-  useEffect(() => {
-    if (currentPrice !== undefined && prevPriceRef.current !== undefined) {
-      if (currentPrice > prevPriceRef.current) {
-        setPriceDirection('up');
-      } else if (currentPrice < prevPriceRef.current) {
-        setPriceDirection('down');
-      }
-      // If equal, keep previous direction
-    }
-    prevPriceRef.current = currentPrice;
-  }, [currentPrice]);
+  // Displayed deviation (updates every 5 seconds)
+  // Initialize to current deviation, then throttle updates via interval
+  const [displayedDeviation, setDisplayedDeviation] = useState<number | null>(deviation);
+  const deviationRef = useRef<number | null>(deviation);
 
-  // Update displayed deviation every 5 seconds
+  // Keep ref in sync with latest deviation value
   useEffect(() => {
-    // Set initial value immediately
-    setDisplayedDeviation(deviation);
+    deviationRef.current = deviation;
+  }, [deviation]);
 
+  // Update displayed deviation every 5 seconds from ref
+  useEffect(() => {
     const interval = setInterval(() => {
-      setDisplayedDeviation(deviation);
+      setDisplayedDeviation(deviationRef.current);
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [deviation]);
+  }, []);
 
   const formatPrice = (price: number) => {
     return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -85,14 +77,14 @@ export function Header({
       : 'text-[#f0f6fc]'; // Neutral/white
 
   return (
-    <header className="bg-[#161b22] px-5 py-3 flex items-center justify-between border-b border-[#30363d]">
+    <header className={cn("bg-[#161b22] px-5 py-3 items-center justify-between border-b border-[#30363d]", className)}>
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2.5">
           <h1 className="text-lg font-semibold text-[#f0f6fc]">Abacus Charts</h1>
           <span
             className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${
               streaming
-                ? 'bg-gradient-to-br from-[#238636] to-[#2ea043]'
+                ? 'bg-linear-to-br from-[#238636] to-[#2ea043]'
                 : 'bg-[#30363d] text-[#8b949e]'
             }`}
           >
@@ -164,7 +156,7 @@ export function Header({
           value={selectedInterval}
           onValueChange={(value) => onIntervalChange(value as Interval)}
         >
-          <SelectTrigger className="w-[80px] bg-[#21262d] border-[#30363d] text-[#c9d1d9]">
+          <SelectTrigger className="w-20 bg-[#21262d] border-[#30363d] text-[#c9d1d9]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-[#21262d] border-[#30363d]">

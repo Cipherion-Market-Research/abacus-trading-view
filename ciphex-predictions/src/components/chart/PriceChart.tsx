@@ -816,11 +816,17 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       const mostRecentCandle = sortedCandles[sortedCandles.length - 1];
       const now = mostRecentCandle.time;
 
+      // Detect mobile viewport
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
       // Determine how many candles to show based on interval
-      // For 15s: show 30 minutes of data (120 candles)
-      // For 1m: show 3 hours of data (180 candles)
-      // For 15m, 1h: show prediction band with 5% buffer
-      const visibleCandleCounts: Record<string, number> = {
+      // Mobile shows fewer candles for better readability
+      const visibleCandleCounts: Record<string, number> = isMobile ? {
+        '15s': 60,   // 15 minutes on mobile (60 x 15s = 900s = 15min)
+        '1m': 90,    // 1.5 hours on mobile (90 x 1m = 5400s = 1.5h)
+        '15m': 24,   // ~6 hours (fallback if no predictions)
+        '1h': 24,    // ~1 day (fallback if no predictions)
+      } : {
         '15s': 120,  // 30 minutes (120 x 15s = 1800s = 30min)
         '1m': 180,   // 3 hours (180 x 1m = 10800s = 3h)
         '15m': 48,   // ~12 hours (fallback if no predictions)
@@ -830,23 +836,83 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       const visibleCandles = visibleCandleCounts[interval] || 60;
 
       // For 15s, 1m: show most recent candle in the middle-third (real-time trading view)
-      // For 15m, 1h: show prediction band with 5% buffer on both sides
+      // For 15m, 1h: show prediction band (desktop) or current block (mobile)
       let rangeStart: number;
       let rangeEnd: number;
 
       const useRealtimeView = interval === '15s' || interval === '1m';
 
       if (predictions.length > 0 && !useRealtimeView) {
-        // Show prediction band with 5% buffer on both sides (for 15m, 1h)
-        const predictionTimes = predictions.map(p => p.time);
-        const firstPredTime = Math.min(...predictionTimes);
-        const lastPredTime = Math.max(...predictionTimes);
-        const predictionDuration = lastPredTime - firstPredTime;
+        if (isMobile && blocks && blocks.length > 0) {
+          // Mobile 15m/1h: Show current block based on which block we're in
+          // Find current block (the one containing the first pending prediction or most recent)
+          const nowTimestamp = Date.now() / 1000;
+          let currentBlockIndex = 0;
 
-        // 5% buffer on both sides of the prediction band
-        const buffer = predictionDuration * 0.05;
-        rangeStart = firstPredTime - buffer;
-        rangeEnd = lastPredTime + buffer;
+          // Sort blocks by their first horizon time
+          const sortedBlocks = [...blocks].sort((a, b) => {
+            const aTime = a.horizons.length > 0 ? Math.min(...a.horizons.map(h => h.time)) : Infinity;
+            const bTime = b.horizons.length > 0 ? Math.min(...b.horizons.map(h => h.time)) : Infinity;
+            return aTime - bTime;
+          });
+
+          // Find which block we're currently in (has pending predictions)
+          for (let i = 0; i < sortedBlocks.length; i++) {
+            const block = sortedBlocks[i];
+            const hasPending = block.horizons.some(h => h.status === 'pending');
+            if (hasPending) {
+              currentBlockIndex = i;
+              break;
+            }
+            // If no pending found, we're past this block, check next
+            if (i === sortedBlocks.length - 1) {
+              currentBlockIndex = i; // Last block
+            }
+          }
+
+          const currentBlock = sortedBlocks[currentBlockIndex];
+          if (currentBlock && currentBlock.horizons.length > 0) {
+            const blockTimes = currentBlock.horizons.map(h => h.time);
+            const blockStart = Math.min(...blockTimes);
+            const blockEnd = Math.max(...blockTimes);
+            const blockDuration = blockEnd - blockStart;
+
+            if (currentBlockIndex === 0) {
+              // Block 1 (Outlook): Show full block start to end
+              const buffer = blockDuration * 0.05;
+              rangeStart = blockStart - buffer;
+              rangeEnd = blockEnd + buffer;
+            } else {
+              // Block 2 or 3 (Continuation/Persistence): Show half of block length
+              // Center on current time or first pending prediction
+              const firstPending = currentBlock.horizons.find(h => h.status === 'pending');
+              const centerTime = firstPending ? firstPending.time : nowTimestamp;
+              const halfDuration = blockDuration / 2;
+              rangeStart = centerTime - halfDuration / 2;
+              rangeEnd = centerTime + halfDuration / 2;
+            }
+          } else {
+            // Fallback: show all predictions
+            const predictionTimes = predictions.map(p => p.time);
+            const firstPredTime = Math.min(...predictionTimes);
+            const lastPredTime = Math.max(...predictionTimes);
+            const predictionDuration = lastPredTime - firstPredTime;
+            const buffer = predictionDuration * 0.05;
+            rangeStart = firstPredTime - buffer;
+            rangeEnd = lastPredTime + buffer;
+          }
+        } else {
+          // Desktop 15m/1h: Show prediction band with 5% buffer on both sides
+          const predictionTimes = predictions.map(p => p.time);
+          const firstPredTime = Math.min(...predictionTimes);
+          const lastPredTime = Math.max(...predictionTimes);
+          const predictionDuration = lastPredTime - firstPredTime;
+
+          // 5% buffer on both sides of the prediction band
+          const buffer = predictionDuration * 0.05;
+          rangeStart = firstPredTime - buffer;
+          rangeEnd = lastPredTime + buffer;
+        }
       } else {
         // For 15s, 1m: show most recent candle in the middle-third
         // This gives space on the right for incoming candles
@@ -1008,78 +1074,203 @@ interface ChartLegendProps {
 }
 
 function ChartLegend({ ema200dValue, visibility, onToggle }: ChartLegendProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   // Format large numbers with commas
   const formatPrice = (price: number) => {
     return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
+  // Count active indicators for badge
+  const activeCount = Object.values(visibility).filter(Boolean).length;
+
   return (
-    <div className="absolute top-3 left-3 bg-[#161b22]/90 border border-[#30363d] rounded-lg px-3.5 py-2.5 backdrop-blur-sm z-10">
-      <div className="text-[11px] text-[#8b949e] uppercase tracking-wider mb-2">
-        Prediction Bands
-      </div>
-      <div className="flex items-center gap-2 text-xs mb-1">
+    <>
+      {/* Mobile: Collapsed compact legend (default) */}
+      <button
+        onClick={() => setIsExpanded(true)}
+        className="md:hidden absolute top-2 left-2 bg-[#161b22]/90 border border-[#30363d] rounded-lg px-2.5 py-1.5 backdrop-blur-sm z-10 flex items-center gap-2"
+      >
+        {/* Prediction band colors */}
+        <div className="flex gap-1">
+          <div className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.block1, opacity: 0.8 }} />
+          <div className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.block2, opacity: 0.8 }} />
+          <div className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.block3, opacity: 0.8 }} />
+        </div>
+        <span className="text-[10px] text-[#8b949e]">Legend</span>
+        {activeCount < 4 && (
+          <span className="text-[9px] bg-[#30363d] text-[#8b949e] px-1 rounded">{activeCount}/4</span>
+        )}
+      </button>
+
+      {/* Mobile: Expanded overlay */}
+      {isExpanded && (
         <div
-          className="w-4 h-3 rounded-sm"
-          style={{ background: COLORS.block1Fill, borderColor: COLORS.block1, borderWidth: 1, borderStyle: 'solid' }}
+          className="md:hidden fixed inset-0 z-50 flex items-start justify-start pt-12 pl-2"
+          onClick={() => setIsExpanded(false)}
+        >
+          <div
+            className="bg-[#161b22] border border-[#30363d] rounded-lg px-3 py-2.5 shadow-xl max-w-[200px]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] text-[#8b949e] uppercase tracking-wider">Legend</span>
+              <button
+                onClick={() => setIsExpanded(false)}
+                className="text-[#8b949e] hover:text-[#f0f6fc] text-sm px-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Compact prediction bands */}
+            <div className="flex items-center gap-3 text-[10px] mb-2 pb-2 border-b border-[#30363d]">
+              <div className="flex items-center gap-1">
+                <div className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.block1 }} />
+                <span className="text-[#8b949e]">Out</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.block2 }} />
+                <span className="text-[#8b949e]">Con</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.block3 }} />
+                <span className="text-[#8b949e]">Per</span>
+              </div>
+            </div>
+
+            {/* Indicator toggles - compact mobile version */}
+            <div className="space-y-1">
+              <MobileIndicatorRow
+                color={COLORS.ema200d}
+                label="EMA 200D"
+                isVisible={visibility.ema200d}
+                onToggle={() => onToggle('ema200d')}
+              />
+              <MobileIndicatorRow
+                color={COLORS.ema200}
+                label="EMA 200"
+                isVisible={visibility.ema200}
+                onToggle={() => onToggle('ema200')}
+              />
+              <MobileIndicatorRow
+                color={COLORS.ema20}
+                label="EMA 20"
+                isVisible={visibility.ema20}
+                onToggle={() => onToggle('ema20')}
+              />
+              <MobileIndicatorRow
+                color={COLORS.macdPositive}
+                label="MACD"
+                isVisible={visibility.macd}
+                onToggle={() => onToggle('macd')}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Desktop: Full legend (always visible) */}
+      <div className="hidden md:block absolute top-3 left-3 bg-[#161b22]/90 border border-[#30363d] rounded-lg px-3.5 py-2.5 backdrop-blur-sm z-10">
+        <div className="text-[11px] text-[#8b949e] uppercase tracking-wider mb-2">
+          Prediction Bands
+        </div>
+        <div className="flex items-center gap-2 text-xs mb-1">
+          <div
+            className="w-4 h-3 rounded-sm"
+            style={{ background: COLORS.block1Fill, borderColor: COLORS.block1, borderWidth: 1, borderStyle: 'solid' }}
+          />
+          <span>Outlook</span>
+        </div>
+        <div className="flex items-center gap-2 text-xs mb-1">
+          <div
+            className="w-4 h-3 rounded-sm"
+            style={{ background: COLORS.block2Fill, borderColor: COLORS.block2, borderWidth: 1, borderStyle: 'solid' }}
+          />
+          <span>Continuation</span>
+        </div>
+        <div className="flex items-center gap-2 text-xs mb-1">
+          <div
+            className="w-4 h-3 rounded-sm"
+            style={{ background: COLORS.block3Fill, borderColor: COLORS.block3, borderWidth: 1, borderStyle: 'solid' }}
+          />
+          <span>Persistence</span>
+        </div>
+        <div className="flex items-center gap-2 text-xs mt-2 pt-2 border-t border-[#30363d]">
+          <div
+            className="w-4 h-0.5 rounded"
+            style={{ background: COLORS.mid }}
+          />
+          <span className="text-[#8b949e]">Mid Target</span>
+        </div>
+
+        <div className="text-[11px] text-[#8b949e] uppercase tracking-wider mt-3 mb-2">
+          Indicators <span className="text-[10px] normal-case opacity-60">(click to toggle)</span>
+        </div>
+
+        <IndicatorRow
+          color={COLORS.ema200d}
+          label="EMA 200 · 1D"
+          value={ema200dValue !== null ? `$${formatPrice(ema200dValue)}` : undefined}
+          isVisible={visibility.ema200d}
+          onToggle={() => onToggle('ema200d')}
         />
-        <span>Outlook</span>
+
+        <IndicatorRow
+          color={COLORS.ema200}
+          label="EMA 200"
+          isVisible={visibility.ema200}
+          onToggle={() => onToggle('ema200')}
+        />
+
+        <IndicatorRow
+          color={COLORS.ema20}
+          label="EMA 20"
+          isVisible={visibility.ema20}
+          onToggle={() => onToggle('ema20')}
+        />
+
+        <IndicatorRow
+          color=""
+          label="MACD"
+          isMACD
+          isVisible={visibility.macd}
+          onToggle={() => onToggle('macd')}
+        />
       </div>
-      <div className="flex items-center gap-2 text-xs mb-1">
+    </>
+  );
+}
+
+// Compact mobile indicator toggle
+function MobileIndicatorRow({
+  color,
+  label,
+  isVisible,
+  onToggle,
+}: {
+  color: string;
+  label: string;
+  isVisible: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      onClick={onToggle}
+      className={`flex items-center justify-between w-full text-[11px] py-1 px-1 rounded transition-all ${
+        isVisible ? 'bg-[#21262d]' : 'opacity-50'
+      }`}
+    >
+      <div className="flex items-center gap-1.5">
         <div
-          className="w-4 h-3 rounded-sm"
-          style={{ background: COLORS.block2Fill, borderColor: COLORS.block2, borderWidth: 1, borderStyle: 'solid' }}
+          className="w-3 h-0.5 rounded"
+          style={{ background: color, opacity: isVisible ? 1 : 0.3 }}
         />
-        <span>Continuation</span>
+        <span className={isVisible ? 'text-[#c9d1d9]' : 'text-[#8b949e] line-through'}>{label}</span>
       </div>
-      <div className="flex items-center gap-2 text-xs mb-1">
-        <div
-          className="w-4 h-3 rounded-sm"
-          style={{ background: COLORS.block3Fill, borderColor: COLORS.block3, borderWidth: 1, borderStyle: 'solid' }}
-        />
-        <span>Persistence</span>
-      </div>
-      <div className="flex items-center gap-2 text-xs mt-2 pt-2 border-t border-[#30363d]">
-        <div
-          className="w-4 h-0.5 rounded"
-          style={{ background: COLORS.mid }}
-        />
-        <span className="text-[#8b949e]">Mid Target</span>
-      </div>
-
-      <div className="text-[11px] text-[#8b949e] uppercase tracking-wider mt-3 mb-2">
-        Indicators <span className="text-[10px] normal-case opacity-60">(click to toggle)</span>
-      </div>
-
-      <IndicatorRow
-        color={COLORS.ema200d}
-        label="EMA 200 · 1D"
-        value={ema200dValue !== null ? `$${formatPrice(ema200dValue)}` : undefined}
-        isVisible={visibility.ema200d}
-        onToggle={() => onToggle('ema200d')}
-      />
-
-      <IndicatorRow
-        color={COLORS.ema200}
-        label="EMA 200"
-        isVisible={visibility.ema200}
-        onToggle={() => onToggle('ema200')}
-      />
-
-      <IndicatorRow
-        color={COLORS.ema20}
-        label="EMA 20"
-        isVisible={visibility.ema20}
-        onToggle={() => onToggle('ema20')}
-      />
-
-      <IndicatorRow
-        color=""
-        label="MACD"
-        isMACD
-        isVisible={visibility.macd}
-        onToggle={() => onToggle('macd')}
-      />
-    </div>
+      <span className={`text-[9px] ${isVisible ? 'text-[#3fb950]' : 'text-[#8b949e]'}`}>
+        {isVisible ? 'ON' : 'OFF'}
+      </span>
+    </button>
   );
 }

@@ -27,8 +27,8 @@ export function HorizonsList({ blocks, currentHorizonIndex }: HorizonsListProps)
   }, [currentHorizonIndex]);
 
   return (
-    <div className="bg-[#21262d] border border-[#30363d] rounded-lg p-3.5 flex-1 flex flex-col min-h-0">
-      <h3 className="text-[11px] text-[#8b949e] uppercase tracking-wider mb-2.5">
+    <div className="bg-[#21262d] border border-[#30363d] rounded-lg p-3 md:p-3.5 flex-1 flex flex-col min-h-0">
+      <h3 className="text-[11px] text-[#8b949e] uppercase tracking-wider mb-2 md:mb-2.5">
         All Horizons
       </h3>
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto space-y-1 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
