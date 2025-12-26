@@ -27,6 +27,26 @@ interface BinanceKlineMessage {
   };
 }
 
+// Binance aggregate trade WebSocket message type
+interface BinanceAggTradeMessage {
+  e: string;  // Event type: "aggTrade"
+  E: number;  // Event time
+  s: string;  // Symbol
+  a: number;  // Aggregate trade ID
+  p: string;  // Price
+  q: string;  // Quantity
+  f: number;  // First trade ID
+  l: number;  // Last trade ID
+  T: number;  // Trade time
+  m: boolean; // Is buyer the maker?
+}
+
+// Combined stream wrapper message
+interface BinanceCombinedMessage {
+  stream: string;
+  data: BinanceKlineMessage | BinanceAggTradeMessage;
+}
+
 interface UsePriceDataOptions {
   symbol: string;
   interval: Interval;
@@ -189,7 +209,22 @@ export function usePriceData({
 
     // Convert symbol format: "BTCUSDT" -> "btcusdt"
     const wsSymbol = symbol.toLowerCase();
-    const wsUrl = `${BINANCE_WS_URL}/${wsSymbol}@kline_${interval}`;
+
+    // All intervals use hybrid stream with kline + aggTrade for real-time updates
+    const useHybridStream = true;
+
+    // Aggregation settings per interval
+    const aggregationConfig: Record<string, { seconds: number; klineInterval: string }> = {
+      '15s': { seconds: 15, klineInterval: '1s' },
+      '1m': { seconds: 60, klineInterval: '1m' },
+      '15m': { seconds: 900, klineInterval: '15m' },
+      '1h': { seconds: 3600, klineInterval: '1h' },
+    };
+    const config = aggregationConfig[interval] || { seconds: 60, klineInterval: interval };
+    const aggregationSeconds = config.seconds;
+
+    // Combined stream: kline for candle structure/volume, aggTrade for real-time price updates
+    const wsUrl = `wss://stream.binance.com:9443/stream?streams=${wsSymbol}@kline_${config.klineInterval}/${wsSymbol}@aggTrade`;
 
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
@@ -207,35 +242,81 @@ export function usePriceData({
       if (isCleanedUp) return;
 
       try {
-        const message: BinanceKlineMessage = JSON.parse(event.data);
+        const rawMessage = JSON.parse(event.data);
 
-        if (message.e !== 'kline') return;
+        // Handle combined stream format vs single stream format
+        if (useHybridStream) {
+          // Combined stream wraps messages in { stream, data }
+          const combined = rawMessage as BinanceCombinedMessage;
+          const streamType = combined.stream;
 
-        const kline = message.k;
-        const candle: Candle = {
-          time: Math.floor(kline.t / 1000), // Convert ms to seconds
-          open: parseFloat(kline.o),
-          high: parseFloat(kline.h),
-          low: parseFloat(kline.l),
-          close: parseFloat(kline.c),
-          volume: parseFloat(kline.v),
-        };
+          if (streamType.includes('@aggTrade')) {
+            // Real-time trade update - update current candle's close/high/low instantly
+            const trade = combined.data as BinanceAggTradeMessage;
+            const tradePrice = parseFloat(trade.p);
+            const tradeTime = Math.floor(trade.T / 1000);
+            const candleTime = Math.floor(tradeTime / aggregationSeconds) * aggregationSeconds;
 
-        setCandles((prev) => {
-          if (prev.length === 0) return prev;
+            setCandles((prev) => {
+              if (prev.length === 0) return prev;
 
-          const lastCandle = prev[prev.length - 1];
+              const lastCandle = prev[prev.length - 1];
 
-          if (lastCandle.time === candle.time) {
-            // Update existing candle (still forming)
-            return [...prev.slice(0, -1), candle];
-          } else if (candle.time > lastCandle.time) {
-            // New candle started
-            return [...prev, candle];
+              if (lastCandle.time === candleTime) {
+                // Update current candle with trade price
+                const needsUpdate =
+                  tradePrice !== lastCandle.close ||
+                  tradePrice > lastCandle.high ||
+                  tradePrice < lastCandle.low;
+
+                if (needsUpdate) {
+                  return [...prev.slice(0, -1), {
+                    ...lastCandle,
+                    high: Math.max(lastCandle.high, tradePrice),
+                    low: Math.min(lastCandle.low, tradePrice),
+                    close: tradePrice,
+                  }];
+                }
+              } else if (candleTime > lastCandle.time) {
+                // New candle started from trade
+                return [...prev, {
+                  time: candleTime,
+                  open: tradePrice,
+                  high: tradePrice,
+                  low: tradePrice,
+                  close: tradePrice,
+                  volume: 0,
+                }];
+              }
+
+              return prev;
+            });
+          } else if (streamType.includes('@kline')) {
+            // Kline update - use for volume and to finalize candle structure
+            const klineMsg = combined.data as BinanceKlineMessage;
+            if (klineMsg.e !== 'kline') return;
+
+            const kline = klineMsg.k;
+            const rawTime = Math.floor(kline.t / 1000);
+            const candleTime = Math.floor(rawTime / aggregationSeconds) * aggregationSeconds;
+
+            setCandles((prev) => {
+              if (prev.length === 0) return prev;
+
+              const lastCandle = prev[prev.length - 1];
+
+              if (lastCandle.time === candleTime) {
+                // Update volume from kline data (more accurate than trade-by-trade)
+                return [...prev.slice(0, -1), {
+                  ...lastCandle,
+                  volume: parseFloat(kline.v),
+                }];
+              }
+
+              return prev;
+            });
           }
-
-          return prev;
-        });
+        }
       } catch (err) {
         console.error('Error parsing WebSocket message:', err);
       }

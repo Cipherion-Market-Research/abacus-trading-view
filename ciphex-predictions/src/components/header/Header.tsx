@@ -77,7 +77,6 @@ export function Header({
           </SelectContent>
         </Select>
 
-{/* Interval selector - hidden for now, keeping code for future use
         <Select
           value={selectedInterval}
           onValueChange={(value) => onIntervalChange(value as Interval)}
@@ -86,6 +85,9 @@ export function Header({
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-[#21262d] border-[#30363d]">
+            <SelectItem value="15s" className="text-[#c9d1d9] focus:bg-[#30363d]">
+              15s
+            </SelectItem>
             <SelectItem value="1m" className="text-[#c9d1d9] focus:bg-[#30363d]">
               1m
             </SelectItem>
@@ -95,12 +97,8 @@ export function Header({
             <SelectItem value="1h" className="text-[#c9d1d9] focus:bg-[#30363d]">
               1H
             </SelectItem>
-            <SelectItem value="4h" className="text-[#c9d1d9] focus:bg-[#30363d]">
-              4H
-            </SelectItem>
           </SelectContent>
         </Select>
-        */}
 
         <Button
           onClick={onRefresh}

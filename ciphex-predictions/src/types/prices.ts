@@ -7,7 +7,7 @@ export interface Candle {
   volume?: number;
 }
 
-export type Interval = '1m' | '15m' | '1h' | '4h';
+export type Interval = '15s' | '1m' | '15m' | '1h';
 
 export interface PriceDataRequest {
   symbol: string;

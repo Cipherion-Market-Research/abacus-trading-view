@@ -57,7 +57,7 @@ export function Sidebar({ predictions, loading, error, onRefresh, onAutoRefresh 
     predictions?.allPredictions.filter((p) => p.status === 'pending').length || 0;
 
   return (
-    <div className="w-[300px] bg-[#161b22] border-l border-[#30363d] flex flex-col h-full">
+    <div className="w-[300px] shrink-0 bg-[#161b22] border-l border-[#30363d] flex flex-col h-full">
       <div className="px-4 py-3.5 border-b border-[#30363d] flex justify-between items-center">
         <h2 className="text-sm font-semibold text-[#f0f6fc]">Predictions</h2>
         <span

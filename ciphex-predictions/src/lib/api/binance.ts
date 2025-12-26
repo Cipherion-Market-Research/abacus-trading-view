@@ -14,10 +14,19 @@ const BINANCE_MAX_LIMIT = 1000;
 
 // Interval durations in milliseconds
 const INTERVAL_MS: Record<Interval, number> = {
+  '15s': 15 * 1000,
   '1m': 60 * 1000,
   '15m': 15 * 60 * 1000,
   '1h': 60 * 60 * 1000,
-  '4h': 4 * 60 * 60 * 1000,
+};
+
+// Map our intervals to Binance-supported intervals
+// Binance supports: 1s, 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 3d, 1w, 1M
+const BINANCE_INTERVAL_MAP: Record<Interval, string> = {
+  '15s': '1s',  // Fetch 1s data and aggregate to 15s
+  '1m': '1m',
+  '15m': '15m',
+  '1h': '1h',
 };
 
 // Parse raw Binance kline data into our Candle format
@@ -30,6 +39,50 @@ function parseKline(candle: (string | number)[]): Candle {
     close: parseFloat(candle[4] as string),
     volume: parseFloat(candle[5] as string),
   };
+}
+
+/**
+ * Aggregate smaller candles into larger timeframe candles.
+ * Used to create 15s candles from 1s data since Binance doesn't support 15s directly.
+ */
+function aggregateCandles(candles: Candle[], targetIntervalSeconds: number): Candle[] {
+  if (candles.length === 0) return [];
+
+  const aggregated: Candle[] = [];
+  let currentBucket: Candle | null = null;
+
+  for (const candle of candles) {
+    // Calculate the bucket start time for this candle
+    const bucketStart = Math.floor(candle.time / targetIntervalSeconds) * targetIntervalSeconds;
+
+    if (!currentBucket || currentBucket.time !== bucketStart) {
+      // Start a new bucket
+      if (currentBucket) {
+        aggregated.push(currentBucket);
+      }
+      currentBucket = {
+        time: bucketStart,
+        open: candle.open,
+        high: candle.high,
+        low: candle.low,
+        close: candle.close,
+        volume: candle.volume || 0,
+      };
+    } else {
+      // Update the current bucket
+      currentBucket.high = Math.max(currentBucket.high, candle.high);
+      currentBucket.low = Math.min(currentBucket.low, candle.low);
+      currentBucket.close = candle.close;
+      currentBucket.volume = (currentBucket.volume || 0) + (candle.volume || 0);
+    }
+  }
+
+  // Don't forget the last bucket
+  if (currentBucket) {
+    aggregated.push(currentBucket);
+  }
+
+  return aggregated;
 }
 
 // Extended interval type for internal use (includes daily for 200-day EMA)
@@ -85,33 +138,52 @@ async function fetchKlinesBatch(
 /**
  * Fetch klines with automatic pagination for time ranges exceeding Binance's 1000 candle limit.
  * This enables fetching 24+ hours of 1m data which requires multiple API calls.
+ * For intervals not natively supported by Binance (like 15s), fetches smaller intervals and aggregates.
  */
 export async function fetchKlines(
   symbol: string,
   interval: Interval,
   limit: number = 500
 ): Promise<Candle[]> {
+  // Get the Binance-supported interval for this request
+  const binanceInterval = BINANCE_INTERVAL_MAP[interval];
+  const needsAggregation = binanceInterval !== interval;
+
+  // For aggregated intervals (like 15s from 1s), we need to fetch more raw candles
+  // 15s = 15 x 1s candles per output candle
+  const aggregationFactor = needsAggregation ? Math.round(INTERVAL_MS[interval] / 1000) : 1;
+  const rawLimit = limit * aggregationFactor;
+
+  // Helper to fetch and optionally aggregate
+  const fetchAndAggregate = async (candles: Candle[]): Promise<Candle[]> => {
+    if (needsAggregation) {
+      return aggregateCandles(candles, INTERVAL_MS[interval] / 1000);
+    }
+    return candles;
+  };
+
   // If limit is within Binance's max, single request is sufficient
-  if (limit <= BINANCE_MAX_LIMIT) {
-    return fetchKlinesBatch(symbol, interval, limit);
+  if (rawLimit <= BINANCE_MAX_LIMIT) {
+    const rawCandles = await fetchKlinesBatch(symbol, binanceInterval as ExtendedInterval, rawLimit);
+    return fetchAndAggregate(rawCandles);
   }
 
   // For larger limits, we need to paginate using startTime
-  // Calculate how far back we need to go
-  const intervalMs = INTERVAL_MS[interval];
+  // Calculate how far back we need to go (use raw interval for fetching)
+  const rawIntervalMs = needsAggregation ? 1000 : INTERVAL_MS[interval]; // 1s = 1000ms
   const now = Date.now();
-  const startTime = now - (limit * intervalMs);
+  const startTime = now - (rawLimit * rawIntervalMs);
 
   const allCandles: Candle[] = [];
   let currentStartTime = startTime;
-  let remainingCandles = limit;
+  let remainingRawCandles = rawLimit;
 
-  while (remainingCandles > 0) {
-    const batchLimit = Math.min(remainingCandles, BINANCE_MAX_LIMIT);
+  while (remainingRawCandles > 0) {
+    const batchLimit = Math.min(remainingRawCandles, BINANCE_MAX_LIMIT);
 
     const batch = await fetchKlinesBatch(
       symbol,
-      interval,
+      binanceInterval as ExtendedInterval,
       batchLimit,
       currentStartTime
     );
@@ -122,11 +194,11 @@ export async function fetchKlines(
     }
 
     allCandles.push(...batch);
-    remainingCandles -= batch.length;
+    remainingRawCandles -= batch.length;
 
     // Move startTime to after the last candle we received
     const lastCandleTime = batch[batch.length - 1].time * 1000;
-    currentStartTime = lastCandleTime + intervalMs;
+    currentStartTime = lastCandleTime + rawIntervalMs;
 
     // Safety check: if we got fewer candles than requested, we've reached the end
     if (batch.length < batchLimit) {
@@ -145,7 +217,10 @@ export async function fetchKlines(
   });
 
   // Sort by time ascending
-  return deduped.sort((a, b) => a.time - b.time);
+  const sorted = deduped.sort((a, b) => a.time - b.time);
+
+  // Aggregate if needed (e.g., 1s -> 15s)
+  return fetchAndAggregate(sorted);
 }
 
 /**
@@ -157,10 +232,10 @@ export async function fetchKlines(
  */
 export function calculateLimit(interval: Interval): number {
   const intervalMinutes: Record<Interval, number> = {
+    '15s': 0.25,  // 15 seconds = 0.25 minutes
     '1m': 1,
     '15m': 15,
     '1h': 60,
-    '4h': 240,
   };
   const mins = intervalMinutes[interval];
 
@@ -173,10 +248,10 @@ export function calculateLimit(interval: Interval): number {
   // Total candles needed: warm-up + visible history with EMA
   // Cap at reasonable limits per interval to avoid excessive API calls
   const maxLimits: Record<Interval, number> = {
+    '15s': 500,   // ~2 hours of 15s candles (to avoid huge 1s data fetches)
     '1m': 1500,   // ~25 hours total, ~4.5 hours with EMA
     '15m': 1000,  // ~10 days total, ~5 days with EMA
     '1h': 1000,   // ~41 days total, ~33 days with EMA
-    '4h': 700,    // ~116 days total, ~83 days with EMA
   };
 
   return Math.min(emaWarmup + desiredVisibleWithEMA, maxLimits[interval]);

@@ -81,7 +81,7 @@ export default function Dashboard() {
       />
 
       <div className="flex flex-1 overflow-hidden">
-        <div className="flex-1 relative">
+        <div className="flex-1 min-w-0 relative">
           <PriceChart
             candles={candles}
             dailyCandles={dailyCandles}
