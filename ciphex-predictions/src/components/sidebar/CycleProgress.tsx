@@ -18,11 +18,19 @@ export function CycleProgress({ predictions, cycle }: CycleProgressProps) {
   let currentHorizonIndex = predictions.findIndex((p) => p.status === 'pending');
   if (currentHorizonIndex === -1) currentHorizonIndex = totalHorizons - 1;
 
-  // Update countdown
+  // Find next pending prediction
+  const nextPendingPrediction = predictions.find((p) => p.status === 'pending');
+
+  // Update countdown to next prediction
   useEffect(() => {
     const updateCountdown = () => {
-      const cycleEnd = cycle.cycleEnd * 1000;
-      const remaining = cycleEnd - Date.now();
+      if (!nextPendingPrediction) {
+        setTimeRemaining('All Settled');
+        return;
+      }
+
+      const predictionTime = nextPendingPrediction.time * 1000;
+      const remaining = predictionTime - Date.now();
 
       if (remaining > 0) {
         const hours = Math.floor(remaining / (1000 * 60 * 60));
@@ -32,14 +40,14 @@ export function CycleProgress({ predictions, cycle }: CycleProgressProps) {
           `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
         );
       } else {
-        setTimeRemaining('Cycle Complete');
+        setTimeRemaining('Settling...');
       }
     };
 
     updateCountdown();
     const interval = setInterval(updateCountdown, 1000);
     return () => clearInterval(interval);
-  }, [cycle.cycleEnd]);
+  }, [nextPendingPrediction]);
 
   return (
     <div className="bg-[#21262d] border border-[#30363d] rounded-lg p-3.5 mb-3">
@@ -82,7 +90,7 @@ export function CycleProgress({ predictions, cycle }: CycleProgressProps) {
           {timeRemaining}
         </div>
         <div className="text-[10px] text-[#8b949e] uppercase mt-0.5">
-          Until Cycle Reset
+          Until Next Prediction
         </div>
       </div>
     </div>

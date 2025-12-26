@@ -1,6 +1,7 @@
 'use client';
 
-import { Asset, Interval } from '@/types';
+import { useState, useEffect, useRef } from 'react';
+import { Asset, Interval, Horizon } from '@/types';
 import { ASSET_GROUPS } from '@/config/assets';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,6 +21,8 @@ interface HeaderProps {
   onIntervalChange: (interval: Interval) => void;
   onRefresh: () => void;
   streaming?: boolean;
+  currentPrice?: number;
+  nextPrediction?: Horizon | null;
 }
 
 export function Header({
@@ -29,26 +32,106 @@ export function Header({
   onIntervalChange,
   onRefresh,
   streaming = false,
+  currentPrice,
+  nextPrediction,
 }: HeaderProps) {
+  // Track price movement direction
+  const prevPriceRef = useRef<number | undefined>(undefined);
+  const [priceDirection, setPriceDirection] = useState<'up' | 'down' | 'neutral'>('neutral');
+
+  // Displayed deviation (updates every 5 seconds)
+  const [displayedDeviation, setDisplayedDeviation] = useState<number | null>(null);
+
+  // Calculate percentage deviation from prediction mid price
+  const predictionMid = nextPrediction ? (nextPrediction.high + nextPrediction.low) / 2 : null;
+  const deviation = currentPrice && predictionMid
+    ? ((currentPrice - predictionMid) / predictionMid) * 100
+    : null;
+
+  // Update price direction when price changes
+  useEffect(() => {
+    if (currentPrice !== undefined && prevPriceRef.current !== undefined) {
+      if (currentPrice > prevPriceRef.current) {
+        setPriceDirection('up');
+      } else if (currentPrice < prevPriceRef.current) {
+        setPriceDirection('down');
+      }
+      // If equal, keep previous direction
+    }
+    prevPriceRef.current = currentPrice;
+  }, [currentPrice]);
+
+  // Update displayed deviation every 5 seconds
+  useEffect(() => {
+    // Set initial value immediately
+    setDisplayedDeviation(deviation);
+
+    const interval = setInterval(() => {
+      setDisplayedDeviation(deviation);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [deviation]);
+
+  const formatPrice = (price: number) => {
+    return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  // Price color based on movement direction
+  const priceColorClass = priceDirection === 'up'
+    ? 'text-[#3fb950]'  // Green
+    : priceDirection === 'down'
+      ? 'text-[#f85149]'  // Red
+      : 'text-[#f0f6fc]'; // Neutral/white
+
   return (
     <header className="bg-[#161b22] px-5 py-3 flex items-center justify-between border-b border-[#30363d]">
-      <div className="flex items-center gap-2.5">
-        <h1 className="text-lg font-semibold text-[#f0f6fc]">Ciphex Predictions</h1>
-        <span
-          className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${
-            streaming
-              ? 'bg-gradient-to-br from-[#238636] to-[#2ea043]'
-              : 'bg-[#30363d] text-[#8b949e]'
-          }`}
-        >
-          {streaming && (
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2.5">
+          <h1 className="text-lg font-semibold text-[#f0f6fc]">Abacus Charts</h1>
+          <span
+            className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${
+              streaming
+                ? 'bg-gradient-to-br from-[#238636] to-[#2ea043]'
+                : 'bg-[#30363d] text-[#8b949e]'
+            }`}
+          >
+            {streaming && (
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+              </span>
+            )}
+            {streaming ? 'Live' : 'Offline'}
+          </span>
+        </div>
+
+        {/* Price vs Prediction Display */}
+        {currentPrice && predictionMid && displayedDeviation !== null && (
+          <div className="flex items-center gap-3 pl-3 border-l border-[#30363d]">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-[#8b949e] uppercase">Price</span>
+              <span className={`text-sm font-semibold font-mono transition-colors ${priceColorClass}`}>
+                ${formatPrice(currentPrice)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-[#8b949e] uppercase">Pred</span>
+              <span className="text-sm font-semibold text-[#f0f6fc] font-mono">
+                ${formatPrice(predictionMid)}
+              </span>
+            </div>
+            <span
+              className={`px-2 py-0.5 rounded text-xs font-semibold font-mono ${
+                displayedDeviation >= 0
+                  ? 'bg-[rgba(63,185,80,0.15)] text-[#3fb950]'
+                  : 'bg-[rgba(248,81,73,0.15)] text-[#f85149]'
+              }`}
+            >
+              {displayedDeviation >= 0 ? '+' : ''}{displayedDeviation.toFixed(2)}%
             </span>
-          )}
-          {streaming ? 'Live' : 'Offline'}
-        </span>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2">

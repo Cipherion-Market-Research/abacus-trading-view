@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Header } from '@/components/header/Header';
 import { PriceChart } from '@/components/chart/PriceChart';
 import { Sidebar } from '@/components/sidebar/Sidebar';
@@ -69,6 +69,36 @@ export default function Dashboard() {
     setChartRefreshKey((prev) => prev + 1);
   }, [refreshPredictions]);
 
+  // Get current price from the most recent candle
+  const currentPrice = useMemo(() => {
+    if (candles.length === 0) return undefined;
+    return candles[candles.length - 1].close;
+  }, [candles]);
+
+  // Find the next pending prediction
+  const nextPrediction = useMemo(() => {
+    if (!predictions?.allPredictions) return null;
+    const now = Date.now() / 1000;
+    return predictions.allPredictions.find(
+      (p) => p.time > now && p.status === 'pending'
+    ) || null;
+  }, [predictions]);
+
+  // Update browser tab title with price vs prediction info
+  useEffect(() => {
+    if (!currentPrice || !nextPrediction) {
+      document.title = 'Abacus';
+      return;
+    }
+
+    const predictionMid = (nextPrediction.high + nextPrediction.low) / 2;
+    const deviation = ((currentPrice - predictionMid) / predictionMid) * 100;
+    const sign = deviation >= 0 ? '+' : '';
+    const symbol = selectedAsset?.symbol || '';
+
+    document.title = `${symbol} $${currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${sign}${deviation.toFixed(2)}%) | Abacus`;
+  }, [currentPrice, nextPrediction, selectedAsset]);
+
   return (
     <div className="flex flex-col h-screen bg-[#0d1117] text-[#c9d1d9]">
       <Header
@@ -78,6 +108,8 @@ export default function Dashboard() {
         onIntervalChange={handleIntervalChange}
         onRefresh={handleRefresh}
         streaming={streaming}
+        currentPrice={currentPrice}
+        nextPrediction={nextPrediction}
       />
 
       <div className="flex flex-1 overflow-hidden">
