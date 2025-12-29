@@ -14,7 +14,6 @@ import {
   ColorType,
   Time,
   MouseEventParams,
-  LogicalRange,
 } from 'lightweight-charts';
 import { Candle, Horizon, Block, ExchangePricePoint, ExchangeVisibility, DEFAULT_EXCHANGE_VISIBILITY } from '@/types';
 import { calculateMACD, calculateEMA } from '@/lib/indicators';
@@ -709,7 +708,7 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
 
   // Sync time scales between main chart and MACD chart
   // ONE-WAY SYNC: Main chart controls, MACD follows
-  // This prevents MACD from overwriting the initial visible range
+  // Uses LOGICAL range sync now that MACD has placeholder points at prediction timestamps
   useEffect(() => {
     if (!chartRef.current || !macdChartRef.current || !indicatorVisibility.macd) return;
 
@@ -717,7 +716,9 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
     const macdChart = macdChartRef.current;
 
     // Sync main chart time scale changes to MACD chart (main → MACD)
-    const handleMainTimeRangeChange = (logicalRange: LogicalRange | null) => {
+    // Using logical range (bar indices) - works because both charts now have
+    // data points at the same timestamps (MACD has invisible placeholders for future)
+    const handleMainTimeRangeChange = (logicalRange: { from: number; to: number } | null) => {
       if (isSyncingTimeScale.current || isSettingInitialRange.current || !logicalRange) return;
       isSyncingTimeScale.current = true;
       try {
@@ -911,11 +912,51 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
     // MACD histogram - show/hide based on visibility (separate chart)
     if (indicatorVisibility.macd && macdSeriesRef.current) {
       const macdData = calculateMACD(closesForIndicators, 12, 26, 9);
-      const macdHistogramData: HistogramData<Time>[] = macdData.map((m) => ({
-        time: m.time as Time,
-        value: m.histogram,
-        color: m.histogram >= 0 ? COLORS.macdPositive : COLORS.macdNegative,
-      }));
+
+      // Create a Map of MACD data by timestamp for quick lookup
+      const macdByTime = new Map(macdData.map(m => [m.time, m]));
+
+      // Build MACD histogram data with placeholders at ALL candle + prediction timestamps
+      // This ensures bar indices match between main chart and MACD chart
+      const macdHistogramData: HistogramData<Time>[] = [];
+
+      // Add placeholders for candle timestamps (including warm-up period)
+      for (const candle of sortedAllCandles) {
+        const macdPoint = macdByTime.get(candle.time);
+        if (macdPoint) {
+          // Real MACD data
+          macdHistogramData.push({
+            time: candle.time as Time,
+            value: macdPoint.histogram,
+            color: macdPoint.histogram >= 0 ? COLORS.macdPositive : COLORS.macdNegative,
+          });
+        } else {
+          // Warm-up period - invisible placeholder
+          macdHistogramData.push({
+            time: candle.time as Time,
+            value: 0,
+            color: 'transparent',
+          });
+        }
+      }
+
+      // Add placeholders for prediction timestamps (future)
+      if (predictions.length > 0) {
+        const lastCandleTime = sortedAllCandles.length > 0
+          ? sortedAllCandles[sortedAllCandles.length - 1].time
+          : 0;
+
+        for (const pred of predictions) {
+          if (pred.time > lastCandleTime) {
+            macdHistogramData.push({
+              time: pred.time as Time,
+              value: 0,
+              color: 'transparent',
+            });
+          }
+        }
+      }
+
       macdSeriesRef.current.setData(macdHistogramData);
     } else if (macdSeriesRef.current) {
       macdSeriesRef.current.setData([]);
@@ -1470,7 +1511,7 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
           to: rangeEnd as Time,
         });
 
-        // Also sync to MACD chart if it exists
+        // Also sync to MACD chart if it exists (using logical range for proper alignment)
         if (macdChartRef.current && indicatorVisibility.macd) {
           try {
             const logicalRange = chartRef.current.timeScale().getVisibleLogicalRange();
