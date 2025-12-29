@@ -791,9 +791,11 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
     };
 
     // Composite Index overlay (TradingView-style INDEX)
+    // CRITICAL: Only plot when ALL 4 exchanges are live to prevent chart distortion
+    // from partial data with large spreads during connection initialization
     updateExchangeSeries(
       compositeIndexSeriesRef,
-      !!(support?.index && exchangeVisibility.composite_index),
+      !!(support?.index && exchangeVisibility.composite_index && exchangeData?.composite_index?.connected),
       exchangeData?.composite_index?.priceHistory
     );
 

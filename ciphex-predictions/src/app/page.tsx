@@ -191,7 +191,7 @@ export default function Dashboard() {
     composite_index: {
       priceHistory: compositeIndexHistory,
       currentPrice: compositeIndexPrice,
-      connected: compositeConnectedCount >= 2, // Consider connected if at least 2 sources
+      connected: compositeConnectedCount === 4, // Require all 4 INDEX exchanges to be live
       connectedCount: compositeConnectedCount,
     },
     htx: {
