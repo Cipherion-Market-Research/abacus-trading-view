@@ -14,9 +14,14 @@ import {
   ColorType,
   Time,
   MouseEventParams,
+  LogicalRange,
 } from 'lightweight-charts';
 import { Candle, Horizon, Block, ExchangePricePoint, ExchangeVisibility, DEFAULT_EXCHANGE_VISIBILITY } from '@/types';
 import { calculateMACD, calculateEMA } from '@/lib/indicators';
+
+// localStorage key for persisting MACD panel height
+const MACD_PANEL_HEIGHT_KEY = 'ciphex-macd-panel-height';
+const DEFAULT_MACD_PANEL_HEIGHT = 20; // 20% of container height
 
 // Professional color palette inspired by TradingView and Kraken
 // Uses a cohesive gradient across blocks: Blue → Purple → Teal
@@ -186,13 +191,42 @@ const INTERVAL_BAR_SPACING: Record<string, { barSpacing: number; minBarSpacing: 
 
 
 export function PriceChart({ candles, dailyCandles, predictions, blocks, className, assetType, interval = '1m', refreshKey = 0, exchangeData }: PriceChartProps) {
+  // Main chart container and refs
   const containerRef = useRef<HTMLDivElement>(null);
+  const mainContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candlestickSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
-  const macdSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
   const ema200dPriceLineRef = useRef<ReturnType<ISeriesApi<'Candlestick'>['createPriceLine']> | null>(null);  // 200-day EMA as price line
   const ema200SeriesRef = useRef<ISeriesApi<'Line'> | null>(null);   // 200-period EMA (current timeframe)
   const ema20SeriesRef = useRef<ISeriesApi<'Line'> | null>(null);    // 20-period EMA (current timeframe)
+
+  // MACD chart container and refs (separate pane)
+  const macdContainerRef = useRef<HTMLDivElement>(null);
+  const macdChartRef = useRef<IChartApi | null>(null);
+  const macdSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
+
+  // State for resizable MACD panel
+  const [macdPanelHeight, setMacdPanelHeight] = useState(DEFAULT_MACD_PANEL_HEIGHT);
+  const [isDraggingDivider, setIsDraggingDivider] = useState(false);
+  const dividerDragStartY = useRef<number>(0);
+  const dividerDragStartHeight = useRef<number>(0);
+
+  // Refs to prevent infinite sync loops between charts
+  const isSyncingTimeScale = useRef(false);
+  const isSyncingCrosshair = useRef(false);
+  // Flag to temporarily disable sync during initial range setup
+  const isSettingInitialRange = useRef(false);
+
+  // Load saved MACD panel height from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem(MACD_PANEL_HEIGHT_KEY);
+    if (saved) {
+      const height = parseFloat(saved);
+      if (!isNaN(height) && height >= 10 && height <= 50) {
+        setMacdPanelHeight(height);
+      }
+    }
+  }, []);
 
   // Exchange overlay line series refs
   const compositeIndexSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
@@ -319,12 +353,14 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
   const lastIntervalRef = useRef<string>(interval);
   // Track the last refreshKey to detect manual refresh triggers
   const lastRefreshKeyRef = useRef<number>(refreshKey);
+  // Track pending timeout for visible range setting (to cancel stale ones)
+  const visibleRangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Initialize chart
+  // Initialize main price chart
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!mainContainerRef.current) return;
 
-    const chart = createChart(containerRef.current, {
+    const chart = createChart(mainContainerRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: '#0d1117' },
         textColor: '#8b949e',
@@ -350,7 +386,7 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
         borderColor: '#30363d',
         scaleMargins: {
           top: 0.05,    // 5% margin at top
-          bottom: 0.25, // 25% margin at bottom (room for MACD)
+          bottom: 0.05, // 5% margin at bottom (MACD now in separate pane)
         },
       },
       timeScale: {
@@ -377,8 +413,8 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
           return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         },
       },
-      width: containerRef.current.clientWidth,
-      height: containerRef.current.clientHeight,
+      width: mainContainerRef.current.clientWidth,
+      height: mainContainerRef.current.clientHeight,
     });
 
     // Create 3 pairs of area series for block-colored bands
@@ -421,25 +457,6 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       lineStyle: LineStyle.Dashed,
       priceLineVisible: false,
       lastValueVisible: false,
-    });
-
-    // MACD histogram - separate price scale at bottom, renders behind everything
-    const macdSeries = chart.addHistogramSeries({
-      priceFormat: {
-        type: 'price',
-        precision: 6,
-        minMove: 0.000001,
-      },
-      priceScaleId: 'macd',
-    });
-
-    // Configure MACD price scale (bottom 20% of chart)
-    chart.priceScale('macd').applyOptions({
-      scaleMargins: {
-        top: 0.8,
-        bottom: 0,
-      },
-      borderVisible: false,
     });
 
     // 200-day EMA is added as a price line (not a series) to avoid affecting auto-scaling
@@ -576,7 +593,6 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
 
     chartRef.current = chart;
     candlestickSeriesRef.current = candlestickSeries;
-    macdSeriesRef.current = macdSeries;
     ema20SeriesRef.current = ema20Series;
     ema200SeriesRef.current = ema200Series;
     compositeIndexSeriesRef.current = compositeIndexSeries;
@@ -592,7 +608,7 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
     blockLowSeriesRef.current = lowSeries;
     midLineSeriesRef.current = midLineSeries;
 
-    // Handle resize
+    // Handle resize for main chart
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         chart.applyOptions({
@@ -601,7 +617,7 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
         });
       }
     });
-    resizeObserver.observe(containerRef.current);
+    resizeObserver.observe(mainContainerRef.current);
 
     return () => {
       resizeObserver.disconnect();
@@ -610,17 +626,188 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Chart should only be created once on mount. Interval changes are handled by a separate effect.
   }, []);
 
-  // Update timeScale settings when interval changes (for proper bar spacing)
+  // Initialize MACD chart (separate pane with its own y-axis)
   useEffect(() => {
-    if (!chartRef.current) return;
+    if (!macdContainerRef.current || !indicatorVisibility.macd) return;
 
-    const spacing = INTERVAL_BAR_SPACING[interval] || { barSpacing: 12, minBarSpacing: 1 };
-    chartRef.current.applyOptions({
+    const macdChart = createChart(macdContainerRef.current, {
+      layout: {
+        background: { type: ColorType.Solid, color: '#0d1117' },
+        textColor: '#8b949e',
+      },
+      grid: {
+        vertLines: { color: '#21262d' },
+        horzLines: { color: '#21262d' },
+      },
+      crosshair: {
+        mode: CrosshairMode.Normal,
+        vertLine: {
+          color: '#8b949e',
+          width: 1,
+          style: LineStyle.Dashed,
+        },
+        horzLine: {
+          color: '#8b949e',
+          width: 1,
+          style: LineStyle.Dashed,
+        },
+      },
+      rightPriceScale: {
+        borderColor: '#30363d',
+        scaleMargins: {
+          top: 0.1,    // 10% margin at top
+          bottom: 0.1, // 10% margin at bottom
+        },
+      },
       timeScale: {
-        barSpacing: spacing.barSpacing,
-        minBarSpacing: spacing.minBarSpacing,
+        borderColor: '#30363d',
+        timeVisible: false,  // Hide time labels (main chart shows them)
+        secondsVisible: false,
+        rightOffset: 5,
+        fixLeftEdge: false,
+        fixRightEdge: false,
+        shiftVisibleRangeOnNewBar: false,
+        lockVisibleTimeRangeOnResize: true,
+        barSpacing: INTERVAL_BAR_SPACING[interval]?.barSpacing || 12,
+        minBarSpacing: INTERVAL_BAR_SPACING[interval]?.minBarSpacing || 1,
+      },
+      width: macdContainerRef.current.clientWidth,
+      height: macdContainerRef.current.clientHeight,
+    });
+
+    // MACD histogram series with its own y-axis
+    const macdSeries = macdChart.addHistogramSeries({
+      priceFormat: {
+        type: 'price',
+        precision: 6,
+        minMove: 0.000001,
       },
     });
+
+    macdChartRef.current = macdChart;
+    macdSeriesRef.current = macdSeries;
+
+    // Handle resize for MACD chart
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        macdChart.applyOptions({
+          width: entry.contentRect.width,
+          height: entry.contentRect.height,
+        });
+      }
+    });
+    resizeObserver.observe(macdContainerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+      macdChart.remove();
+      macdChartRef.current = null;
+      macdSeriesRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- MACD chart recreated when visibility changes
+  }, [indicatorVisibility.macd]);
+
+  // Sync time scales between main chart and MACD chart
+  // ONE-WAY SYNC: Main chart controls, MACD follows
+  // This prevents MACD from overwriting the initial visible range
+  useEffect(() => {
+    if (!chartRef.current || !macdChartRef.current || !indicatorVisibility.macd) return;
+
+    const mainChart = chartRef.current;
+    const macdChart = macdChartRef.current;
+
+    // Sync main chart time scale changes to MACD chart (main → MACD)
+    const handleMainTimeRangeChange = (logicalRange: LogicalRange | null) => {
+      if (isSyncingTimeScale.current || isSettingInitialRange.current || !logicalRange) return;
+      isSyncingTimeScale.current = true;
+      try {
+        macdChart.timeScale().setVisibleLogicalRange(logicalRange);
+      } catch {
+        // Chart may have been removed
+      }
+      isSyncingTimeScale.current = false;
+    };
+
+    mainChart.timeScale().subscribeVisibleLogicalRangeChange(handleMainTimeRangeChange);
+
+    return () => {
+      mainChart.timeScale().unsubscribeVisibleLogicalRangeChange(handleMainTimeRangeChange);
+    };
+  }, [indicatorVisibility.macd]);
+
+  // Sync crosshair between main chart and MACD chart
+  useEffect(() => {
+    if (!chartRef.current || !macdChartRef.current || !indicatorVisibility.macd) return;
+
+    const mainChart = chartRef.current;
+    const macdChart = macdChartRef.current;
+
+    // Sync main chart crosshair to MACD chart
+    const handleMainCrosshairMove = (param: MouseEventParams<Time>) => {
+      if (isSyncingCrosshair.current || !macdSeriesRef.current) return;
+      isSyncingCrosshair.current = true;
+
+      try {
+        if (param.time) {
+          macdChart.setCrosshairPosition(0, param.time, macdSeriesRef.current);
+        } else {
+          macdChart.clearCrosshairPosition();
+        }
+      } catch {
+        // Series may not have data yet
+      }
+
+      isSyncingCrosshair.current = false;
+    };
+
+    // Sync MACD chart crosshair to main chart
+    const handleMacdCrosshairMove = (param: MouseEventParams<Time>) => {
+      if (isSyncingCrosshair.current || !candlestickSeriesRef.current) return;
+      isSyncingCrosshair.current = true;
+
+      try {
+        if (param.time) {
+          mainChart.setCrosshairPosition(0, param.time, candlestickSeriesRef.current);
+        } else {
+          mainChart.clearCrosshairPosition();
+        }
+      } catch {
+        // Series may not have data yet
+      }
+
+      isSyncingCrosshair.current = false;
+    };
+
+    mainChart.subscribeCrosshairMove(handleMainCrosshairMove);
+    macdChart.subscribeCrosshairMove(handleMacdCrosshairMove);
+
+    return () => {
+      mainChart.unsubscribeCrosshairMove(handleMainCrosshairMove);
+      macdChart.unsubscribeCrosshairMove(handleMacdCrosshairMove);
+    };
+  }, [indicatorVisibility.macd]);
+
+  // Update timeScale settings when interval changes (for proper bar spacing)
+  useEffect(() => {
+    const spacing = INTERVAL_BAR_SPACING[interval] || { barSpacing: 12, minBarSpacing: 1 };
+
+    if (chartRef.current) {
+      chartRef.current.applyOptions({
+        timeScale: {
+          barSpacing: spacing.barSpacing,
+          minBarSpacing: spacing.minBarSpacing,
+        },
+      });
+    }
+
+    if (macdChartRef.current) {
+      macdChartRef.current.applyOptions({
+        timeScale: {
+          barSpacing: spacing.barSpacing,
+          minBarSpacing: spacing.minBarSpacing,
+        },
+      });
+    }
   }, [interval]);
 
   // Subscribe to crosshair move events for prediction band values on Y-axis
@@ -658,19 +845,23 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
         return;
       }
 
-      // Convert prices to Y coordinates
-      const highY = highValue !== undefined ? series.priceToCoordinate(highValue) : null;
-      const lowY = lowValue !== undefined ? series.priceToCoordinate(lowValue) : null;
-      const midY = midValue !== undefined ? series.priceToCoordinate(midValue) : null;
+      // Convert prices to Y coordinates (may fail if series has no data yet)
+      try {
+        const highY = highValue !== undefined ? series.priceToCoordinate(highValue) : null;
+        const lowY = lowValue !== undefined ? series.priceToCoordinate(lowValue) : null;
+        const midY = midValue !== undefined ? series.priceToCoordinate(midValue) : null;
 
-      setCrosshairBandValues({
-        high: highValue ?? null,
-        low: lowValue ?? null,
-        mid: midValue ?? null,
-        highY: highY,
-        lowY: lowY,
-        midY: midY,
-      });
+        setCrosshairBandValues({
+          high: highValue ?? null,
+          low: lowValue ?? null,
+          mid: midValue ?? null,
+          highY: highY,
+          lowY: lowY,
+          midY: midY,
+        });
+      } catch {
+        // Series may not be ready yet
+      }
     };
 
     chart.subscribeCrosshairMove(handleCrosshairMove);
@@ -683,12 +874,12 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
   // Update candle data - only show candles within the prediction time window
   // For stocks, additionally filter to RTH (Regular Trading Hours) only
   useEffect(() => {
-    if (!candlestickSeriesRef.current || !macdSeriesRef.current || !ema20SeriesRef.current || !ema200SeriesRef.current) return;
+    if (!candlestickSeriesRef.current || !ema20SeriesRef.current || !ema200SeriesRef.current) return;
 
     // Clear chart when candles array is empty (e.g., during interval switch)
     if (candles.length === 0) {
       candlestickSeriesRef.current.setData([]);
-      macdSeriesRef.current.setData([]);
+      if (macdSeriesRef.current) macdSeriesRef.current.setData([]);
       ema20SeriesRef.current.setData([]);
       ema200SeriesRef.current.setData([]);
       return;
@@ -717,8 +908,8 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
     const sortedAllCandles = [...candles].sort((a, b) => a.time - b.time);
     const closesForIndicators = sortedAllCandles.map((c) => ({ time: c.time, close: c.close }));
 
-    // MACD histogram - show/hide based on visibility
-    if (indicatorVisibility.macd) {
+    // MACD histogram - show/hide based on visibility (separate chart)
+    if (indicatorVisibility.macd && macdSeriesRef.current) {
       const macdData = calculateMACD(closesForIndicators, 12, 26, 9);
       const macdHistogramData: HistogramData<Time>[] = macdData.map((m) => ({
         time: m.time as Time,
@@ -726,7 +917,7 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
         color: m.histogram >= 0 ? COLORS.macdPositive : COLORS.macdNegative,
       }));
       macdSeriesRef.current.setData(macdHistogramData);
-    } else {
+    } else if (macdSeriesRef.current) {
       macdSeriesRef.current.setData([]);
     }
 
@@ -1102,6 +1293,7 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
     if (!chartRef.current) return;
 
     const expectedIntervalSeconds = INTERVAL_TO_SECONDS[interval] || 60;
+    const useRealtimeView = interval === '15s' || interval === '1m';
 
     // Check if interval changed
     const intervalChanged = lastIntervalRef.current !== interval;
@@ -1118,9 +1310,14 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       hasSetInitialRangeRef.current = false;
       lastIntervalRef.current = interval;
       chartRef.current.timeScale().resetTimeScale();
+      // Cancel any pending timeout from previous interval
+      if (visibleRangeTimeoutRef.current) {
+        clearTimeout(visibleRangeTimeoutRef.current);
+        visibleRangeTimeoutRef.current = null;
+      }
     }
 
-    // Need candle data to proceed (predictions optional for 15s)
+    // Need candle data to proceed
     if (candles.length < 2) return;
 
     // CRITICAL: Verify candles match the expected interval before setting range
@@ -1133,9 +1330,25 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
     // Skip if we've already set the range for this data (preserve user pan/zoom)
     if (hasSetInitialRangeRef.current) return;
 
-    // Use setTimeout to ensure chart is ready
-    setTimeout(() => {
-      if (!chartRef.current) return;
+    // For 15m/1h, WAIT until predictions are loaded before setting range
+    // This prevents the race condition where candle-based range is set first
+    if (!useRealtimeView && predictions.length === 0) {
+      return; // Don't set any range yet, wait for predictions
+    }
+
+    // Cancel any pending timeout before scheduling a new one
+    if (visibleRangeTimeoutRef.current) {
+      clearTimeout(visibleRangeTimeoutRef.current);
+    }
+
+    // Use setTimeout to ensure chart and data are ready
+    // Using 300ms to allow chart to stabilize after all data loading completes
+    visibleRangeTimeoutRef.current = setTimeout(() => {
+      // Double-check the flag inside timeout (another effect may have set it)
+      if (!chartRef.current || hasSetInitialRangeRef.current) return;
+
+      // Also ensure we still have the data we expect
+      if (!useRealtimeView && predictions.length === 0) return;
 
       const mostRecentCandle = sortedCandles[sortedCandles.length - 1];
       const now = mostRecentCandle.time;
@@ -1164,9 +1377,8 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       let rangeStart: number;
       let rangeEnd: number;
 
-      const useRealtimeView = interval === '15s' || interval === '1m';
-
-      if (predictions.length > 0 && !useRealtimeView) {
+      // Note: useRealtimeView is already defined above in outer scope
+      if (!useRealtimeView && predictions.length > 0) {
         if (isMobile && blocks && blocks.length > 0) {
           // Mobile 15m/1h: Show current block based on which block we're in
           // Find current block (the one containing the first pending prediction or most recent)
@@ -1248,96 +1460,192 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
         rangeEnd = now + (futureCandles * expectedIntervalSeconds);
       }
 
-      chartRef.current.timeScale().setVisibleRange({
-        from: rangeStart as Time,
-        to: rangeEnd as Time,
-      });
+      try {
+        // Temporarily disable sync during initial range setup
+        isSettingInitialRange.current = true;
 
-      // Only mark initial range as set when:
-      // - For realtime intervals (15s, 1m): always set after first range
-      // - For prediction intervals (15m, 1h): only set after predictions loaded
-      // This ensures 15m/1h will re-run when predictions arrive
-      const shouldMarkAsSet = useRealtimeView || predictions.length > 0;
-      if (shouldMarkAsSet) {
-        hasSetInitialRangeRef.current = true;
+        // Set visible range on main chart
+        chartRef.current.timeScale().setVisibleRange({
+          from: rangeStart as Time,
+          to: rangeEnd as Time,
+        });
+
+        // Also sync to MACD chart if it exists
+        if (macdChartRef.current && indicatorVisibility.macd) {
+          try {
+            const logicalRange = chartRef.current.timeScale().getVisibleLogicalRange();
+            if (logicalRange) {
+              macdChartRef.current.timeScale().setVisibleLogicalRange(logicalRange);
+            }
+          } catch {
+            // MACD chart may not be ready
+          }
+        }
+
+        isSettingInitialRange.current = false;
+      } catch {
+        isSettingInitialRange.current = false;
+        // Chart may not be ready yet
+        return;
       }
-    }, 100);
-  }, [candles, predictions, blocks, interval, refreshKey]);
+
+      // Mark range as set - we only get here if we have the required data
+      // (realtime view always has candles, prediction view waits for predictions)
+      hasSetInitialRangeRef.current = true;
+    }, 300);
+
+    // Cleanup: cancel timeout on unmount or when effect re-runs
+    return () => {
+      if (visibleRangeTimeoutRef.current) {
+        clearTimeout(visibleRangeTimeoutRef.current);
+        visibleRangeTimeoutRef.current = null;
+      }
+    };
+  }, [candles, predictions, blocks, interval, refreshKey, indicatorVisibility.macd]);
 
   // Format price for display
   const formatPrice = (price: number) => {
     return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
+  // Divider drag handlers for resizing MACD panel
+  const handleDividerMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDraggingDivider(true);
+    dividerDragStartY.current = e.clientY;
+    dividerDragStartHeight.current = macdPanelHeight;
+  }, [macdPanelHeight]);
+
+  // Handle divider drag globally
+  useEffect(() => {
+    if (!isDraggingDivider) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      const containerHeight = containerRef.current.clientHeight;
+      const deltaY = dividerDragStartY.current - e.clientY;
+      const deltaPercent = (deltaY / containerHeight) * 100;
+      const newHeight = Math.min(50, Math.max(10, dividerDragStartHeight.current + deltaPercent));
+      setMacdPanelHeight(newHeight);
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingDivider(false);
+      // Save to localStorage
+      localStorage.setItem(MACD_PANEL_HEIGHT_KEY, macdPanelHeight.toString());
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDraggingDivider, macdPanelHeight]);
+
+  // Calculate main chart height based on MACD visibility
+  const mainChartHeight = indicatorVisibility.macd ? `${100 - macdPanelHeight}%` : '100%';
+  const macdChartHeight = indicatorVisibility.macd ? `${macdPanelHeight}%` : '0%';
+
   return (
-    <div className={`relative overflow-hidden ${className || ''}`}>
-      <div ref={containerRef} className="w-full h-full min-w-0" />
-      <ChartLegend
-        ema200dValue={ema200dValue}
-        visibility={indicatorVisibility}
-        onToggle={toggleIndicator}
-        exchangeVisibility={exchangeVisibility}
-        onExchangeToggle={toggleExchange}
-        exchangeData={exchangeData}
-      />
+    <div ref={containerRef} className={`relative overflow-hidden flex flex-col ${className || ''}`}>
+      {/* Main price chart pane */}
+      <div className="relative" style={{ height: mainChartHeight, minHeight: 0 }}>
+        <div ref={mainContainerRef} className="w-full h-full min-w-0" />
+        <ChartLegend
+          ema200dValue={ema200dValue}
+          visibility={indicatorVisibility}
+          onToggle={toggleIndicator}
+          exchangeVisibility={exchangeVisibility}
+          onExchangeToggle={toggleExchange}
+          exchangeData={exchangeData}
+        />
 
-      {/* EMA 200D Y-axis indicator - shows when EMA is off-screen and indicator is enabled */}
-      {indicatorVisibility.ema200d && ema200dValue !== null && ema200dPosition === 'above' && (
+        {/* EMA 200D Y-axis indicator - shows when EMA is off-screen and indicator is enabled */}
+        {indicatorVisibility.ema200d && ema200dValue !== null && ema200dPosition === 'above' && (
+          <div
+            className="absolute right-[60px] top-3 flex items-center gap-1 bg-[#FF9800] text-black text-xs font-semibold px-2 py-1 rounded shadow-lg z-20"
+            style={{ borderLeft: '3px solid #FF9800' }}
+          >
+            <span>▲</span>
+            <span>EMA 200D</span>
+            <span>${formatPrice(ema200dValue)}</span>
+          </div>
+        )}
+        {indicatorVisibility.ema200d && ema200dValue !== null && ema200dPosition === 'below' && (
+          <div
+            className="absolute right-[60px] bottom-3 flex items-center gap-1 bg-[#FF9800] text-black text-xs font-semibold px-2 py-1 rounded shadow-lg z-20"
+            style={{ borderLeft: '3px solid #FF9800' }}
+          >
+            <span>▼</span>
+            <span>EMA 200D</span>
+            <span>${formatPrice(ema200dValue)}</span>
+          </div>
+        )}
+
+        {/* Prediction band Y-axis labels on crosshair hover */}
+        {crosshairBandValues.high !== null && crosshairBandValues.highY !== null && (
+          <div
+            className="absolute right-0 px-1.5 py-0.5 text-[11px] font-medium rounded-l pointer-events-none z-30 transition-opacity duration-75"
+            style={{
+              top: crosshairBandValues.highY - 9,
+              backgroundColor: COLORS.high,
+              color: '#ffffff',
+            }}
+          >
+            {formatPrice(crosshairBandValues.high)}
+          </div>
+        )}
+        {crosshairBandValues.low !== null && crosshairBandValues.lowY !== null && (
+          <div
+            className="absolute right-0 px-1.5 py-0.5 text-[11px] font-medium rounded-l pointer-events-none z-30 transition-opacity duration-75"
+            style={{
+              top: crosshairBandValues.lowY - 9,
+              backgroundColor: COLORS.high,
+              color: '#ffffff',
+            }}
+          >
+            {formatPrice(crosshairBandValues.low)}
+          </div>
+        )}
+        {crosshairBandValues.mid !== null && crosshairBandValues.midY !== null && (
+          <div
+            className="absolute right-0 px-1.5 py-0.5 text-[11px] font-medium rounded-l pointer-events-none z-30 transition-opacity duration-75"
+            style={{
+              top: crosshairBandValues.midY - 9,
+              backgroundColor: COLORS.mid,
+              color: '#ffffff',
+            }}
+          >
+            {formatPrice(crosshairBandValues.mid)}
+          </div>
+        )}
+      </div>
+
+      {/* Draggable divider between main chart and MACD */}
+      {indicatorVisibility.macd && (
         <div
-          className="absolute right-[60px] top-3 flex items-center gap-1 bg-[#FF9800] text-black text-xs font-semibold px-2 py-1 rounded shadow-lg z-20"
-          style={{ borderLeft: '3px solid #FF9800' }}
+          className={`h-1 bg-[#30363d] cursor-ns-resize hover:bg-[#3b82f6] transition-colors relative flex-shrink-0 ${
+            isDraggingDivider ? 'bg-[#3b82f6]' : ''
+          }`}
+          onMouseDown={handleDividerMouseDown}
         >
-          <span>▲</span>
-          <span>EMA 200D</span>
-          <span>${formatPrice(ema200dValue)}</span>
-        </div>
-      )}
-      {indicatorVisibility.ema200d && ema200dValue !== null && ema200dPosition === 'below' && (
-        <div
-          className="absolute right-[60px] bottom-[25%] flex items-center gap-1 bg-[#FF9800] text-black text-xs font-semibold px-2 py-1 rounded shadow-lg z-20"
-          style={{ borderLeft: '3px solid #FF9800' }}
-        >
-          <span>▼</span>
-          <span>EMA 200D</span>
-          <span>${formatPrice(ema200dValue)}</span>
+          {/* Divider grip indicator */}
+          <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-center">
+            <div className="w-8 h-0.5 bg-[#8b949e] rounded opacity-50" />
+          </div>
+          {/* MACD label */}
+          <div className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-[#8b949e] font-medium uppercase tracking-wider">
+            MACD
+          </div>
         </div>
       )}
 
-      {/* Prediction band Y-axis labels on crosshair hover */}
-      {crosshairBandValues.high !== null && crosshairBandValues.highY !== null && (
-        <div
-          className="absolute right-0 px-1.5 py-0.5 text-[11px] font-medium rounded-l pointer-events-none z-30 transition-opacity duration-75"
-          style={{
-            top: crosshairBandValues.highY - 9,
-            backgroundColor: COLORS.high,
-            color: '#ffffff',
-          }}
-        >
-          {formatPrice(crosshairBandValues.high)}
-        </div>
-      )}
-      {crosshairBandValues.low !== null && crosshairBandValues.lowY !== null && (
-        <div
-          className="absolute right-0 px-1.5 py-0.5 text-[11px] font-medium rounded-l pointer-events-none z-30 transition-opacity duration-75"
-          style={{
-            top: crosshairBandValues.lowY - 9,
-            backgroundColor: COLORS.high,
-            color: '#ffffff',
-          }}
-        >
-          {formatPrice(crosshairBandValues.low)}
-        </div>
-      )}
-      {crosshairBandValues.mid !== null && crosshairBandValues.midY !== null && (
-        <div
-          className="absolute right-0 px-1.5 py-0.5 text-[11px] font-medium rounded-l pointer-events-none z-30 transition-opacity duration-75"
-          style={{
-            top: crosshairBandValues.midY - 9,
-            backgroundColor: COLORS.mid,
-            color: '#ffffff',
-          }}
-        >
-          {formatPrice(crosshairBandValues.mid)}
+      {/* MACD chart pane */}
+      {indicatorVisibility.macd && (
+        <div className="relative flex-shrink-0" style={{ height: macdChartHeight, minHeight: 0 }}>
+          <div ref={macdContainerRef} className="w-full h-full min-w-0" />
         </div>
       )}
     </div>
