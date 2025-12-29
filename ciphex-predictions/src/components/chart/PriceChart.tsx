@@ -215,6 +215,8 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
   const isSyncingCrosshair = useRef(false);
   // Flag to temporarily disable sync during initial range setup
   const isSettingInitialRange = useRef(false);
+  // Flag to disable sync during data updates (prevents range reset on exchange toggle)
+  const isUpdatingData = useRef(false);
 
   // Load saved MACD panel height from localStorage
   useEffect(() => {
@@ -719,7 +721,8 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
     // Using logical range (bar indices) - works because both charts now have
     // data points at the same timestamps (MACD has invisible placeholders for future)
     const handleMainTimeRangeChange = (logicalRange: { from: number; to: number } | null) => {
-      if (isSyncingTimeScale.current || isSettingInitialRange.current || !logicalRange) return;
+      // Skip sync during initial setup or data updates (prevents range reset on exchange toggle)
+      if (isSyncingTimeScale.current || isSettingInitialRange.current || isUpdatingData.current || !logicalRange) return;
       isSyncingTimeScale.current = true;
       try {
         macdChart.timeScale().setVisibleLogicalRange(logicalRange);
@@ -877,12 +880,16 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
   useEffect(() => {
     if (!candlestickSeriesRef.current || !ema20SeriesRef.current || !ema200SeriesRef.current) return;
 
+    // Disable time scale sync during data updates
+    isUpdatingData.current = true;
+
     // Clear chart when candles array is empty (e.g., during interval switch)
     if (candles.length === 0) {
       candlestickSeriesRef.current.setData([]);
       if (macdSeriesRef.current) macdSeriesRef.current.setData([]);
       ema20SeriesRef.current.setData([]);
       ema200SeriesRef.current.setData([]);
+      isUpdatingData.current = false;
       return;
     }
 
@@ -985,6 +992,9 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
     } else {
       ema200SeriesRef.current.setData([]);
     }
+
+    // Re-enable time scale sync after data updates complete
+    isUpdatingData.current = false;
   }, [candles, predictions, assetType, interval, indicatorVisibility]);
 
   // Update exchange overlay data
@@ -995,6 +1005,9 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
   };
 
   useEffect(() => {
+    // Disable time scale sync during data updates to prevent range reset
+    isUpdatingData.current = true;
+
     // Get support flags (default to false if not provided)
     const support = exchangeData?.support;
 
@@ -1086,6 +1099,9 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       !!(support?.crypto_com_usdt && exchangeVisibility.crypto_com_usdt),
       exchangeData?.crypto_com_usdt?.priceHistory
     );
+
+    // Re-enable time scale sync after data updates complete
+    isUpdatingData.current = false;
   }, [exchangeData, exchangeVisibility]);
 
   // Create/update 200-day EMA price line when value changes
