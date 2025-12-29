@@ -766,123 +766,92 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
     // Get support flags (default to false if not provided)
     const support = exchangeData?.support;
 
-    // Composite Index overlay (TradingView-style INDEX)
-    // Only render if: supported for this asset AND user has it enabled AND has data
-    if (compositeIndexSeriesRef.current) {
-      if (support?.index && exchangeVisibility.composite_index && exchangeData?.composite_index?.priceHistory?.length) {
-        const lineData: LineData<Time>[] = exchangeData.composite_index.priceHistory.map((p) => ({
+    // Helper to update exchange series with proper lastValueVisible toggling
+    // This ensures the y-axis price label is hidden when series has no data
+    const updateExchangeSeries = (
+      seriesRef: React.RefObject<ISeriesApi<'Line'> | null>,
+      shouldShow: boolean,
+      priceHistory: { time: number; price: number }[] | undefined
+    ) => {
+      if (!seriesRef.current) return;
+
+      if (shouldShow && priceHistory?.length) {
+        const lineData: LineData<Time>[] = priceHistory.map((p) => ({
           time: p.time as Time,
           value: ensureNumber(p.price),
         }));
-        compositeIndexSeriesRef.current.setData(lineData);
+        seriesRef.current.setData(lineData);
+        seriesRef.current.applyOptions({ lastValueVisible: true });
       } else {
-        compositeIndexSeriesRef.current.setData([]);
+        seriesRef.current.setData([]);
+        // CRITICAL: Hide the y-axis price label when series is empty
+        // Without this, the label persists showing stale prices from previous asset
+        seriesRef.current.applyOptions({ lastValueVisible: false });
       }
-    }
+    };
+
+    // Composite Index overlay (TradingView-style INDEX)
+    updateExchangeSeries(
+      compositeIndexSeriesRef,
+      !!(support?.index && exchangeVisibility.composite_index),
+      exchangeData?.composite_index?.priceHistory
+    );
 
     // HTX overlay
-    if (htxSeriesRef.current) {
-      if (support?.htx && exchangeVisibility.htx && exchangeData?.htx?.priceHistory?.length) {
-        const lineData: LineData<Time>[] = exchangeData.htx.priceHistory.map((p) => ({
-          time: p.time as Time,
-          value: ensureNumber(p.price),
-        }));
-        htxSeriesRef.current.setData(lineData);
-      } else {
-        htxSeriesRef.current.setData([]);
-      }
-    }
+    updateExchangeSeries(
+      htxSeriesRef,
+      !!(support?.htx && exchangeVisibility.htx),
+      exchangeData?.htx?.priceHistory
+    );
 
     // Coinbase overlay
-    if (coinbaseSeriesRef.current) {
-      if (support?.coinbase && exchangeVisibility.coinbase && exchangeData?.coinbase?.priceHistory?.length) {
-        const lineData: LineData<Time>[] = exchangeData.coinbase.priceHistory.map((p) => ({
-          time: p.time as Time,
-          value: ensureNumber(p.price),
-        }));
-        coinbaseSeriesRef.current.setData(lineData);
-      } else {
-        coinbaseSeriesRef.current.setData([]);
-      }
-    }
+    updateExchangeSeries(
+      coinbaseSeriesRef,
+      !!(support?.coinbase && exchangeVisibility.coinbase),
+      exchangeData?.coinbase?.priceHistory
+    );
 
     // Gemini overlay
-    if (geminiSeriesRef.current) {
-      if (support?.gemini && exchangeVisibility.gemini && exchangeData?.gemini?.priceHistory?.length) {
-        const lineData: LineData<Time>[] = exchangeData.gemini.priceHistory.map((p) => ({
-          time: p.time as Time,
-          value: ensureNumber(p.price),
-        }));
-        geminiSeriesRef.current.setData(lineData);
-      } else {
-        geminiSeriesRef.current.setData([]);
-      }
-    }
+    updateExchangeSeries(
+      geminiSeriesRef,
+      !!(support?.gemini && exchangeVisibility.gemini),
+      exchangeData?.gemini?.priceHistory
+    );
 
     // Kraken overlay
-    if (krakenSeriesRef.current) {
-      if (support?.kraken && exchangeVisibility.kraken && exchangeData?.kraken?.priceHistory?.length) {
-        const lineData: LineData<Time>[] = exchangeData.kraken.priceHistory.map((p) => ({
-          time: p.time as Time,
-          value: ensureNumber(p.price),
-        }));
-        krakenSeriesRef.current.setData(lineData);
-      } else {
-        krakenSeriesRef.current.setData([]);
-      }
-    }
+    updateExchangeSeries(
+      krakenSeriesRef,
+      !!(support?.kraken && exchangeVisibility.kraken),
+      exchangeData?.kraken?.priceHistory
+    );
 
     // Bitstamp overlay
-    if (bitstampSeriesRef.current) {
-      if (support?.bitstamp && exchangeVisibility.bitstamp && exchangeData?.bitstamp?.priceHistory?.length) {
-        const lineData: LineData<Time>[] = exchangeData.bitstamp.priceHistory.map((p) => ({
-          time: p.time as Time,
-          value: ensureNumber(p.price),
-        }));
-        bitstampSeriesRef.current.setData(lineData);
-      } else {
-        bitstampSeriesRef.current.setData([]);
-      }
-    }
+    updateExchangeSeries(
+      bitstampSeriesRef,
+      !!(support?.bitstamp && exchangeVisibility.bitstamp),
+      exchangeData?.bitstamp?.priceHistory
+    );
 
     // Bitfinex overlay
-    if (bitfinexSeriesRef.current) {
-      if (support?.bitfinex && exchangeVisibility.bitfinex && exchangeData?.bitfinex?.priceHistory?.length) {
-        const lineData: LineData<Time>[] = exchangeData.bitfinex.priceHistory.map((p) => ({
-          time: p.time as Time,
-          value: ensureNumber(p.price),
-        }));
-        bitfinexSeriesRef.current.setData(lineData);
-      } else {
-        bitfinexSeriesRef.current.setData([]);
-      }
-    }
+    updateExchangeSeries(
+      bitfinexSeriesRef,
+      !!(support?.bitfinex && exchangeVisibility.bitfinex),
+      exchangeData?.bitfinex?.priceHistory
+    );
 
     // Crypto.com USD overlay
-    if (cryptoComUsdSeriesRef.current) {
-      if (support?.crypto_com_usd && exchangeVisibility.crypto_com_usd && exchangeData?.crypto_com_usd?.priceHistory?.length) {
-        const lineData: LineData<Time>[] = exchangeData.crypto_com_usd.priceHistory.map((p) => ({
-          time: p.time as Time,
-          value: ensureNumber(p.price),
-        }));
-        cryptoComUsdSeriesRef.current.setData(lineData);
-      } else {
-        cryptoComUsdSeriesRef.current.setData([]);
-      }
-    }
+    updateExchangeSeries(
+      cryptoComUsdSeriesRef,
+      !!(support?.crypto_com_usd && exchangeVisibility.crypto_com_usd),
+      exchangeData?.crypto_com_usd?.priceHistory
+    );
 
     // Crypto.com USDT overlay
-    if (cryptoComUsdtSeriesRef.current) {
-      if (support?.crypto_com_usdt && exchangeVisibility.crypto_com_usdt && exchangeData?.crypto_com_usdt?.priceHistory?.length) {
-        const lineData: LineData<Time>[] = exchangeData.crypto_com_usdt.priceHistory.map((p) => ({
-          time: p.time as Time,
-          value: ensureNumber(p.price),
-        }));
-        cryptoComUsdtSeriesRef.current.setData(lineData);
-      } else {
-        cryptoComUsdtSeriesRef.current.setData([]);
-      }
-    }
+    updateExchangeSeries(
+      cryptoComUsdtSeriesRef,
+      !!(support?.crypto_com_usdt && exchangeVisibility.crypto_com_usdt),
+      exchangeData?.crypto_com_usdt?.priceHistory
+    );
   }, [exchangeData, exchangeVisibility]);
 
   // Create/update 200-day EMA price line when value changes
