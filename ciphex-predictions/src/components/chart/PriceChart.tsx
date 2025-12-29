@@ -1251,7 +1251,14 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
         to: rangeEnd as Time,
       });
 
-      hasSetInitialRangeRef.current = true;
+      // Only mark initial range as set when:
+      // - For realtime intervals (15s, 1m): always set after first range
+      // - For prediction intervals (15m, 1h): only set after predictions loaded
+      // This ensures 15m/1h will re-run when predictions arrive
+      const shouldMarkAsSet = useRealtimeView || predictions.length > 0;
+      if (shouldMarkAsSet) {
+        hasSetInitialRangeRef.current = true;
+      }
     }, 100);
   }, [candles, predictions, blocks, interval, refreshKey]);
 

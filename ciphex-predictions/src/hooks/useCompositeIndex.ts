@@ -47,8 +47,10 @@ export function useCompositeIndex({
   enabled = true,
 }: UseCompositeIndexOptions): UseCompositeIndexReturn {
 
-  // Calculate current composite price (average of all available USD exchange prices)
+  // Calculate current composite price (average of all 4 USD exchange prices)
   // TradingView formula: (Bitstamp + Coinbase + Bitfinex + Kraken) / 4
+  // IMPORTANT: Only return price when ALL 4 exchanges have valid data
+  // This prevents chart distortion from partial data with large spreads
   const { currentPrice, sources, connectedCount } = useMemo(() => {
     if (!enabled) {
       return { currentPrice: null, sources: [], connectedCount: 0 };
@@ -72,26 +74,23 @@ export function useCompositeIndex({
         name: ex.name,
         price: ex.data.currentPrice,
         connected: ex.data.connected,
-        weight: hasValidPrice ? 1 / Math.max(validPrices.length, 1) : 0,
+        weight: hasValidPrice ? 0.25 : 0, // Each exchange is 1/4 of INDEX
       };
     });
 
-    // Update weights now that we know the total count
     const count = validPrices.length;
-    sourceInfo.forEach(s => {
-      if (s.price !== null && s.price > 0) {
-        s.weight = 1 / count;
-      }
-    });
+    const connectedExchanges = exchanges.filter(e => e.data.connected).length;
 
-    const avgPrice = count > 0
-      ? validPrices.reduce((sum, p) => sum + p, 0) / count
+    // Only calculate INDEX when ALL 4 exchanges have valid prices
+    // This ensures the formula is always (Bitstamp + Coinbase + Bitfinex + Kraken) / 4
+    const avgPrice = count === 4
+      ? validPrices.reduce((sum, p) => sum + p, 0) / 4
       : null;
 
     return {
       currentPrice: avgPrice,
       sources: sourceInfo,
-      connectedCount: exchanges.filter(e => e.data.connected).length,
+      connectedCount: connectedExchanges,
     };
   }, [bitstamp, coinbase, bitfinex, kraken, enabled]);
 
@@ -134,9 +133,10 @@ export function useCompositeIndex({
         }
       });
 
-      // Only add point if we have at least 2 exchanges with data
-      if (pricesAtTime.length >= 2) {
-        const avgPrice = pricesAtTime.reduce((sum, p) => sum + p, 0) / pricesAtTime.length;
+      // Only add point if ALL 4 exchanges have data
+      // This prevents chart distortion from partial data with large spreads
+      if (pricesAtTime.length === 4) {
+        const avgPrice = pricesAtTime.reduce((sum, p) => sum + p, 0) / 4;
         result.push({ time: timestamp, price: avgPrice });
       }
     }
