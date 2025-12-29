@@ -10,6 +10,7 @@ import { BottomSheet, SheetState } from '@/components/mobile/BottomSheet';
 import { MobileMenu } from '@/components/mobile/MobileMenu';
 import { usePredictions, usePriceData, useHTXPrice, useCoinbasePrice, useGeminiPrice, useCryptoComPrice, useKrakenPrice, useBitstampPrice, useBitfinexPrice, useCompositeIndex } from '@/hooks';
 import { DEFAULT_ASSET_ID, getAssetById } from '@/config/assets';
+import { isExchangeSupported, isIndexAvailable, getKrakenSymbol } from '@/config/exchangeSupport';
 import { Interval, extractBaseSymbol } from '@/types';
 
 export default function Dashboard() {
@@ -55,6 +56,22 @@ export default function Dashboard() {
   // Exchange price data hooks (for comparison overlays)
   const isCrypto = selectedAsset?.type === 'crypto';
 
+  // Compute exchange support flags for current asset
+  const exchangeSupport = useMemo(() => ({
+    htx: isCrypto && isExchangeSupported(baseSymbol, 'htx'),
+    coinbase: isCrypto && isExchangeSupported(baseSymbol, 'coinbase'),
+    gemini: isCrypto && isExchangeSupported(baseSymbol, 'gemini'),
+    kraken: isCrypto && isExchangeSupported(baseSymbol, 'kraken'),
+    bitstamp: isCrypto && isExchangeSupported(baseSymbol, 'bitstamp'),
+    bitfinex: isCrypto && isExchangeSupported(baseSymbol, 'bitfinex'),
+    crypto_com_usd: isCrypto && isExchangeSupported(baseSymbol, 'crypto_com_usd'),
+    crypto_com_usdt: isCrypto && isExchangeSupported(baseSymbol, 'crypto_com_usdt'),
+    index: isCrypto && isIndexAvailable(baseSymbol),
+  }), [baseSymbol, isCrypto]);
+
+  // Kraken uses XBT for Bitcoin
+  const krakenSymbol = useMemo(() => getKrakenSymbol(baseSymbol), [baseSymbol]);
+
   const {
     priceHistory: htxPriceHistory,
     currentPrice: htxCurrentPrice,
@@ -62,7 +79,7 @@ export default function Dashboard() {
   } = useHTXPrice({
     symbol: baseSymbol,
     interval: selectedInterval,
-    enabled: isCrypto,
+    enabled: exchangeSupport.htx,
   });
 
   const {
@@ -72,7 +89,7 @@ export default function Dashboard() {
   } = useCoinbasePrice({
     symbol: baseSymbol,
     interval: selectedInterval,
-    enabled: isCrypto,
+    enabled: exchangeSupport.coinbase,
   });
 
   const {
@@ -82,7 +99,7 @@ export default function Dashboard() {
   } = useGeminiPrice({
     symbol: baseSymbol,
     interval: selectedInterval,
-    enabled: isCrypto,
+    enabled: exchangeSupport.gemini,
   });
 
   const {
@@ -93,7 +110,7 @@ export default function Dashboard() {
     symbol: baseSymbol,
     interval: selectedInterval,
     quoteCurrency: 'USD',
-    enabled: isCrypto,
+    enabled: exchangeSupport.crypto_com_usd,
   });
 
   const {
@@ -104,7 +121,7 @@ export default function Dashboard() {
     symbol: baseSymbol,
     interval: selectedInterval,
     quoteCurrency: 'USDT',
-    enabled: isCrypto,
+    enabled: exchangeSupport.crypto_com_usdt,
   });
 
   const {
@@ -112,9 +129,9 @@ export default function Dashboard() {
     currentPrice: krakenCurrentPrice,
     connected: krakenConnected,
   } = useKrakenPrice({
-    symbol: baseSymbol,
+    symbol: krakenSymbol, // Uses XBT for BTC
     interval: selectedInterval,
-    enabled: isCrypto,
+    enabled: exchangeSupport.kraken,
   });
 
   const {
@@ -124,7 +141,7 @@ export default function Dashboard() {
   } = useBitstampPrice({
     symbol: baseSymbol,
     interval: selectedInterval,
-    enabled: isCrypto,
+    enabled: exchangeSupport.bitstamp,
   });
 
   const {
@@ -134,7 +151,7 @@ export default function Dashboard() {
   } = useBitfinexPrice({
     symbol: baseSymbol,
     interval: selectedInterval,
-    enabled: isCrypto,
+    enabled: exchangeSupport.bitfinex,
   });
 
   // Composite Index: TradingView INDEX:BTCUSD formula
@@ -164,11 +181,13 @@ export default function Dashboard() {
       currentPrice: krakenCurrentPrice,
       connected: krakenConnected,
     },
-    enabled: isCrypto,
+    enabled: exchangeSupport.index,
   });
 
   // Combine exchange data for chart
   const exchangeData = useMemo(() => ({
+    // Exchange support flags for conditional rendering
+    support: exchangeSupport,
     composite_index: {
       priceHistory: compositeIndexHistory,
       currentPrice: compositeIndexPrice,
@@ -216,6 +235,7 @@ export default function Dashboard() {
       connected: cryptoComUsdtConnected,
     },
   }), [
+    exchangeSupport,
     compositeIndexHistory, compositeIndexPrice, compositeConnectedCount,
     htxPriceHistory, htxCurrentPrice, htxConnected,
     coinbasePriceHistory, coinbaseCurrentPrice, coinbaseConnected,

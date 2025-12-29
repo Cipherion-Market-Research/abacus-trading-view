@@ -95,7 +95,15 @@ export function usePriceData({
         if (limit) url += `&limit=${limit}`;
       }
 
-      const response = await fetch(url);
+      // Fetch with cache disabled to always get fresh price data
+      const response = await fetch(url, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        },
+      });
+
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.message || `Failed to fetch prices: ${response.status}`);
@@ -126,7 +134,13 @@ export function usePriceData({
 
     const fetchDailyPrices = async () => {
       try {
-        const response = await fetch(`/api/prices/crypto/${symbol}/daily`);
+        const response = await fetch(`/api/prices/crypto/${symbol}/daily`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+          },
+        });
         if (response.ok) {
           const data = await response.json();
           setDailyCandles(data);

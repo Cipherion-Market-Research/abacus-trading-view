@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { PredictionData } from '@/types';
 
 interface UsePredictionsOptions {
@@ -23,6 +23,9 @@ export function usePredictions({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Track the previous assetId to detect changes
+  const prevAssetIdRef = useRef<string>(assetId);
+
   const fetchPredictions = useCallback(async () => {
     if (!assetId) return;
 
@@ -30,7 +33,16 @@ export function usePredictions({
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/predictions/${assetId}`);
+      // Fetch with cache disabled to always get fresh predictions
+      // This is critical for prediction cycles that change every 24h
+      const response = await fetch(`/api/predictions/${assetId}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        },
+      });
+
       if (!response.ok) {
         throw new Error(`Failed to fetch predictions: ${response.status}`);
       }
@@ -41,6 +53,15 @@ export function usePredictions({
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
+    }
+  }, [assetId]);
+
+  // Clear predictions immediately when assetId changes to prevent showing stale data
+  useEffect(() => {
+    if (prevAssetIdRef.current !== assetId) {
+      // Asset changed - clear old predictions immediately
+      setPredictions(null);
+      prevAssetIdRef.current = assetId;
     }
   }, [assetId]);
 
