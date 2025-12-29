@@ -6,17 +6,6 @@ import { ExchangePricePoint, Interval } from '@/types';
 // Bitfinex WebSocket URL (public)
 const BITFINEX_WS_URL = 'wss://api-pub.bitfinex.com/ws/2';
 
-// Bitfinex REST API for historical candles
-const BITFINEX_API_URL = 'https://api-pub.bitfinex.com/v2';
-
-// Bitfinex timeframe mapping
-const BITFINEX_TIMEFRAME: Record<Interval, string> = {
-  '15s': '1m',    // Bitfinex minimum is 1m
-  '1m': '1m',
-  '15m': '15m',
-  '1h': '1h',
-};
-
 // Aggregation seconds for each interval
 const INTERVAL_SECONDS: Record<Interval, number> = {
   '15s': 15,
@@ -50,19 +39,37 @@ export function useBitfinexPrice({
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const channelIdRef = useRef<number | null>(null);
+  const prevSymbolRef = useRef<string>(symbol);
 
   // Build Bitfinex symbol format (BTC -> tBTCUSD)
   const bitfinexSymbol = `t${symbol.toUpperCase()}USD`;
 
-  // Fetch initial historical data via REST
+  // Clear state when symbol changes to prevent stale data
+  useEffect(() => {
+    if (prevSymbolRef.current !== symbol) {
+      // Symbol changed - clear all state immediately
+      setPriceHistory([]);
+      setCurrentPrice(null);
+      setError(null);
+      prevSymbolRef.current = symbol;
+    }
+  }, [symbol]);
+
+  // Fetch initial historical data via server-side proxy (bypasses CORS)
   const fetchHistory = useCallback(async () => {
     if (!symbol || !enabled) return;
 
     try {
-      const timeframe = BITFINEX_TIMEFRAME[interval];
-      // Bitfinex candles endpoint: /candles/trade:{timeframe}:{symbol}/hist
+      // Use server-side proxy to avoid CORS issues
       const response = await fetch(
-        `${BITFINEX_API_URL}/candles/trade:${timeframe}:${bitfinexSymbol}/hist?limit=300&sort=1`
+        `/api/prices/bitfinex/${symbol}?interval=${interval}&limit=300`,
+        {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+          },
+        }
       );
 
       if (!response.ok) {
@@ -71,25 +78,15 @@ export function useBitfinexPrice({
 
       const data = await response.json();
 
-      if (Array.isArray(data)) {
-        // Bitfinex candle format: [MTS, OPEN, CLOSE, HIGH, LOW, VOLUME]
-        // sort=1 returns oldest first
-        const history: ExchangePricePoint[] = data.map((candle: number[]) => ({
-          time: Math.floor(candle[0] / 1000), // Convert ms to seconds
-          price: Number(candle[2]), // Close price
-        }));
-
-        setPriceHistory(history);
-
-        if (history.length > 0) {
-          setCurrentPrice(history[history.length - 1].price);
-        }
+      if (Array.isArray(data) && data.length > 0) {
+        setPriceHistory(data);
+        setCurrentPrice(data[data.length - 1].price);
       }
     } catch (err) {
       console.error('Bitfinex history fetch error:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch Bitfinex data');
     }
-  }, [symbol, interval, bitfinexSymbol, enabled]);
+  }, [symbol, interval, enabled]);
 
   // WebSocket connection for real-time updates
   useEffect(() => {

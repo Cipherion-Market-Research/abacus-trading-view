@@ -67,9 +67,20 @@ export function useBitstampPrice({
   const [error, setError] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const prevSymbolRef = useRef<string>(symbol);
 
   // Build Bitstamp pair format (BTC -> btcusd)
   const bitstampPair = `${symbol.toLowerCase()}usd`;
+
+  // Clear state when symbol changes to prevent stale data
+  useEffect(() => {
+    if (prevSymbolRef.current !== symbol) {
+      setPriceHistory([]);
+      setCurrentPrice(null);
+      setError(null);
+      prevSymbolRef.current = symbol;
+    }
+  }, [symbol]);
 
   // Fetch initial historical data via REST
   const fetchHistory = useCallback(async () => {

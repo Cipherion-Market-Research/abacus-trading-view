@@ -65,6 +65,17 @@ export function useKrakenPrice({
   const [error, setError] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const prevSymbolRef = useRef<string>(symbol);
+
+  // Clear state when symbol changes to prevent stale data
+  useEffect(() => {
+    if (prevSymbolRef.current !== symbol) {
+      setPriceHistory([]);
+      setCurrentPrice(null);
+      setError(null);
+      prevSymbolRef.current = symbol;
+    }
+  }, [symbol]);
 
   // Build Kraken pair format (BTC -> BTC/USD)
   const krakenPair = `${symbol.toUpperCase()}/USD`;
