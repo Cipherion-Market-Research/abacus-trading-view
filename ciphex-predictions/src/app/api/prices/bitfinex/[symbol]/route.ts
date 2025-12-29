@@ -47,8 +47,10 @@ export async function GET(
     const timeframe = BITFINEX_TIMEFRAME[interval] || '15m';
 
     // Fetch from Bitfinex REST API
+    // NOTE: Do NOT use sort=1, as it returns data from 2013 instead of recent data
+    // Default (no sort) returns newest first, which we reverse to get chronological order
     const response = await fetch(
-      `${BITFINEX_API_URL}/candles/trade:${timeframe}:${bitfinexSymbol}/hist?limit=${limit}&sort=1`,
+      `${BITFINEX_API_URL}/candles/trade:${timeframe}:${bitfinexSymbol}/hist?limit=${limit}`,
       {
         headers: {
           'Accept': 'application/json',
@@ -69,11 +71,14 @@ export async function GET(
 
     // Bitfinex candle format: [MTS, OPEN, CLOSE, HIGH, LOW, VOLUME]
     // Transform to our format: { time, price }
+    // Reverse to get chronological order (API returns newest first by default)
     if (Array.isArray(data)) {
-      const candles = data.map((candle: number[]) => ({
-        time: Math.floor(candle[0] / 1000), // Convert ms to seconds
-        price: Number(candle[2]), // Close price
-      }));
+      const candles = data
+        .map((candle: number[]) => ({
+          time: Math.floor(candle[0] / 1000), // Convert ms to seconds
+          price: Number(candle[2]), // Close price
+        }))
+        .reverse(); // Reverse to chronological order (oldest first)
 
       return NextResponse.json(candles, { headers: CACHE_HEADERS });
     }
