@@ -993,8 +993,13 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       ema200SeriesRef.current.setData([]);
     }
 
-    // Re-enable time scale sync after data updates complete
-    isUpdatingData.current = false;
+    // Re-enable time scale sync after chart re-renders complete
+    // Use requestAnimationFrame to wait for async chart rendering before resetting flag
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        isUpdatingData.current = false;
+      });
+    });
   }, [candles, predictions, assetType, interval, indicatorVisibility]);
 
   // Update exchange overlay data
@@ -1100,8 +1105,14 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       exchangeData?.crypto_com_usdt?.priceHistory
     );
 
-    // Re-enable time scale sync after data updates complete
-    isUpdatingData.current = false;
+    // Re-enable time scale sync after chart re-renders complete
+    // Use double requestAnimationFrame to ensure chart has fully processed the update
+    // Single rAF may fire before chart's internal rendering is complete
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        isUpdatingData.current = false;
+      });
+    });
   }, [exchangeData, exchangeVisibility]);
 
   // Create/update 200-day EMA price line when value changes
