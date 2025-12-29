@@ -118,34 +118,14 @@ export function useCompositeIndex({
     const exchanges = [bitstamp, coinbase, bitfinex, kraken];
 
     // Verify all exchanges have price history data
-    // This is a secondary check - all 4 must have fetched their historical data
     const allHaveHistory = exchanges.every(ex => ex.priceHistory.length > 0);
     if (!allHaveHistory) return [];
 
-    // Find the LATEST start time across all exchanges
-    // Only use timestamps where ALL exchanges have actual data (not carried forward)
-    // This prevents using stale data from exchanges with different historical ranges
-    const startTimes = exchanges.map(ex => {
-      const sorted = [...ex.priceHistory].sort((a, b) => a.time - b.time);
-      return sorted.length > 0 ? sorted[0].time : Infinity;
-    });
-    const latestStartTime = Math.max(...startTimes);
-
-    // Find the EARLIEST end time across all exchanges
-    const endTimes = exchanges.map(ex => {
-      const sorted = [...ex.priceHistory].sort((a, b) => a.time - b.time);
-      return sorted.length > 0 ? sorted[sorted.length - 1].time : 0;
-    });
-    const earliestEndTime = Math.min(...endTimes);
-
-    // If there's no valid overlapping range, return empty
-    if (latestStartTime >= earliestEndTime) return [];
-
-    // Only collect timestamps within the overlapping range
+    // Collect all unique timestamps from all exchanges
     const allTimestamps = new Set<number>();
     exchanges.forEach(ex => {
       ex.priceHistory.forEach(p => {
-        if (p.time >= latestStartTime && p.time <= earliestEndTime && p.price > 0) {
+        if (p.price > 0) {
           allTimestamps.add(p.time);
         }
       });
@@ -180,14 +160,14 @@ export function useCompositeIndex({
 
       // Only add point if ALL 4 exchanges have valid data
       if (pricesAtTime.length === 4) {
-        // Sanity check: verify prices are within reasonable spread (max 5% deviation)
-        // This prevents chart distortion from one exchange having bad/stale data
         const avgPrice = pricesAtTime.reduce((sum, p) => sum + p, 0) / 4;
+
+        // Sanity check: verify prices are within reasonable spread (max 10% deviation)
+        // This prevents chart distortion from one exchange having bad/stale data
         const maxDeviation = Math.max(...pricesAtTime.map(p => Math.abs(p - avgPrice) / avgPrice));
 
-        // Only include this point if all prices are within 5% of the average
-        // If one exchange is way off, skip this timestamp entirely
-        if (maxDeviation <= 0.05) {
+        // Only include this point if all prices are within 10% of the average
+        if (maxDeviation <= 0.10) {
           result.push({ time: timestamp, price: avgPrice });
         }
       }
