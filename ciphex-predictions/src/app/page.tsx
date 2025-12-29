@@ -8,9 +8,9 @@ import { Sidebar } from '@/components/sidebar/Sidebar';
 import { SidebarContent } from '@/components/sidebar/SidebarContent';
 import { BottomSheet, SheetState } from '@/components/mobile/BottomSheet';
 import { MobileMenu } from '@/components/mobile/MobileMenu';
-import { usePredictions, usePriceData } from '@/hooks';
+import { usePredictions, usePriceData, useHTXPrice, useCoinbasePrice, useGeminiPrice, useCryptoComPrice, useKrakenPrice, useBitstampPrice, useBitfinexPrice, useCompositeIndex } from '@/hooks';
 import { DEFAULT_ASSET_ID, getAssetById } from '@/config/assets';
-import { Interval } from '@/types';
+import { Interval, extractBaseSymbol } from '@/types';
 
 export default function Dashboard() {
   const [selectedAssetId, setSelectedAssetId] = useState(DEFAULT_ASSET_ID);
@@ -45,6 +45,187 @@ export default function Dashboard() {
     assetType: selectedAsset?.type || 'crypto',
     enableStreaming: true,
   });
+
+  // Extract base symbol for exchange lookups (e.g., 'BTC/USDT' -> 'BTC')
+  const baseSymbol = useMemo(() => {
+    if (!selectedAsset?.symbol) return '';
+    return extractBaseSymbol(selectedAsset.symbol);
+  }, [selectedAsset?.symbol]);
+
+  // Exchange price data hooks (for comparison overlays)
+  const isCrypto = selectedAsset?.type === 'crypto';
+
+  const {
+    priceHistory: htxPriceHistory,
+    currentPrice: htxCurrentPrice,
+    connected: htxConnected,
+  } = useHTXPrice({
+    symbol: baseSymbol,
+    interval: selectedInterval,
+    enabled: isCrypto,
+  });
+
+  const {
+    priceHistory: coinbasePriceHistory,
+    currentPrice: coinbaseCurrentPrice,
+    connected: coinbaseConnected,
+  } = useCoinbasePrice({
+    symbol: baseSymbol,
+    interval: selectedInterval,
+    enabled: isCrypto,
+  });
+
+  const {
+    priceHistory: geminiPriceHistory,
+    currentPrice: geminiCurrentPrice,
+    connected: geminiConnected,
+  } = useGeminiPrice({
+    symbol: baseSymbol,
+    interval: selectedInterval,
+    enabled: isCrypto,
+  });
+
+  const {
+    priceHistory: cryptoComUsdPriceHistory,
+    currentPrice: cryptoComUsdCurrentPrice,
+    connected: cryptoComUsdConnected,
+  } = useCryptoComPrice({
+    symbol: baseSymbol,
+    interval: selectedInterval,
+    quoteCurrency: 'USD',
+    enabled: isCrypto,
+  });
+
+  const {
+    priceHistory: cryptoComUsdtPriceHistory,
+    currentPrice: cryptoComUsdtCurrentPrice,
+    connected: cryptoComUsdtConnected,
+  } = useCryptoComPrice({
+    symbol: baseSymbol,
+    interval: selectedInterval,
+    quoteCurrency: 'USDT',
+    enabled: isCrypto,
+  });
+
+  const {
+    priceHistory: krakenPriceHistory,
+    currentPrice: krakenCurrentPrice,
+    connected: krakenConnected,
+  } = useKrakenPrice({
+    symbol: baseSymbol,
+    interval: selectedInterval,
+    enabled: isCrypto,
+  });
+
+  const {
+    priceHistory: bitstampPriceHistory,
+    currentPrice: bitstampCurrentPrice,
+    connected: bitstampConnected,
+  } = useBitstampPrice({
+    symbol: baseSymbol,
+    interval: selectedInterval,
+    enabled: isCrypto,
+  });
+
+  const {
+    priceHistory: bitfinexPriceHistory,
+    currentPrice: bitfinexCurrentPrice,
+    connected: bitfinexConnected,
+  } = useBitfinexPrice({
+    symbol: baseSymbol,
+    interval: selectedInterval,
+    enabled: isCrypto,
+  });
+
+  // Composite Index: TradingView INDEX:BTCUSD formula
+  // (BITSTAMP:BTCUSD + COINBASE:BTCUSD + BITFINEX:BTCUSD + KRAKEN:BTCUSD) / 4
+  const {
+    priceHistory: compositeIndexHistory,
+    currentPrice: compositeIndexPrice,
+    connectedCount: compositeConnectedCount,
+  } = useCompositeIndex({
+    bitstamp: {
+      priceHistory: bitstampPriceHistory,
+      currentPrice: bitstampCurrentPrice,
+      connected: bitstampConnected,
+    },
+    coinbase: {
+      priceHistory: coinbasePriceHistory,
+      currentPrice: coinbaseCurrentPrice,
+      connected: coinbaseConnected,
+    },
+    bitfinex: {
+      priceHistory: bitfinexPriceHistory,
+      currentPrice: bitfinexCurrentPrice,
+      connected: bitfinexConnected,
+    },
+    kraken: {
+      priceHistory: krakenPriceHistory,
+      currentPrice: krakenCurrentPrice,
+      connected: krakenConnected,
+    },
+    enabled: isCrypto,
+  });
+
+  // Combine exchange data for chart
+  const exchangeData = useMemo(() => ({
+    composite_index: {
+      priceHistory: compositeIndexHistory,
+      currentPrice: compositeIndexPrice,
+      connected: compositeConnectedCount >= 2, // Consider connected if at least 2 sources
+      connectedCount: compositeConnectedCount,
+    },
+    htx: {
+      priceHistory: htxPriceHistory,
+      currentPrice: htxCurrentPrice,
+      connected: htxConnected,
+    },
+    coinbase: {
+      priceHistory: coinbasePriceHistory,
+      currentPrice: coinbaseCurrentPrice,
+      connected: coinbaseConnected,
+    },
+    gemini: {
+      priceHistory: geminiPriceHistory,
+      currentPrice: geminiCurrentPrice,
+      connected: geminiConnected,
+    },
+    kraken: {
+      priceHistory: krakenPriceHistory,
+      currentPrice: krakenCurrentPrice,
+      connected: krakenConnected,
+    },
+    bitstamp: {
+      priceHistory: bitstampPriceHistory,
+      currentPrice: bitstampCurrentPrice,
+      connected: bitstampConnected,
+    },
+    bitfinex: {
+      priceHistory: bitfinexPriceHistory,
+      currentPrice: bitfinexCurrentPrice,
+      connected: bitfinexConnected,
+    },
+    crypto_com_usd: {
+      priceHistory: cryptoComUsdPriceHistory,
+      currentPrice: cryptoComUsdCurrentPrice,
+      connected: cryptoComUsdConnected,
+    },
+    crypto_com_usdt: {
+      priceHistory: cryptoComUsdtPriceHistory,
+      currentPrice: cryptoComUsdtCurrentPrice,
+      connected: cryptoComUsdtConnected,
+    },
+  }), [
+    compositeIndexHistory, compositeIndexPrice, compositeConnectedCount,
+    htxPriceHistory, htxCurrentPrice, htxConnected,
+    coinbasePriceHistory, coinbaseCurrentPrice, coinbaseConnected,
+    geminiPriceHistory, geminiCurrentPrice, geminiConnected,
+    krakenPriceHistory, krakenCurrentPrice, krakenConnected,
+    bitstampPriceHistory, bitstampCurrentPrice, bitstampConnected,
+    bitfinexPriceHistory, bitfinexCurrentPrice, bitfinexConnected,
+    cryptoComUsdPriceHistory, cryptoComUsdCurrentPrice, cryptoComUsdConnected,
+    cryptoComUsdtPriceHistory, cryptoComUsdtCurrentPrice, cryptoComUsdtConnected,
+  ]);
 
   // Manual refresh - resets chart view to default position
   const handleRefresh = useCallback(() => {
@@ -154,6 +335,7 @@ export default function Dashboard() {
             assetType={selectedAsset?.type}
             interval={selectedInterval}
             refreshKey={chartRefreshKey}
+            exchangeData={exchangeData}
           />
         </div>
 

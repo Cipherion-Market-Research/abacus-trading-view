@@ -15,7 +15,7 @@ import {
   Time,
   MouseEventParams,
 } from 'lightweight-charts';
-import { Candle, Horizon, Block } from '@/types';
+import { Candle, Horizon, Block, ExchangePricePoint, ExchangeVisibility, DEFAULT_EXCHANGE_VISIBILITY } from '@/types';
 import { calculateMACD, calculateEMA } from '@/lib/indicators';
 
 // Professional color palette inspired by TradingView and Kraken
@@ -41,6 +41,15 @@ const COLORS = {
   ema20: '#FF4081',        // Pink for 20-period EMA (short-term momentum)
   macdPositive: '#0ECB81', // Green for bullish histogram
   macdNegative: '#F6465D', // Red for bearish histogram
+  // Exchange overlay colors
+  composite_index: '#FFD700', // Gold for INDEX (premium/important)
+  htx: '#00D1B2',          // HTX teal
+  coinbase: '#0052FF',     // Coinbase blue
+  gemini: '#00DCFA',       // Gemini cyan
+  kraken: '#5741D9',       // Kraken purple
+  bitstamp: '#4CAF50',     // Bitstamp green
+  bitfinex: '#16B157',     // Bitfinex green
+  crypto_com: '#002D74',   // Crypto.com navy
 };
 
 // Indicator visibility state type
@@ -61,6 +70,57 @@ const DEFAULT_INDICATOR_VISIBILITY: IndicatorVisibility = {
 
 // localStorage key for persisting preferences
 const INDICATOR_PREFS_KEY = 'ciphex-indicator-visibility';
+const EXCHANGE_PREFS_KEY = 'ciphex-exchange-visibility';
+
+// Exchange price data passed from parent
+interface ExchangePriceData {
+  composite_index?: {
+    priceHistory: ExchangePricePoint[];
+    currentPrice: number | null;
+    connected: boolean;
+    connectedCount?: number;
+  };
+  htx?: {
+    priceHistory: ExchangePricePoint[];
+    currentPrice: number | null;
+    connected: boolean;
+  };
+  coinbase?: {
+    priceHistory: ExchangePricePoint[];
+    currentPrice: number | null;
+    connected: boolean;
+  };
+  gemini?: {
+    priceHistory: ExchangePricePoint[];
+    currentPrice: number | null;
+    connected: boolean;
+  };
+  kraken?: {
+    priceHistory: ExchangePricePoint[];
+    currentPrice: number | null;
+    connected: boolean;
+  };
+  bitstamp?: {
+    priceHistory: ExchangePricePoint[];
+    currentPrice: number | null;
+    connected: boolean;
+  };
+  bitfinex?: {
+    priceHistory: ExchangePricePoint[];
+    currentPrice: number | null;
+    connected: boolean;
+  };
+  crypto_com_usd?: {
+    priceHistory: ExchangePricePoint[];
+    currentPrice: number | null;
+    connected: boolean;
+  };
+  crypto_com_usdt?: {
+    priceHistory: ExchangePricePoint[];
+    currentPrice: number | null;
+    connected: boolean;
+  };
+}
 
 interface PriceChartProps {
   candles: Candle[];
@@ -71,6 +131,7 @@ interface PriceChartProps {
   assetType?: 'crypto' | 'dex' | 'stock';
   interval?: '15s' | '1m' | '15m' | '1h';
   refreshKey?: number;  // Increments to trigger visible range recalculation
+  exchangeData?: ExchangePriceData;  // Exchange price overlays
 }
 
 // Check if a timestamp falls within Regular Trading Hours (9:30 AM - 4:00 PM ET)
@@ -110,7 +171,7 @@ const INTERVAL_BAR_SPACING: Record<string, { barSpacing: number; minBarSpacing: 
 };
 
 
-export function PriceChart({ candles, dailyCandles, predictions, blocks, className, assetType, interval = '1m', refreshKey = 0 }: PriceChartProps) {
+export function PriceChart({ candles, dailyCandles, predictions, blocks, className, assetType, interval = '1m', refreshKey = 0, exchangeData }: PriceChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candlestickSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
@@ -118,6 +179,17 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
   const ema200dPriceLineRef = useRef<ReturnType<ISeriesApi<'Candlestick'>['createPriceLine']> | null>(null);  // 200-day EMA as price line
   const ema200SeriesRef = useRef<ISeriesApi<'Line'> | null>(null);   // 200-period EMA (current timeframe)
   const ema20SeriesRef = useRef<ISeriesApi<'Line'> | null>(null);    // 20-period EMA (current timeframe)
+
+  // Exchange overlay line series refs
+  const compositeIndexSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+  const htxSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+  const coinbaseSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+  const geminiSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+  const krakenSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+  const bitstampSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+  const bitfinexSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+  const cryptoComUsdSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+  const cryptoComUsdtSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
 
   // Compute EMA 200D value from daily candles (derived state, not useState)
   const ema200dValue = useMemo(() => {
@@ -169,20 +241,20 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
   const interpolatedMidRef = useRef<Map<number, number>>(new Map());
 
   // Indicator visibility state with localStorage persistence
-  const [indicatorVisibility, setIndicatorVisibility] = useState<IndicatorVisibility>(() => {
-    // Initialize from localStorage on client-side only
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(INDICATOR_PREFS_KEY);
-      if (saved) {
-        try {
-          return { ...DEFAULT_INDICATOR_VISIBILITY, ...JSON.parse(saved) };
-        } catch {
-          return DEFAULT_INDICATOR_VISIBILITY;
-        }
+  // Initialize with defaults to avoid hydration mismatch, then load from localStorage in useEffect
+  const [indicatorVisibility, setIndicatorVisibility] = useState<IndicatorVisibility>(DEFAULT_INDICATOR_VISIBILITY);
+
+  // Load indicator visibility from localStorage after mount (avoids hydration mismatch)
+  useEffect(() => {
+    const saved = localStorage.getItem(INDICATOR_PREFS_KEY);
+    if (saved) {
+      try {
+        setIndicatorVisibility({ ...DEFAULT_INDICATOR_VISIBILITY, ...JSON.parse(saved) });
+      } catch {
+        // Keep defaults on parse error
       }
     }
-    return DEFAULT_INDICATOR_VISIBILITY;
-  });
+  }, []);
 
   // Toggle indicator visibility
   const toggleIndicator = (indicator: keyof IndicatorVisibility) => {
@@ -191,6 +263,33 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       // Persist to localStorage
       if (typeof window !== 'undefined') {
         localStorage.setItem(INDICATOR_PREFS_KEY, JSON.stringify(updated));
+      }
+      return updated;
+    });
+  };
+
+  // Exchange visibility state with localStorage persistence
+  // Initialize with defaults to avoid hydration mismatch, then load from localStorage in useEffect
+  const [exchangeVisibility, setExchangeVisibility] = useState<ExchangeVisibility>(DEFAULT_EXCHANGE_VISIBILITY);
+
+  // Load exchange visibility from localStorage after mount (avoids hydration mismatch)
+  useEffect(() => {
+    const saved = localStorage.getItem(EXCHANGE_PREFS_KEY);
+    if (saved) {
+      try {
+        setExchangeVisibility({ ...DEFAULT_EXCHANGE_VISIBILITY, ...JSON.parse(saved) });
+      } catch {
+        // Keep defaults on parse error
+      }
+    }
+  }, []);
+
+  // Toggle exchange visibility
+  const toggleExchange = (exchange: keyof ExchangeVisibility) => {
+    setExchangeVisibility((prev) => {
+      const updated = { ...prev, [exchange]: !prev[exchange] };
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(EXCHANGE_PREFS_KEY, JSON.stringify(updated));
       }
       return updated;
     });
@@ -350,6 +449,107 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       title: 'EMA 200',
     });
 
+    // Exchange price overlay lines
+    // Composite Index first (gold, thicker line as it's the aggregated reference)
+    const compositeIndexSeries = chart.addLineSeries({
+      color: COLORS.composite_index,
+      lineWidth: 2,
+      lineStyle: LineStyle.Solid,
+      priceLineVisible: false,
+      lastValueVisible: true,
+      title: 'INDEX',
+      crosshairMarkerVisible: true,
+      crosshairMarkerRadius: 5,
+    });
+
+    const htxSeries = chart.addLineSeries({
+      color: COLORS.htx,
+      lineWidth: 1,
+      lineStyle: LineStyle.Solid,
+      priceLineVisible: false,
+      lastValueVisible: true,
+      title: 'HTX',
+      crosshairMarkerVisible: true,
+      crosshairMarkerRadius: 4,
+    });
+
+    const coinbaseSeries = chart.addLineSeries({
+      color: COLORS.coinbase,
+      lineWidth: 1,
+      lineStyle: LineStyle.Solid,
+      priceLineVisible: false,
+      lastValueVisible: true,
+      title: 'Coinbase',
+      crosshairMarkerVisible: true,
+      crosshairMarkerRadius: 4,
+    });
+
+    const geminiSeries = chart.addLineSeries({
+      color: COLORS.gemini,
+      lineWidth: 1,
+      lineStyle: LineStyle.Solid,
+      priceLineVisible: false,
+      lastValueVisible: true,
+      title: 'Gemini',
+      crosshairMarkerVisible: true,
+      crosshairMarkerRadius: 4,
+    });
+
+    const krakenSeries = chart.addLineSeries({
+      color: COLORS.kraken,
+      lineWidth: 1,
+      lineStyle: LineStyle.Solid,
+      priceLineVisible: false,
+      lastValueVisible: true,
+      title: 'Kraken',
+      crosshairMarkerVisible: true,
+      crosshairMarkerRadius: 4,
+    });
+
+    const bitstampSeries = chart.addLineSeries({
+      color: COLORS.bitstamp,
+      lineWidth: 1,
+      lineStyle: LineStyle.Solid,
+      priceLineVisible: false,
+      lastValueVisible: true,
+      title: 'Bitstamp',
+      crosshairMarkerVisible: true,
+      crosshairMarkerRadius: 4,
+    });
+
+    const bitfinexSeries = chart.addLineSeries({
+      color: COLORS.bitfinex,
+      lineWidth: 1,
+      lineStyle: LineStyle.Solid,
+      priceLineVisible: false,
+      lastValueVisible: true,
+      title: 'Bitfinex',
+      crosshairMarkerVisible: true,
+      crosshairMarkerRadius: 4,
+    });
+
+    const cryptoComUsdSeries = chart.addLineSeries({
+      color: COLORS.crypto_com,
+      lineWidth: 1,
+      lineStyle: LineStyle.Solid,
+      priceLineVisible: false,
+      lastValueVisible: true,
+      title: 'Crypto.com USD',
+      crosshairMarkerVisible: true,
+      crosshairMarkerRadius: 4,
+    });
+
+    const cryptoComUsdtSeries = chart.addLineSeries({
+      color: '#1199FA',  // Lighter blue for USDT variant
+      lineWidth: 1,
+      lineStyle: LineStyle.Dashed,  // Dashed to differentiate from USD
+      priceLineVisible: false,
+      lastValueVisible: true,
+      title: 'Crypto.com USDT',
+      crosshairMarkerVisible: true,
+      crosshairMarkerRadius: 4,
+    });
+
     // Candlestick series - added LAST so it renders on top of prediction band
     const candlestickSeries = chart.addCandlestickSeries({
       upColor: COLORS.candleUp,
@@ -365,6 +565,15 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
     macdSeriesRef.current = macdSeries;
     ema20SeriesRef.current = ema20Series;
     ema200SeriesRef.current = ema200Series;
+    compositeIndexSeriesRef.current = compositeIndexSeries;
+    htxSeriesRef.current = htxSeries;
+    coinbaseSeriesRef.current = coinbaseSeries;
+    geminiSeriesRef.current = geminiSeries;
+    krakenSeriesRef.current = krakenSeries;
+    bitstampSeriesRef.current = bitstampSeries;
+    bitfinexSeriesRef.current = bitfinexSeries;
+    cryptoComUsdSeriesRef.current = cryptoComUsdSeries;
+    cryptoComUsdtSeriesRef.current = cryptoComUsdtSeries;
     blockHighSeriesRef.current = highSeries;
     blockLowSeriesRef.current = lowSeries;
     midLineSeriesRef.current = midLineSeries;
@@ -531,6 +740,132 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       ema200SeriesRef.current.setData([]);
     }
   }, [candles, predictions, assetType, interval, indicatorVisibility]);
+
+  // Update exchange overlay data
+  // Helper to ensure price is always a number (some APIs return strings)
+  const ensureNumber = (val: number | string): number => {
+    const num = typeof val === 'string' ? parseFloat(val) : val;
+    return isNaN(num) ? 0 : num;
+  };
+
+  useEffect(() => {
+    // Composite Index overlay (TradingView-style INDEX)
+    if (compositeIndexSeriesRef.current) {
+      if (exchangeVisibility.composite_index && exchangeData?.composite_index?.priceHistory) {
+        const lineData: LineData<Time>[] = exchangeData.composite_index.priceHistory.map((p) => ({
+          time: p.time as Time,
+          value: ensureNumber(p.price),
+        }));
+        compositeIndexSeriesRef.current.setData(lineData);
+      } else {
+        compositeIndexSeriesRef.current.setData([]);
+      }
+    }
+
+    // HTX overlay
+    if (htxSeriesRef.current) {
+      if (exchangeVisibility.htx && exchangeData?.htx?.priceHistory) {
+        const lineData: LineData<Time>[] = exchangeData.htx.priceHistory.map((p) => ({
+          time: p.time as Time,
+          value: ensureNumber(p.price),
+        }));
+        htxSeriesRef.current.setData(lineData);
+      } else {
+        htxSeriesRef.current.setData([]);
+      }
+    }
+
+    // Coinbase overlay
+    if (coinbaseSeriesRef.current) {
+      if (exchangeVisibility.coinbase && exchangeData?.coinbase?.priceHistory) {
+        const lineData: LineData<Time>[] = exchangeData.coinbase.priceHistory.map((p) => ({
+          time: p.time as Time,
+          value: ensureNumber(p.price),
+        }));
+        coinbaseSeriesRef.current.setData(lineData);
+      } else {
+        coinbaseSeriesRef.current.setData([]);
+      }
+    }
+
+    // Gemini overlay
+    if (geminiSeriesRef.current) {
+      if (exchangeVisibility.gemini && exchangeData?.gemini?.priceHistory) {
+        const lineData: LineData<Time>[] = exchangeData.gemini.priceHistory.map((p) => ({
+          time: p.time as Time,
+          value: ensureNumber(p.price),
+        }));
+        geminiSeriesRef.current.setData(lineData);
+      } else {
+        geminiSeriesRef.current.setData([]);
+      }
+    }
+
+    // Kraken overlay
+    if (krakenSeriesRef.current) {
+      if (exchangeVisibility.kraken && exchangeData?.kraken?.priceHistory) {
+        const lineData: LineData<Time>[] = exchangeData.kraken.priceHistory.map((p) => ({
+          time: p.time as Time,
+          value: ensureNumber(p.price),
+        }));
+        krakenSeriesRef.current.setData(lineData);
+      } else {
+        krakenSeriesRef.current.setData([]);
+      }
+    }
+
+    // Bitstamp overlay
+    if (bitstampSeriesRef.current) {
+      if (exchangeVisibility.bitstamp && exchangeData?.bitstamp?.priceHistory) {
+        const lineData: LineData<Time>[] = exchangeData.bitstamp.priceHistory.map((p) => ({
+          time: p.time as Time,
+          value: ensureNumber(p.price),
+        }));
+        bitstampSeriesRef.current.setData(lineData);
+      } else {
+        bitstampSeriesRef.current.setData([]);
+      }
+    }
+
+    // Bitfinex overlay
+    if (bitfinexSeriesRef.current) {
+      if (exchangeVisibility.bitfinex && exchangeData?.bitfinex?.priceHistory) {
+        const lineData: LineData<Time>[] = exchangeData.bitfinex.priceHistory.map((p) => ({
+          time: p.time as Time,
+          value: ensureNumber(p.price),
+        }));
+        bitfinexSeriesRef.current.setData(lineData);
+      } else {
+        bitfinexSeriesRef.current.setData([]);
+      }
+    }
+
+    // Crypto.com USD overlay
+    if (cryptoComUsdSeriesRef.current) {
+      if (exchangeVisibility.crypto_com_usd && exchangeData?.crypto_com_usd?.priceHistory) {
+        const lineData: LineData<Time>[] = exchangeData.crypto_com_usd.priceHistory.map((p) => ({
+          time: p.time as Time,
+          value: ensureNumber(p.price),
+        }));
+        cryptoComUsdSeriesRef.current.setData(lineData);
+      } else {
+        cryptoComUsdSeriesRef.current.setData([]);
+      }
+    }
+
+    // Crypto.com USDT overlay
+    if (cryptoComUsdtSeriesRef.current) {
+      if (exchangeVisibility.crypto_com_usdt && exchangeData?.crypto_com_usdt?.priceHistory) {
+        const lineData: LineData<Time>[] = exchangeData.crypto_com_usdt.priceHistory.map((p) => ({
+          time: p.time as Time,
+          value: ensureNumber(p.price),
+        }));
+        cryptoComUsdtSeriesRef.current.setData(lineData);
+      } else {
+        cryptoComUsdtSeriesRef.current.setData([]);
+      }
+    }
+  }, [exchangeData, exchangeVisibility]);
 
   // Create/update 200-day EMA price line when value changes
   // The ema200dValue is computed via useMemo above, this effect handles the chart update
@@ -945,6 +1280,9 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
         ema200dValue={ema200dValue}
         visibility={indicatorVisibility}
         onToggle={toggleIndicator}
+        exchangeVisibility={exchangeVisibility}
+        onExchangeToggle={toggleExchange}
+        exchangeData={exchangeData}
       />
 
       {/* EMA 200D Y-axis indicator - shows when EMA is off-screen and indicator is enabled */}
@@ -1071,9 +1409,12 @@ interface ChartLegendProps {
   ema200dValue: number | null;
   visibility: IndicatorVisibility;
   onToggle: (indicator: keyof IndicatorVisibility) => void;
+  exchangeVisibility: ExchangeVisibility;
+  onExchangeToggle: (exchange: keyof ExchangeVisibility) => void;
+  exchangeData?: ExchangePriceData;
 }
 
-function ChartLegend({ ema200dValue, visibility, onToggle }: ChartLegendProps) {
+function ChartLegend({ ema200dValue, visibility, onToggle, exchangeVisibility, onExchangeToggle, exchangeData }: ChartLegendProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Format large numbers with commas
@@ -1166,6 +1507,65 @@ function ChartLegend({ ema200dValue, visibility, onToggle }: ChartLegendProps) {
                 onToggle={() => onToggle('macd')}
               />
             </div>
+
+            {/* Exchange toggles - mobile */}
+            <div className="mt-2 pt-2 border-t border-[#30363d] space-y-1">
+              <span className="text-[10px] text-[#8b949e] uppercase tracking-wider">Exchanges</span>
+              <MobileIndicatorRow
+                color={COLORS.composite_index}
+                label="INDEX"
+                isVisible={exchangeVisibility.composite_index}
+                onToggle={() => onExchangeToggle('composite_index')}
+              />
+              <MobileIndicatorRow
+                color={COLORS.htx}
+                label="HTX"
+                isVisible={exchangeVisibility.htx}
+                onToggle={() => onExchangeToggle('htx')}
+              />
+              <MobileIndicatorRow
+                color={COLORS.coinbase}
+                label="Coinbase"
+                isVisible={exchangeVisibility.coinbase}
+                onToggle={() => onExchangeToggle('coinbase')}
+              />
+              <MobileIndicatorRow
+                color={COLORS.gemini}
+                label="Gemini"
+                isVisible={exchangeVisibility.gemini}
+                onToggle={() => onExchangeToggle('gemini')}
+              />
+              <MobileIndicatorRow
+                color={COLORS.kraken}
+                label="Kraken"
+                isVisible={exchangeVisibility.kraken}
+                onToggle={() => onExchangeToggle('kraken')}
+              />
+              <MobileIndicatorRow
+                color={COLORS.bitstamp}
+                label="Bitstamp"
+                isVisible={exchangeVisibility.bitstamp}
+                onToggle={() => onExchangeToggle('bitstamp')}
+              />
+              <MobileIndicatorRow
+                color={COLORS.bitfinex}
+                label="Bitfinex"
+                isVisible={exchangeVisibility.bitfinex}
+                onToggle={() => onExchangeToggle('bitfinex')}
+              />
+              <MobileIndicatorRow
+                color={COLORS.crypto_com}
+                label="Crypto.com"
+                isVisible={exchangeVisibility.crypto_com_usd}
+                onToggle={() => onExchangeToggle('crypto_com_usd')}
+              />
+              <MobileIndicatorRow
+                color="#1199FA"
+                label="Crypto.com₮"
+                isVisible={exchangeVisibility.crypto_com_usdt}
+                onToggle={() => onExchangeToggle('crypto_com_usdt')}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -1237,6 +1637,200 @@ function ChartLegend({ ema200dValue, visibility, onToggle }: ChartLegendProps) {
           isVisible={visibility.macd}
           onToggle={() => onToggle('macd')}
         />
+
+        {/* Exchange Overlays Section */}
+        <div className="text-[11px] text-[#8b949e] uppercase tracking-wider mt-3 mb-2">
+          Exchanges <span className="text-[10px] normal-case opacity-60">(click to toggle)</span>
+        </div>
+
+        {/* Composite Index (TradingView-style INDEX) */}
+        <IndicatorRow
+          color={COLORS.composite_index}
+          label="INDEX"
+          value={exchangeVisibility.composite_index && exchangeData?.composite_index?.currentPrice
+            ? `$${formatPrice(exchangeData.composite_index.currentPrice)}`
+            : undefined}
+          isVisible={exchangeVisibility.composite_index}
+          onToggle={() => onExchangeToggle('composite_index')}
+        />
+        {exchangeVisibility.composite_index && exchangeData?.composite_index && (
+          <div className="pl-6 text-[10px] text-[#8b949e] -mt-1 mb-1">
+            {exchangeData.composite_index.connected ? (
+              <span className="text-[#3fb950]">● {exchangeData.composite_index.connectedCount}/4</span>
+            ) : (
+              <span className="text-[#f85149]">● Offline</span>
+            )}
+            <span className="ml-2 opacity-60">Avg USD</span>
+          </div>
+        )}
+
+        {/* HTX (USDT) */}
+        <IndicatorRow
+          color={COLORS.htx}
+          label="HTX"
+          value={exchangeVisibility.htx && exchangeData?.htx?.currentPrice
+            ? `$${formatPrice(exchangeData.htx.currentPrice)}`
+            : undefined}
+          isVisible={exchangeVisibility.htx}
+          onToggle={() => onExchangeToggle('htx')}
+        />
+        {exchangeVisibility.htx && exchangeData?.htx && (
+          <div className="pl-6 text-[10px] text-[#8b949e] -mt-1 mb-1">
+            {exchangeData.htx.connected ? (
+              <span className="text-[#3fb950]">● Live</span>
+            ) : (
+              <span className="text-[#f85149]">● Offline</span>
+            )}
+            <span className="ml-2 opacity-60">USDT</span>
+          </div>
+        )}
+
+        {/* Coinbase (USD) */}
+        <IndicatorRow
+          color={COLORS.coinbase}
+          label="Coinbase"
+          value={exchangeVisibility.coinbase && exchangeData?.coinbase?.currentPrice
+            ? `$${formatPrice(exchangeData.coinbase.currentPrice)}`
+            : undefined}
+          isVisible={exchangeVisibility.coinbase}
+          onToggle={() => onExchangeToggle('coinbase')}
+        />
+        {exchangeVisibility.coinbase && exchangeData?.coinbase && (
+          <div className="pl-6 text-[10px] text-[#8b949e] -mt-1 mb-1">
+            {exchangeData.coinbase.connected ? (
+              <span className="text-[#3fb950]">● Live</span>
+            ) : (
+              <span className="text-[#f85149]">● Offline</span>
+            )}
+            <span className="ml-2 opacity-60">USD</span>
+          </div>
+        )}
+
+        {/* Gemini (USD) */}
+        <IndicatorRow
+          color={COLORS.gemini}
+          label="Gemini"
+          value={exchangeVisibility.gemini && exchangeData?.gemini?.currentPrice
+            ? `$${formatPrice(exchangeData.gemini.currentPrice)}`
+            : undefined}
+          isVisible={exchangeVisibility.gemini}
+          onToggle={() => onExchangeToggle('gemini')}
+        />
+        {exchangeVisibility.gemini && exchangeData?.gemini && (
+          <div className="pl-6 text-[10px] text-[#8b949e] -mt-1 mb-1">
+            {exchangeData.gemini.connected ? (
+              <span className="text-[#3fb950]">● Live</span>
+            ) : (
+              <span className="text-[#f85149]">● Offline</span>
+            )}
+            <span className="ml-2 opacity-60">USD</span>
+          </div>
+        )}
+
+        {/* Kraken (USD) */}
+        <IndicatorRow
+          color={COLORS.kraken}
+          label="Kraken"
+          value={exchangeVisibility.kraken && exchangeData?.kraken?.currentPrice
+            ? `$${formatPrice(exchangeData.kraken.currentPrice)}`
+            : undefined}
+          isVisible={exchangeVisibility.kraken}
+          onToggle={() => onExchangeToggle('kraken')}
+        />
+        {exchangeVisibility.kraken && exchangeData?.kraken && (
+          <div className="pl-6 text-[10px] text-[#8b949e] -mt-1 mb-1">
+            {exchangeData.kraken.connected ? (
+              <span className="text-[#3fb950]">● Live</span>
+            ) : (
+              <span className="text-[#f85149]">● Offline</span>
+            )}
+            <span className="ml-2 opacity-60">USD</span>
+          </div>
+        )}
+
+        {/* Bitstamp (USD) */}
+        <IndicatorRow
+          color={COLORS.bitstamp}
+          label="Bitstamp"
+          value={exchangeVisibility.bitstamp && exchangeData?.bitstamp?.currentPrice
+            ? `$${formatPrice(exchangeData.bitstamp.currentPrice)}`
+            : undefined}
+          isVisible={exchangeVisibility.bitstamp}
+          onToggle={() => onExchangeToggle('bitstamp')}
+        />
+        {exchangeVisibility.bitstamp && exchangeData?.bitstamp && (
+          <div className="pl-6 text-[10px] text-[#8b949e] -mt-1 mb-1">
+            {exchangeData.bitstamp.connected ? (
+              <span className="text-[#3fb950]">● Live</span>
+            ) : (
+              <span className="text-[#f85149]">● Offline</span>
+            )}
+            <span className="ml-2 opacity-60">USD</span>
+          </div>
+        )}
+
+        {/* Bitfinex (USD) */}
+        <IndicatorRow
+          color={COLORS.bitfinex}
+          label="Bitfinex"
+          value={exchangeVisibility.bitfinex && exchangeData?.bitfinex?.currentPrice
+            ? `$${formatPrice(exchangeData.bitfinex.currentPrice)}`
+            : undefined}
+          isVisible={exchangeVisibility.bitfinex}
+          onToggle={() => onExchangeToggle('bitfinex')}
+        />
+        {exchangeVisibility.bitfinex && exchangeData?.bitfinex && (
+          <div className="pl-6 text-[10px] text-[#8b949e] -mt-1 mb-1">
+            {exchangeData.bitfinex.connected ? (
+              <span className="text-[#3fb950]">● Live</span>
+            ) : (
+              <span className="text-[#f85149]">● Offline</span>
+            )}
+            <span className="ml-2 opacity-60">USD</span>
+          </div>
+        )}
+
+        {/* Crypto.com USD */}
+        <IndicatorRow
+          color={COLORS.crypto_com}
+          label="Crypto.com"
+          value={exchangeVisibility.crypto_com_usd && exchangeData?.crypto_com_usd?.currentPrice
+            ? `$${formatPrice(exchangeData.crypto_com_usd.currentPrice)}`
+            : undefined}
+          isVisible={exchangeVisibility.crypto_com_usd}
+          onToggle={() => onExchangeToggle('crypto_com_usd')}
+        />
+        {exchangeVisibility.crypto_com_usd && exchangeData?.crypto_com_usd && (
+          <div className="pl-6 text-[10px] text-[#8b949e] -mt-1 mb-1">
+            {exchangeData.crypto_com_usd.connected ? (
+              <span className="text-[#3fb950]">● Live</span>
+            ) : (
+              <span className="text-[#f85149]">● Offline</span>
+            )}
+            <span className="ml-2 opacity-60">USD</span>
+          </div>
+        )}
+
+        {/* Crypto.com USDT */}
+        <IndicatorRow
+          color="#1199FA"
+          label="Crypto.com₮"
+          value={exchangeVisibility.crypto_com_usdt && exchangeData?.crypto_com_usdt?.currentPrice
+            ? `$${formatPrice(exchangeData.crypto_com_usdt.currentPrice)}`
+            : undefined}
+          isVisible={exchangeVisibility.crypto_com_usdt}
+          onToggle={() => onExchangeToggle('crypto_com_usdt')}
+        />
+        {exchangeVisibility.crypto_com_usdt && exchangeData?.crypto_com_usdt && (
+          <div className="pl-6 text-[10px] text-[#8b949e] -mt-1 mb-1">
+            {exchangeData.crypto_com_usdt.connected ? (
+              <span className="text-[#3fb950]">● Live</span>
+            ) : (
+              <span className="text-[#f85149]">● Offline</span>
+            )}
+            <span className="ml-2 opacity-60">USDT</span>
+          </div>
+        )}
       </div>
     </>
   );

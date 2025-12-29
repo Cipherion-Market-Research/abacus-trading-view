@@ -19,6 +19,7 @@
     "lightweight-charts": "^4.2.3",
     "lucide-react": "^0.556.0",
     "next": "16.0.8",
+    "pako": "^2.1.0",
     "react": "19.2.1",
     "react-dom": "19.2.1",
     "tailwind-merge": "^3.4.0",
@@ -27,6 +28,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pako": "^2.0.4",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

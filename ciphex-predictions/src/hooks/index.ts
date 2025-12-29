@@ -1,2 +1,11 @@
 export { usePredictions } from './usePredictions';
 export { usePriceData } from './usePriceData';
+export { useHTXPrice } from './useHTXPrice';
+export { useCoinbasePrice } from './useCoinbasePrice';
+export { useGeminiPrice } from './useGeminiPrice';
+export { useCryptoComPrice } from './useCryptoComPrice';
+export { useKrakenPrice } from './useKrakenPrice';
+export { useBitstampPrice } from './useBitstampPrice';
+export { useBitfinexPrice } from './useBitfinexPrice';
+export { useCompositeIndex } from './useCompositeIndex';
+export type { QuoteCurrency } from './useCryptoComPrice';
