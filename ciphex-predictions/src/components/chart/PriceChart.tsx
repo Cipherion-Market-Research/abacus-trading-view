@@ -217,6 +217,8 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
   const isSettingInitialRange = useRef(false);
   // Flag to disable sync during data updates (prevents range reset on exchange toggle)
   const isUpdatingData = useRef(false);
+  // Timeout ref for clearing isUpdatingData flag (prevents race conditions)
+  const updateDataTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load saved MACD panel height from localStorage
   useEffect(() => {
@@ -880,7 +882,11 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
   useEffect(() => {
     if (!candlestickSeriesRef.current || !ema20SeriesRef.current || !ema200SeriesRef.current) return;
 
-    // Disable time scale sync during data updates
+    // Clear any pending timeout and disable time scale sync during data updates
+    if (updateDataTimeoutRef.current) {
+      clearTimeout(updateDataTimeoutRef.current);
+      updateDataTimeoutRef.current = null;
+    }
     isUpdatingData.current = true;
 
     // Clear chart when candles array is empty (e.g., during interval switch)
@@ -993,13 +999,13 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       ema200SeriesRef.current.setData([]);
     }
 
-    // Re-enable time scale sync after chart re-renders complete
-    // Use requestAnimationFrame to wait for async chart rendering before resetting flag
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        isUpdatingData.current = false;
-      });
-    });
+    // Re-enable time scale sync after chart events have fully settled
+    // Use setTimeout with delay instead of requestAnimationFrame because chart events
+    // can fire asynchronously well after the render frame completes
+    updateDataTimeoutRef.current = setTimeout(() => {
+      isUpdatingData.current = false;
+      updateDataTimeoutRef.current = null;
+    }, 150);
   }, [candles, predictions, assetType, interval, indicatorVisibility]);
 
   // Update exchange overlay data
@@ -1010,7 +1016,11 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
   };
 
   useEffect(() => {
-    // Disable time scale sync during data updates to prevent range reset
+    // Clear any pending timeout and disable time scale sync during data updates
+    if (updateDataTimeoutRef.current) {
+      clearTimeout(updateDataTimeoutRef.current);
+      updateDataTimeoutRef.current = null;
+    }
     isUpdatingData.current = true;
 
     // Get support flags (default to false if not provided)
@@ -1105,14 +1115,13 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       exchangeData?.crypto_com_usdt?.priceHistory
     );
 
-    // Re-enable time scale sync after chart re-renders complete
-    // Use double requestAnimationFrame to ensure chart has fully processed the update
-    // Single rAF may fire before chart's internal rendering is complete
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        isUpdatingData.current = false;
-      });
-    });
+    // Re-enable time scale sync after chart events have fully settled
+    // Use setTimeout with delay instead of requestAnimationFrame because chart events
+    // can fire asynchronously well after the render frame completes
+    updateDataTimeoutRef.current = setTimeout(() => {
+      isUpdatingData.current = false;
+      updateDataTimeoutRef.current = null;
+    }, 150);
   }, [exchangeData, exchangeVisibility]);
 
   // Create/update 200-day EMA price line when value changes
