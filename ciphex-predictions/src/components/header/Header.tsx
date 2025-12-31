@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { DataSourceToggle, DataSource } from './DataSourceToggle';
 
 interface HeaderProps {
   selectedAsset: Asset | null;
@@ -26,6 +27,15 @@ interface HeaderProps {
   nextPrediction?: Horizon | null;
   priceDirection?: 'up' | 'down' | 'neutral';
   className?: string;
+  // Data source toggle props
+  dataSource?: DataSource;
+  onDataSourceChange?: (source: DataSource) => void;
+  abacusStatus?: {
+    degraded: boolean;
+    degradedReason?: string;
+    connectedVenues: number;
+    totalVenues: number;
+  };
 }
 
 export function Header({
@@ -39,6 +49,9 @@ export function Header({
   nextPrediction,
   priceDirection = 'neutral',
   className,
+  dataSource = 'binance',
+  onDataSourceChange,
+  abacusStatus,
 }: HeaderProps) {
   // Calculate percentage deviation from prediction mid price
   const predictionMid = nextPrediction ? (nextPrediction.high + nextPrediction.low) / 2 : null;
@@ -174,6 +187,15 @@ export function Header({
             </SelectItem>
           </SelectContent>
         </Select>
+
+        {/* Data Source Toggle - only show for crypto assets */}
+        {onDataSourceChange && selectedAsset?.type === 'crypto' && (
+          <DataSourceToggle
+            value={dataSource}
+            onChange={onDataSourceChange}
+            abacusStatus={abacusStatus}
+          />
+        )}
 
         <Button
           onClick={onRefresh}

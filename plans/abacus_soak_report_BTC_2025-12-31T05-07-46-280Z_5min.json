@@ -1,0 +1,2442 @@
+{
+  "version": "v0",
+  "createdAtIso": "2025-12-31T05:12:56.778Z",
+  "run": {
+    "asset": "BTC",
+    "startedAtMs": 1767157666280,
+    "endedAtMs": 1767157976778,
+    "durationMs": 310498,
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+    "pageVisibleApprox": true,
+    "pageWentBackground": false
+  },
+  "config": {
+    "pocPhase": "POC-2",
+    "venues": {
+      "spot": [
+        "binance",
+        "coinbase",
+        "okx",
+        "kraken"
+      ],
+      "perp": [
+        "binance",
+        "okx",
+        "bybit"
+      ]
+    },
+    "staleThresholdsMs": {
+      "binance": {
+        "spot": 10000,
+        "perp": 10000
+      },
+      "coinbase": {
+        "spot": 30000,
+        "perp": 30000
+      },
+      "kraken": {
+        "spot": 30000,
+        "perp": 30000
+      },
+      "okx": {
+        "spot": 15000,
+        "perp": 15000
+      },
+      "bybit": {
+        "spot": 15000,
+        "perp": 10000
+      }
+    },
+    "outlierThresholdBps": 100,
+    "maxBarsPerVenue": 1000
+  },
+  "snapshots": [
+    {
+      "tMs": 1767157666281,
+      "tIso": "2025-12-31T05:07:46.281Z",
+      "asset": "BTC",
+      "spot": {
+        "compositePrice": 88430.93,
+        "degraded": true,
+        "degradedReason": "no_data",
+        "connectedVenues": 4,
+        "totalVenues": 4,
+        "outliersTotal": 0,
+        "gapsTotal": 0
+      },
+      "perp": {
+        "compositePrice": 88394.15,
+        "degraded": true,
+        "connectedVenues": 3,
+        "totalVenues": 3
+      },
+      "basisBps": -4.159178242273246,
+      "venues": [
+        {
+          "venue": "binance",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157665981,
+          "messageCount": 3,
+          "tradeCount": 3,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 90.17218543046359,
+          "avgMessageRate": 0.794701986754967
+        },
+        {
+          "venue": "coinbase",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157666108,
+          "messageCount": 6,
+          "tradeCount": 6,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 90.40805511393746,
+          "avgMessageRate": 1.589825119236884
+        },
+        {
+          "venue": "okx",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157666058,
+          "messageCount": 1,
+          "tradeCount": 1,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 78.88182299947006,
+          "avgMessageRate": 0.2649708532061473
+        },
+        {
+          "venue": "kraken",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": null,
+          "messageCount": 0,
+          "tradeCount": 0,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 66.95813460519344,
+          "avgMessageRate": 0
+        },
+        {
+          "venue": "binance",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157665840,
+          "messageCount": 7,
+          "tradeCount": 7,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 90.646528881823,
+          "avgMessageRate": 1.8547959724430312
+        },
+        {
+          "venue": "okx",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157666123,
+          "messageCount": 5,
+          "tradeCount": 5,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 70.34976152623211,
+          "avgMessageRate": 1.3248542660307365
+        },
+        {
+          "venue": "bybit",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": null,
+          "messageCount": 0,
+          "tradeCount": 0,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 80.94859565447801,
+          "avgMessageRate": 0
+        }
+      ]
+    },
+    {
+      "tMs": 1767157681282,
+      "tIso": "2025-12-31T05:08:01.282Z",
+      "asset": "BTC",
+      "spot": {
+        "compositePrice": 88380.16,
+        "degraded": false,
+        "degradedReason": "none",
+        "connectedVenues": 4,
+        "totalVenues": 4,
+        "outliersTotal": 0,
+        "gapsTotal": 0
+      },
+      "perp": {
+        "compositePrice": 88397.1,
+        "degraded": false,
+        "connectedVenues": 3,
+        "totalVenues": 3
+      },
+      "basisBps": 1.9167197705913102,
+      "venues": [
+        {
+          "venue": "binance",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157681120,
+          "messageCount": 28,
+          "tradeCount": 28,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 98.02375752410376,
+          "avgMessageRate": 1.491503755393384
+        },
+        {
+          "venue": "coinbase",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157680856,
+          "messageCount": 76,
+          "tradeCount": 76,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 98.07159599403367,
+          "avgMessageRate": 4.048582995951417
+        },
+        {
+          "venue": "okx",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157681067,
+          "messageCount": 12,
+          "tradeCount": 12,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 95.75431493714042,
+          "avgMessageRate": 0.6392499467291711
+        },
+        {
+          "venue": "kraken",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157675598,
+          "messageCount": 2,
+          "tradeCount": 2,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 93.35712763690603,
+          "avgMessageRate": 0.10654165778819519
+        },
+        {
+          "venue": "binance",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157680649,
+          "messageCount": 109,
+          "tradeCount": 109,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 98.11953974003835,
+          "avgMessageRate": 5.806520349456638
+        },
+        {
+          "venue": "okx",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157680751,
+          "messageCount": 64,
+          "tradeCount": 64,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 94.03899424675049,
+          "avgMessageRate": 3.409333049222246
+        },
+        {
+          "venue": "bybit",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157680304,
+          "messageCount": 124,
+          "tradeCount": 124,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 96.16982740251439,
+          "avgMessageRate": 6.605582782868102
+        }
+      ]
+    },
+    {
+      "tMs": 1767157696282,
+      "tIso": "2025-12-31T05:08:16.282Z",
+      "asset": "BTC",
+      "spot": {
+        "compositePrice": 88380.165,
+        "degraded": false,
+        "degradedReason": "none",
+        "connectedVenues": 4,
+        "totalVenues": 4,
+        "outliersTotal": 0,
+        "gapsTotal": 0
+      },
+      "perp": {
+        "compositePrice": 88396.4,
+        "degraded": false,
+        "connectedVenues": 3,
+        "totalVenues": 3
+      },
+      "basisBps": 1.8369506325316978,
+      "venues": [
+        {
+          "venue": "binance",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157696264,
+          "messageCount": 61,
+          "tradeCount": 61,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 98.90615325647906,
+          "avgMessageRate": 1.7985081227702922
+        },
+        {
+          "venue": "coinbase",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157694658,
+          "messageCount": 101,
+          "tradeCount": 101,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 98.93265715296616,
+          "avgMessageRate": 2.9779455124425054
+        },
+        {
+          "venue": "okx",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157695665,
+          "messageCount": 15,
+          "tradeCount": 15,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 97.65007665998348,
+          "avgMessageRate": 0.4422691355112632
+        },
+        {
+          "venue": "kraken",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157695321,
+          "messageCount": 5,
+          "tradeCount": 5,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 96.3232692534497,
+          "avgMessageRate": 0.14742304517042104
+        },
+        {
+          "venue": "binance",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157695935,
+          "messageCount": 176,
+          "tradeCount": 176,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 98.95919330109683,
+          "avgMessageRate": 5.189291189998821
+        },
+        {
+          "venue": "okx",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157694554,
+          "messageCount": 87,
+          "tradeCount": 87,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 96.70067224908597,
+          "avgMessageRate": 2.5651609859653264
+        },
+        {
+          "venue": "bybit",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157686760,
+          "messageCount": 134,
+          "tradeCount": 134,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 97.88005661044934,
+          "avgMessageRate": 3.9509376105672844
+        }
+      ]
+    },
+    {
+      "tMs": 1767157711282,
+      "tIso": "2025-12-31T05:08:31.282Z",
+      "asset": "BTC",
+      "spot": {
+        "compositePrice": 88374.65,
+        "degraded": false,
+        "degradedReason": "none",
+        "connectedVenues": 4,
+        "totalVenues": 4,
+        "outliersTotal": 0,
+        "gapsTotal": 0
+      },
+      "perp": {
+        "compositePrice": 88388.8,
+        "degraded": false,
+        "connectedVenues": 3,
+        "totalVenues": 3
+      },
+      "basisBps": 1.6011378828667195,
+      "venues": [
+        {
+          "venue": "binance",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157710621,
+          "messageCount": 155,
+          "tradeCount": 155,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 99.23742574664448,
+          "avgMessageRate": 3.1859571231834902
+        },
+        {
+          "venue": "coinbase",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157710479,
+          "messageCount": 143,
+          "tradeCount": 143,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 99.25590955806783,
+          "avgMessageRate": 2.9393627954779036
+        },
+        {
+          "venue": "okx",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157710998,
+          "messageCount": 36,
+          "tradeCount": 36,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 98.3617677286742,
+          "avgMessageRate": 0.7399794450154162
+        },
+        {
+          "venue": "kraken",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157707879,
+          "messageCount": 8,
+          "tradeCount": 8,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 97.43684610799367,
+          "avgMessageRate": 0.16443649668043822
+        },
+        {
+          "venue": "binance",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157707236,
+          "messageCount": 258,
+          "tradeCount": 258,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 99.27442395839756,
+          "avgMessageRate": 5.303077017944132
+        },
+        {
+          "venue": "okx",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157710793,
+          "messageCount": 227,
+          "tradeCount": 227,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 97.69994450268237,
+          "avgMessageRate": 4.665885593307435
+        },
+        {
+          "venue": "bybit",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157710734,
+          "messageCount": 191,
+          "tradeCount": 191,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 98.52212698608456,
+          "avgMessageRate": 3.9259213582454624
+        }
+      ]
+    },
+    {
+      "tMs": 1767157726282,
+      "tIso": "2025-12-31T05:08:46.282Z",
+      "asset": "BTC",
+      "spot": {
+        "compositePrice": 88374.65,
+        "degraded": false,
+        "degradedReason": "none",
+        "connectedVenues": 4,
+        "totalVenues": 4,
+        "outliersTotal": 0,
+        "gapsTotal": 0
+      },
+      "perp": {
+        "compositePrice": 88388.9,
+        "degraded": false,
+        "connectedVenues": 3,
+        "totalVenues": 3
+      },
+      "basisBps": 1.6124533449354537,
+      "venues": [
+        {
+          "venue": "binance",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157725902,
+          "messageCount": 176,
+          "tradeCount": 176,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 99.4189870642403,
+          "avgMessageRate": 2.7562877815015505
+        },
+        {
+          "venue": "coinbase",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157726202,
+          "messageCount": 164,
+          "tradeCount": 164,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 99.43307283917748,
+          "avgMessageRate": 2.5683992921240977
+        },
+        {
+          "venue": "okx",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157725442,
+          "messageCount": 52,
+          "tradeCount": 52,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 98.75182058791286,
+          "avgMessageRate": 0.8143705072588602
+        },
+        {
+          "venue": "kraken",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157721813,
+          "messageCount": 13,
+          "tradeCount": 25,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 98.04707687970809,
+          "avgMessageRate": 0.20359262681471504
+        },
+        {
+          "venue": "binance",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157726192,
+          "messageCount": 347,
+          "tradeCount": 347,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 99.44716771334157,
+          "avgMessageRate": 5.434357038823547
+        },
+        {
+          "venue": "okx",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157725399,
+          "messageCount": 253,
+          "tradeCount": 253,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 98.24753731226411,
+          "avgMessageRate": 3.9622257372402236
+        },
+        {
+          "venue": "bybit",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157721699,
+          "messageCount": 200,
+          "tradeCount": 200,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 98.87397616400169,
+          "avgMessageRate": 3.1321942586879237
+        }
+      ]
+    },
+    {
+      "tMs": 1767157741282,
+      "tIso": "2025-12-31T05:09:01.282Z",
+      "asset": "BTC",
+      "spot": {
+        "compositePrice": 88372.8,
+        "degraded": false,
+        "degradedReason": "none",
+        "connectedVenues": 4,
+        "totalVenues": 4,
+        "outliersTotal": 0,
+        "gapsTotal": 3
+      },
+      "perp": {
+        "compositePrice": 88390,
+        "degraded": false,
+        "connectedVenues": 3,
+        "totalVenues": 3
+      },
+      "basisBps": 1.9463002190716021,
+      "venues": [
+        {
+          "venue": "binance",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157740645,
+          "messageCount": 253,
+          "tradeCount": 253,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 99.52968320170379,
+          "avgMessageRate": 3.207281670321869
+        },
+        {
+          "venue": "coinbase",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157741140,
+          "messageCount": 238,
+          "tradeCount": 238,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 99.54108668644304,
+          "avgMessageRate": 3.017164879186633
+        },
+        {
+          "venue": "okx",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157741020,
+          "messageCount": 67,
+          "tradeCount": 67,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 98.98963008037322,
+          "avgMessageRate": 0.849369944981111
+        },
+        {
+          "venue": "kraken",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157737106,
+          "messageCount": 17,
+          "tradeCount": 29,
+          "reconnectCount": 0,
+          "gapCount": 0,
+          "uptimePercent": 98.4191577292665,
+          "avgMessageRate": 0.2155117770847595
+        },
+        {
+          "venue": "binance",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157741230,
+          "messageCount": 468,
+          "tradeCount": 468,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 99.55249613346517,
+          "avgMessageRate": 5.93291245150985
+        },
+        {
+          "venue": "okx",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157740085,
+          "messageCount": 308,
+          "tradeCount": 308,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 98.58142542024797,
+          "avgMessageRate": 3.9045663142415252
+        },
+        {
+          "venue": "bybit",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157740985,
+          "messageCount": 300,
+          "tradeCount": 300,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 99.08851195456505,
+          "avgMessageRate": 3.8031490073781087
+        }
+      ]
+    },
+    {
+      "tMs": 1767157756282,
+      "tIso": "2025-12-31T05:09:16.282Z",
+      "asset": "BTC",
+      "spot": {
+        "compositePrice": 88372.8,
+        "degraded": false,
+        "degradedReason": "none",
+        "connectedVenues": 4,
+        "totalVenues": 4,
+        "outliersTotal": 0,
+        "gapsTotal": 4
+      },
+      "perp": {
+        "compositePrice": 88390,
+        "degraded": false,
+        "connectedVenues": 3,
+        "totalVenues": 3
+      },
+      "basisBps": 1.9463002190716021,
+      "venues": [
+        {
+          "venue": "binance",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157755354,
+          "messageCount": 272,
+          "tradeCount": 272,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 99.60475571559458,
+          "avgMessageRate": 2.897747853322822
+        },
+        {
+          "venue": "coinbase",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157756214,
+          "messageCount": 287,
+          "tradeCount": 287,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 99.61433974324828,
+          "avgMessageRate": 3.0575826985564376
+        },
+        {
+          "venue": "okx",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157753798,
+          "messageCount": 70,
+          "tradeCount": 70,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 99.15090821925105,
+          "avgMessageRate": 0.745751877696692
+        },
+        {
+          "venue": "kraken",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157755939,
+          "messageCount": 23,
+          "tradeCount": 37,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 98.67149629787461,
+          "avgMessageRate": 0.2450327598146274
+        },
+        {
+          "venue": "binance",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157755541,
+          "messageCount": 523,
+          "tradeCount": 523,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 99.6239279816758,
+          "avgMessageRate": 5.571831886219571
+        },
+        {
+          "venue": "okx",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157756068,
+          "messageCount": 334,
+          "tradeCount": 334,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 98.80786235551058,
+          "avgMessageRate": 3.5583018164385023
+        },
+        {
+          "venue": "bybit",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157753501,
+          "messageCount": 309,
+          "tradeCount": 309,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 99.23400628562297,
+          "avgMessageRate": 3.291961860118255
+        }
+      ]
+    },
+    {
+      "tMs": 1767157771283,
+      "tIso": "2025-12-31T05:09:31.283Z",
+      "asset": "BTC",
+      "spot": {
+        "compositePrice": 88374.685,
+        "degraded": false,
+        "degradedReason": "none",
+        "connectedVenues": 4,
+        "totalVenues": 4,
+        "outliersTotal": 0,
+        "gapsTotal": 4
+      },
+      "perp": {
+        "compositePrice": 88394.8,
+        "degraded": false,
+        "connectedVenues": 3,
+        "totalVenues": 3
+      },
+      "basisBps": 2.276104293894257,
+      "venues": [
+        {
+          "venue": "binance",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157771166,
+          "messageCount": 284,
+          "tradeCount": 284,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 99.65938928774719,
+          "avgMessageRate": 2.6073704118543546
+        },
+        {
+          "venue": "coinbase",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157771270,
+          "messageCount": 330,
+          "tradeCount": 330,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 99.66764903003093,
+          "avgMessageRate": 3.029718787010769
+        },
+        {
+          "venue": "okx",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157769570,
+          "messageCount": 110,
+          "tradeCount": 110,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 99.26827700810679,
+          "avgMessageRate": 1.009906262336923
+        },
+        {
+          "venue": "kraken",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157768616,
+          "messageCount": 28,
+          "tradeCount": 42,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 98.85513353715078,
+          "avgMessageRate": 0.25706704859485313
+        },
+        {
+          "venue": "binance",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157770924,
+          "messageCount": 579,
+          "tradeCount": 579,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 99.67591189945007,
+          "avgMessageRate": 5.315779326300713
+        },
+        {
+          "venue": "okx",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157771213,
+          "messageCount": 369,
+          "tradeCount": 369,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 98.97264990222271,
+          "avgMessageRate": 3.3877764618393145
+        },
+        {
+          "venue": "bybit",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157770924,
+          "messageCount": 348,
+          "tradeCount": 348,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 99.3398885430725,
+          "avgMessageRate": 3.1949761753931747
+        }
+      ]
+    },
+    {
+      "tMs": 1767157786282,
+      "tIso": "2025-12-31T05:09:46.282Z",
+      "asset": "BTC",
+      "spot": {
+        "compositePrice": 88379.915,
+        "degraded": false,
+        "degradedReason": "none",
+        "connectedVenues": 4,
+        "totalVenues": 4,
+        "outliersTotal": 0,
+        "gapsTotal": 4
+      },
+      "perp": {
+        "compositePrice": 88401.5,
+        "degraded": false,
+        "connectedVenues": 3,
+        "totalVenues": 3
+      },
+      "basisBps": 2.44229698569029,
+      "venues": [
+        {
+          "venue": "binance",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157783564,
+          "messageCount": 296,
+          "tradeCount": 296,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 99.70060846688939,
+          "avgMessageRate": 2.3886763827692503
+        },
+        {
+          "venue": "coinbase",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157786177,
+          "messageCount": 385,
+          "tradeCount": 385,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 99.70786897681513,
+          "avgMessageRate": 3.1069183405021104
+        },
+        {
+          "venue": "okx",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157785232,
+          "messageCount": 132,
+          "tradeCount": 132,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 99.35682755392723,
+          "avgMessageRate": 1.0652291453150091
+        },
+        {
+          "venue": "kraken",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157780604,
+          "messageCount": 30,
+          "tradeCount": 44,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 98.99368125438802,
+          "avgMessageRate": 0.24209753302613846
+        },
+        {
+          "venue": "binance",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157785398,
+          "messageCount": 630,
+          "tradeCount": 630,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 99.71513190280591,
+          "avgMessageRate": 5.084048193548908
+        },
+        {
+          "venue": "okx",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157786214,
+          "messageCount": 439,
+          "tradeCount": 439,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 99.09697620181251,
+          "avgMessageRate": 3.5426938999491595
+        },
+        {
+          "venue": "bybit",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157786266,
+          "messageCount": 407,
+          "tradeCount": 407,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 99.41977291251402,
+          "avgMessageRate": 3.2844565313879452
+        }
+      ]
+    },
+    {
+      "tMs": 1767157801283,
+      "tIso": "2025-12-31T05:10:01.283Z",
+      "asset": "BTC",
+      "spot": {
+        "compositePrice": 88379.92,
+        "degraded": false,
+        "degradedReason": "none",
+        "connectedVenues": 4,
+        "totalVenues": 4,
+        "outliersTotal": 0,
+        "gapsTotal": 6
+      },
+      "perp": {
+        "compositePrice": 88402.6,
+        "degraded": false,
+        "connectedVenues": 3,
+        "totalVenues": 3
+      },
+      "basisBps": 2.5661937689022083,
+      "venues": [
+        {
+          "venue": "binance",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157801165,
+          "messageCount": 321,
+          "tradeCount": 321,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.73287059704502,
+          "avgMessageRate": 2.3112813571037703
+        },
+        {
+          "venue": "coinbase",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157801159,
+          "messageCount": 432,
+          "tradeCount": 432,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.73934894839542,
+          "avgMessageRate": 3.1105318865519895
+        },
+        {
+          "venue": "okx",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157796492,
+          "messageCount": 139,
+          "tradeCount": 139,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 99.42613566815233,
+          "avgMessageRate": 1.0008424357192744
+        },
+        {
+          "venue": "kraken",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157797910,
+          "messageCount": 34,
+          "tradeCount": 50,
+          "reconnectCount": 0,
+          "gapCount": 1,
+          "uptimePercent": 99.10212192996983,
+          "avgMessageRate": 0.2448103799601103
+        },
+        {
+          "venue": "binance",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157801232,
+          "messageCount": 649,
+          "tradeCount": 649,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.74582922315906,
+          "avgMessageRate": 4.672998135120928
+        },
+        {
+          "venue": "okx",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157800383,
+          "messageCount": 481,
+          "tradeCount": 481,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.19428583771952,
+          "avgMessageRate": 3.4633468459062664
+        },
+        {
+          "venue": "bybit",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157800690,
+          "messageCount": 418,
+          "tradeCount": 418,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.4822980494373,
+          "avgMessageRate": 3.0097276124507677
+        }
+      ]
+    },
+    {
+      "tMs": 1767157816284,
+      "tIso": "2025-12-31T05:10:16.284Z",
+      "asset": "BTC",
+      "spot": {
+        "compositePrice": 88346.525,
+        "degraded": false,
+        "degradedReason": "none",
+        "connectedVenues": 4,
+        "totalVenues": 4,
+        "outliersTotal": 0,
+        "gapsTotal": 8
+      },
+      "perp": {
+        "compositePrice": 88355,
+        "degraded": false,
+        "connectedVenues": 3,
+        "totalVenues": 3
+      },
+      "basisBps": 0.9592907021533468,
+      "venues": [
+        {
+          "venue": "binance",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157816227,
+          "messageCount": 577,
+          "tradeCount": 577,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.75895003573517,
+          "avgMessageRate": 3.748944188161913
+        },
+        {
+          "venue": "coinbase",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157815988,
+          "messageCount": 546,
+          "tradeCount": 546,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.76479608080099,
+          "avgMessageRate": 3.5475508254877886
+        },
+        {
+          "venue": "okx",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157816239,
+          "messageCount": 452,
+          "tradeCount": 452,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.48216153701213,
+          "avgMessageRate": 2.936800317070477
+        },
+        {
+          "venue": "kraken",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157815985,
+          "messageCount": 44,
+          "tradeCount": 71,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.18978097447193,
+          "avgMessageRate": 0.2858832167059756
+        },
+        {
+          "venue": "binance",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157816160,
+          "messageCount": 998,
+          "tradeCount": 998,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.77064369205179,
+          "avgMessageRate": 6.484351142558265
+        },
+        {
+          "venue": "okx",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157816201,
+          "messageCount": 868,
+          "tradeCount": 868,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.27294700115003,
+          "avgMessageRate": 5.639696184108792
+        },
+        {
+          "venue": "bybit",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157816259,
+          "messageCount": 1389,
+          "tradeCount": 1389,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.53284083451909,
+          "avgMessageRate": 9.024813363740913
+        }
+      ]
+    },
+    {
+      "tMs": 1767157831283,
+      "tIso": "2025-12-31T05:10:31.283Z",
+      "asset": "BTC",
+      "spot": {
+        "compositePrice": 88332.405,
+        "degraded": false,
+        "degradedReason": "none",
+        "connectedVenues": 4,
+        "totalVenues": 4,
+        "outliersTotal": 0,
+        "gapsTotal": 8
+      },
+      "perp": {
+        "compositePrice": 88343.2,
+        "degraded": false,
+        "connectedVenues": 3,
+        "totalVenues": 3
+      },
+      "basisBps": 1.2220883151543596,
+      "venues": [
+        {
+          "venue": "binance",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157829772,
+          "messageCount": 655,
+          "tradeCount": 655,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.7800530007055,
+          "avgMessageRate": 3.883161308299294
+        },
+        {
+          "venue": "coinbase",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157831025,
+          "messageCount": 577,
+          "tradeCount": 577,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.78538736986886,
+          "avgMessageRate": 3.420759325570917
+        },
+        {
+          "venue": "okx",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157830603,
+          "messageCount": 658,
+          "tradeCount": 658,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.52749650216984,
+          "avgMessageRate": 3.9009699068035766
+        },
+        {
+          "venue": "kraken",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157822952,
+          "messageCount": 48,
+          "tradeCount": 81,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.26071284592948,
+          "avgMessageRate": 0.2845692333230572
+        },
+        {
+          "venue": "binance",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157831001,
+          "messageCount": 1138,
+          "tradeCount": 1138,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.79072304299366,
+          "avgMessageRate": 6.746662240034149
+        },
+        {
+          "venue": "okx",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157830603,
+          "messageCount": 1069,
+          "tradeCount": 1069,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.33659797481562,
+          "avgMessageRate": 6.337593967132254
+        },
+        {
+          "venue": "bybit",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157830592,
+          "messageCount": 1515,
+          "tradeCount": 1515,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.57373900258484,
+          "avgMessageRate": 8.981716426758995
+        }
+      ]
+    },
+    {
+      "tMs": 1767157846284,
+      "tIso": "2025-12-31T05:10:46.284Z",
+      "asset": "BTC",
+      "spot": {
+        "compositePrice": 88328.55,
+        "degraded": false,
+        "degradedReason": "none",
+        "connectedVenues": 4,
+        "totalVenues": 4,
+        "outliersTotal": 0,
+        "gapsTotal": 8
+      },
+      "perp": {
+        "compositePrice": 88345.6,
+        "degraded": false,
+        "connectedVenues": 3,
+        "totalVenues": 3
+      },
+      "basisBps": 1.9302932064437726,
+      "venues": [
+        {
+          "venue": "binance",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157846202,
+          "messageCount": 680,
+          "tradeCount": 680,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.79821054635445,
+          "avgMessageRate": 3.698566805362922
+        },
+        {
+          "venue": "coinbase",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157845867,
+          "messageCount": 619,
+          "tradeCount": 619,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.80310463737531,
+          "avgMessageRate": 3.3668019189139207
+        },
+        {
+          "venue": "okx",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157845999,
+          "messageCount": 677,
+          "tradeCount": 677,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.56650385632078,
+          "avgMessageRate": 3.6822696269866304
+        },
+        {
+          "venue": "kraken",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157841328,
+          "messageCount": 51,
+          "tradeCount": 84,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.32174442764368,
+          "avgMessageRate": 0.2773940191673828
+        },
+        {
+          "venue": "binance",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157846031,
+          "messageCount": 1226,
+          "tradeCount": 1226,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.80799982594884,
+          "avgMessageRate": 6.66833465684728
+        },
+        {
+          "venue": "okx",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157845430,
+          "messageCount": 1164,
+          "tradeCount": 1164,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.39136488735627,
+          "avgMessageRate": 6.331110555114384
+        },
+        {
+          "venue": "bybit",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157845832,
+          "messageCount": 1567,
+          "tradeCount": 1567,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.60892882395814,
+          "avgMessageRate": 8.523067216378212
+        }
+      ]
+    },
+    {
+      "tMs": 1767157861284,
+      "tIso": "2025-12-31T05:11:01.284Z",
+      "asset": "BTC",
+      "spot": {
+        "compositePrice": 88328.555,
+        "degraded": false,
+        "degradedReason": "none",
+        "connectedVenues": 4,
+        "totalVenues": 4,
+        "outliersTotal": 0,
+        "gapsTotal": 9
+      },
+      "perp": {
+        "compositePrice": 88345.6,
+        "degraded": false,
+        "connectedVenues": 3,
+        "totalVenues": 3
+      },
+      "basisBps": 1.9297270288201598,
+      "venues": [
+        {
+          "venue": "binance",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157859824,
+          "messageCount": 702,
+          "tradeCount": 702,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.81339060715956,
+          "avgMessageRate": 3.5309917459295512
+        },
+        {
+          "venue": "coinbase",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157861159,
+          "messageCount": 666,
+          "tradeCount": 666,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.81791660379257,
+          "avgMessageRate": 3.3499320959710275
+        },
+        {
+          "venue": "okx",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157857100,
+          "messageCount": 680,
+          "tradeCount": 680,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.59911473265932,
+          "avgMessageRate": 3.4203510889794275
+        },
+        {
+          "venue": "kraken",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157855283,
+          "messageCount": 52,
+          "tradeCount": 89,
+          "reconnectCount": 0,
+          "gapCount": 2,
+          "uptimePercent": 99.37276796941804,
+          "avgMessageRate": 0.26155625974548563
+        },
+        {
+          "venue": "binance",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157860912,
+          "messageCount": 1256,
+          "tradeCount": 1256,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.82244353905739,
+          "avgMessageRate": 6.317589658467884
+        },
+        {
+          "venue": "okx",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157860493,
+          "messageCount": 1198,
+          "tradeCount": 1198,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.43715104874,
+          "avgMessageRate": 6.0258538302902265
+        },
+        {
+          "venue": "bybit",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157860579,
+          "messageCount": 1572,
+          "tradeCount": 1572,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.63834817162115,
+          "avgMessageRate": 7.907046929228912
+        }
+      ]
+    },
+    {
+      "tMs": 1767157876283,
+      "tIso": "2025-12-31T05:11:16.283Z",
+      "asset": "BTC",
+      "spot": {
+        "compositePrice": 88326.12,
+        "degraded": false,
+        "degradedReason": "none",
+        "connectedVenues": 4,
+        "totalVenues": 4,
+        "outliersTotal": 0,
+        "gapsTotal": 12
+      },
+      "perp": {
+        "compositePrice": 88348.9,
+        "degraded": false,
+        "connectedVenues": 3,
+        "totalVenues": 3
+      },
+      "basisBps": 2.5790785330544166,
+      "venues": [
+        {
+          "venue": "binance",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157874420,
+          "messageCount": 725,
+          "tradeCount": 725,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.82657716614935,
+          "avgMessageRate": 3.3889906884559293
+        },
+        {
+          "venue": "coinbase",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157876161,
+          "messageCount": 688,
+          "tradeCount": 688,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.83078339807504,
+          "avgMessageRate": 3.2160503349273353
+        },
+        {
+          "venue": "okx",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157875892,
+          "messageCount": 693,
+          "tradeCount": 693,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.62744300625914,
+          "avgMessageRate": 3.239422793756749
+        },
+        {
+          "venue": "kraken",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157871861,
+          "messageCount": 57,
+          "tradeCount": 94,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.41709087679442,
+          "avgMessageRate": 0.266446030655317
+        },
+        {
+          "venue": "binance",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157874398,
+          "messageCount": 1290,
+          "tradeCount": 1290,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.83499044066434,
+          "avgMessageRate": 6.030094377988753
+        },
+        {
+          "venue": "okx",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157875867,
+          "messageCount": 1239,
+          "tradeCount": 1239,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.47692437139773,
+          "avgMessageRate": 5.791695297928733
+        },
+        {
+          "venue": "bybit",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157876275,
+          "messageCount": 1648,
+          "tradeCount": 1648,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.66390404203302,
+          "avgMessageRate": 7.703562430174779
+        }
+      ]
+    },
+    {
+      "tMs": 1767157891284,
+      "tIso": "2025-12-31T05:11:31.284Z",
+      "asset": "BTC",
+      "spot": {
+        "compositePrice": 88353.39000000001,
+        "degraded": false,
+        "degradedReason": "none",
+        "connectedVenues": 4,
+        "totalVenues": 4,
+        "outliersTotal": 0,
+        "gapsTotal": 12
+      },
+      "perp": {
+        "compositePrice": 88375.4,
+        "degraded": false,
+        "connectedVenues": 3,
+        "totalVenues": 3
+      },
+      "basisBps": 2.4911324851236842,
+      "venues": [
+        {
+          "venue": "binance",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157890084,
+          "messageCount": 873,
+          "tradeCount": 873,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.83782484208686,
+          "avgMessageRate": 3.816143203724346
+        },
+        {
+          "venue": "coinbase",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157891112,
+          "messageCount": 789,
+          "tradeCount": 789,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.84175831861657,
+          "avgMessageRate": 3.448969243412425
+        },
+        {
+          "venue": "okx",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157890139,
+          "messageCount": 860,
+          "tradeCount": 860,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.65160602192653,
+          "avgMessageRate": 3.7593327621478903
+        },
+        {
+          "venue": "kraken",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157883815,
+          "messageCount": 60,
+          "tradeCount": 98,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.45489674948855,
+          "avgMessageRate": 0.2622790299172947
+        },
+        {
+          "venue": "binance",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157890707,
+          "messageCount": 1482,
+          "tradeCount": 1482,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.84569250406533,
+          "avgMessageRate": 6.4782920389571785
+        },
+        {
+          "venue": "okx",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157889960,
+          "messageCount": 1418,
+          "tradeCount": 1418,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.51084960920424,
+          "avgMessageRate": 6.19852774037873
+        },
+        {
+          "venue": "bybit",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157890112,
+          "messageCount": 1968,
+          "tradeCount": 1968,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.68570229581577,
+          "avgMessageRate": 8.602752181287265
+        }
+      ]
+    },
+    {
+      "tMs": 1767157906288,
+      "tIso": "2025-12-31T05:11:46.288Z",
+      "asset": "BTC",
+      "spot": {
+        "compositePrice": 88342.84,
+        "degraded": false,
+        "degradedReason": "none",
+        "connectedVenues": 4,
+        "totalVenues": 4,
+        "outliersTotal": 0,
+        "gapsTotal": 12
+      },
+      "perp": {
+        "compositePrice": 88364.1,
+        "degraded": false,
+        "connectedVenues": 3,
+        "totalVenues": 3
+      },
+      "basisBps": 2.406533455343898,
+      "venues": [
+        {
+          "venue": "binance",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157902571,
+          "messageCount": 908,
+          "tradeCount": 908,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.84790843349785,
+          "avgMessageRate": 3.72234885131922
+        },
+        {
+          "venue": "coinbase",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157905945,
+          "messageCount": 825,
+          "tradeCount": 825,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.85159737794704,
+          "avgMessageRate": 3.3821039556267958
+        },
+        {
+          "venue": "okx",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157902149,
+          "messageCount": 884,
+          "tradeCount": 884,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.67326826028672,
+          "avgMessageRate": 3.6239756324534396
+        },
+        {
+          "venue": "kraken",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157900256,
+          "messageCount": 65,
+          "tradeCount": 110,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.48878986270707,
+          "avgMessageRate": 0.26646879650392935
+        },
+        {
+          "venue": "binance",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157906279,
+          "messageCount": 1559,
+          "tradeCount": 1559,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.85528694589864,
+          "avgMessageRate": 6.391151596148091
+        },
+        {
+          "venue": "okx",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157904942,
+          "messageCount": 1499,
+          "tradeCount": 1499,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.54126371801863,
+          "avgMessageRate": 6.145180399375233
+        },
+        {
+          "venue": "bybit",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157905262,
+          "messageCount": 2110,
+          "tradeCount": 2110,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.7052445158672,
+          "avgMessageRate": 8.64998708651217
+        }
+      ]
+    },
+    {
+      "tMs": 1767157921271,
+      "tIso": "2025-12-31T05:12:01.271Z",
+      "asset": "BTC",
+      "spot": {
+        "compositePrice": 88351.37,
+        "degraded": false,
+        "degradedReason": "none",
+        "connectedVenues": 4,
+        "totalVenues": 4,
+        "outliersTotal": 0,
+        "gapsTotal": 15
+      },
+      "perp": {
+        "compositePrice": 88374.9,
+        "degraded": false,
+        "connectedVenues": 3,
+        "totalVenues": 3
+      },
+      "basisBps": 2.6632297835335024,
+      "venues": [
+        {
+          "venue": "binance",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157920652,
+          "messageCount": 939,
+          "tradeCount": 939,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.85664384302694,
+          "avgMessageRate": 3.6283404689407877
+        },
+        {
+          "venue": "coinbase",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157921030,
+          "messageCount": 890,
+          "tradeCount": 890,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.86012094514963,
+          "avgMessageRate": 3.4390154369288433
+        },
+        {
+          "venue": "okx",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157918833,
+          "messageCount": 897,
+          "tradeCount": 897,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.69203423559188,
+          "avgMessageRate": 3.466063872949632
+        },
+        {
+          "venue": "kraken",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157920715,
+          "messageCount": 66,
+          "tradeCount": 111,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.5181514326011,
+          "avgMessageRate": 0.25502811105315015
+        },
+        {
+          "venue": "binance",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157921142,
+          "messageCount": 1610,
+          "tradeCount": 1610,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.86359860120945,
+          "avgMessageRate": 6.221140284781391
+        },
+        {
+          "venue": "okx",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157919557,
+          "messageCount": 1578,
+          "tradeCount": 1578,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.56761142989625,
+          "avgMessageRate": 6.097490291543499
+        },
+        {
+          "venue": "bybit",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157919918,
+          "messageCount": 2159,
+          "tradeCount": 2159,
+          "reconnectCount": 0,
+          "gapCount": 3,
+          "uptimePercent": 99.72217392144361,
+          "avgMessageRate": 8.342510481268958
+        }
+      ]
+    },
+    {
+      "tMs": 1767157936256,
+      "tIso": "2025-12-31T05:12:16.256Z",
+      "asset": "BTC",
+      "spot": {
+        "compositePrice": 88351.325,
+        "degraded": false,
+        "degradedReason": "none",
+        "connectedVenues": 4,
+        "totalVenues": 4,
+        "outliersTotal": 0,
+        "gapsTotal": 16
+      },
+      "perp": {
+        "compositePrice": 88374.8,
+        "degraded": false,
+        "connectedVenues": 3,
+        "totalVenues": 3
+      },
+      "basisBps": 2.6570059928366465,
+      "venues": [
+        {
+          "venue": "binance",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157934936,
+          "messageCount": 957,
+          "tradeCount": 957,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.86441049630875,
+          "avgMessageRate": 3.4975513485856298
+        },
+        {
+          "venue": "coinbase",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157935646,
+          "messageCount": 928,
+          "tradeCount": 928,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.86769924603189,
+          "avgMessageRate": 3.391577339292958
+        },
+        {
+          "venue": "okx",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157934578,
+          "messageCount": 906,
+          "tradeCount": 906,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.70871905825254,
+          "avgMessageRate": 3.311173566163168
+        },
+        {
+          "venue": "kraken",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157926837,
+          "messageCount": 69,
+          "tradeCount": 114,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.54425679503251,
+          "avgMessageRate": 0.25217547027070486
+        },
+        {
+          "venue": "binance",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157935870,
+          "messageCount": 1662,
+          "tradeCount": 1662,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.87098849129629,
+          "avgMessageRate": 6.0741395882595866
+        },
+        {
+          "venue": "okx",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157935967,
+          "messageCount": 1598,
+          "tradeCount": 1598,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.5910371721262,
+          "avgMessageRate": 5.840237702791106
+        },
+        {
+          "venue": "bybit",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157933892,
+          "messageCount": 2162,
+          "tradeCount": 2162,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.73722585054401,
+          "avgMessageRate": 7.901498068482086
+        }
+      ]
+    },
+    {
+      "tMs": 1767157951250,
+      "tIso": "2025-12-31T05:12:31.250Z",
+      "asset": "BTC",
+      "spot": {
+        "compositePrice": 88351.375,
+        "degraded": false,
+        "degradedReason": "none",
+        "connectedVenues": 4,
+        "totalVenues": 4,
+        "outliersTotal": 0,
+        "gapsTotal": 16
+      },
+      "perp": {
+        "compositePrice": 88374.9,
+        "degraded": false,
+        "connectedVenues": 3,
+        "totalVenues": 3
+      },
+      "basisBps": 2.662663710665983,
+      "venues": [
+        {
+          "venue": "binance",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157949710,
+          "messageCount": 984,
+          "tradeCount": 984,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.87155340746997,
+          "avgMessageRate": 3.406777548505034
+        },
+        {
+          "venue": "coinbase",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157950624,
+          "messageCount": 951,
+          "tradeCount": 951,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.87466892862707,
+          "avgMessageRate": 3.2925372617584436
+        },
+        {
+          "venue": "okx",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157946423,
+          "messageCount": 910,
+          "tradeCount": 910,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.72406391192203,
+          "avgMessageRate": 3.150587705783579
+        },
+        {
+          "venue": "kraken",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157947342,
+          "messageCount": 71,
+          "tradeCount": 116,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.56826561877888,
+          "avgMessageRate": 0.24581508473696057
+        },
+        {
+          "venue": "binance",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157950856,
+          "messageCount": 1683,
+          "tradeCount": 1683,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.87778489448993,
+          "avgMessageRate": 5.826856163553586
+        },
+        {
+          "venue": "okx",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157951052,
+          "messageCount": 1623,
+          "tradeCount": 1623,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.61258157771738,
+          "avgMessageRate": 5.6191251060293945
+        },
+        {
+          "venue": "bybit",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157951182,
+          "messageCount": 2184,
+          "tradeCount": 2184,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.75106894940018,
+          "avgMessageRate": 7.56141049388059
+        }
+      ]
+    },
+    {
+      "tMs": 1767157966248,
+      "tIso": "2025-12-31T05:12:46.248Z",
+      "asset": "BTC",
+      "spot": {
+        "compositePrice": 88351.325,
+        "degraded": false,
+        "degradedReason": "none",
+        "connectedVenues": 4,
+        "totalVenues": 4,
+        "outliersTotal": 0,
+        "gapsTotal": 16
+      },
+      "perp": {
+        "compositePrice": 88374.8,
+        "degraded": false,
+        "connectedVenues": 3,
+        "totalVenues": 3
+      },
+      "basisBps": 2.6570059928366465,
+      "venues": [
+        {
+          "venue": "binance",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157965478,
+          "messageCount": 994,
+          "tradeCount": 994,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.87785565897038,
+          "avgMessageRate": 3.272546495510949
+        },
+        {
+          "venue": "coinbase",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157966086,
+          "messageCount": 973,
+          "tradeCount": 973,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.88081833685611,
+          "avgMessageRate": 3.203418735884216
+        },
+        {
+          "venue": "okx",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157965391,
+          "messageCount": 915,
+          "tradeCount": 915,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.73760280241524,
+          "avgMessageRate": 3.0124646899630605
+        },
+        {
+          "venue": "kraken",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157966035,
+          "messageCount": 73,
+          "tradeCount": 119,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.58944880126953,
+          "avgMessageRate": 0.2403387129697305
+        },
+        {
+          "venue": "binance",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157965809,
+          "messageCount": 1704,
+          "tradeCount": 1704,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.88378141687903,
+          "avgMessageRate": 5.610098176718092
+        },
+        {
+          "venue": "okx",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157965831,
+          "messageCount": 1650,
+          "tradeCount": 1650,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.63159038381764,
+          "avgMessageRate": 5.432313375343224
+        },
+        {
+          "venue": "bybit",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157958260,
+          "messageCount": 2187,
+          "tradeCount": 2187,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.7632828292805,
+          "avgMessageRate": 7.200284455682199
+        }
+      ]
+    },
+    {
+      "tMs": 1767157976778,
+      "tIso": "2025-12-31T05:12:56.778Z",
+      "asset": "BTC",
+      "spot": {
+        "compositePrice": 88351.37,
+        "degraded": false,
+        "degradedReason": "none",
+        "connectedVenues": 4,
+        "totalVenues": 4,
+        "outliersTotal": 0,
+        "gapsTotal": 16
+      },
+      "perp": {
+        "compositePrice": 88374.9,
+        "degraded": false,
+        "connectedVenues": 3,
+        "totalVenues": 3
+      },
+      "basisBps": 2.6632297835335024,
+      "venues": [
+        {
+          "venue": "binance",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157975032,
+          "messageCount": 1008,
+          "tradeCount": 1008,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.88185842116995,
+          "avgMessageRate": 3.2098844059484763
+        },
+        {
+          "venue": "coinbase",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157976378,
+          "messageCount": 999,
+          "tradeCount": 999,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.88472402230367,
+          "avgMessageRate": 3.181234854105831
+        },
+        {
+          "venue": "okx",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157975025,
+          "messageCount": 918,
+          "tradeCount": 918,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.74620178391169,
+          "avgMessageRate": 2.923296892962115
+        },
+        {
+          "venue": "kraken",
+          "marketType": "spot",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157966035,
+          "messageCount": 73,
+          "tradeCount": 119,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.60290291660961,
+          "avgMessageRate": 0.23246260695668236
+        },
+        {
+          "venue": "binance",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157975961,
+          "messageCount": 1717,
+          "tradeCount": 1717,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.88758999964972,
+          "avgMessageRate": 5.467647892392104
+        },
+        {
+          "venue": "okx",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157976363,
+          "messageCount": 1680,
+          "tradeCount": 1680,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.64366348330887,
+          "avgMessageRate": 5.349824379277073
+        },
+        {
+          "venue": "bybit",
+          "marketType": "perp",
+          "connectionState": "connected",
+          "lastMessageTime": 1767157972953,
+          "messageCount": 2190,
+          "tradeCount": 2190,
+          "reconnectCount": 0,
+          "gapCount": 4,
+          "uptimePercent": 99.77104025424404,
+          "avgMessageRate": 6.97387820870047
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "connectedPctByVenue": {
+      "binance_spot": 100,
+      "coinbase_spot": 100,
+      "okx_spot": 100,
+      "kraken_spot": 100,
+      "binance_perp": 100,
+      "okx_perp": 100,
+      "bybit_perp": 100
+    },
+    "reconnectsByVenue": {
+      "binance_spot": 0,
+      "coinbase_spot": 0,
+      "okx_spot": 0,
+      "kraken_spot": 0,
+      "binance_perp": 0,
+      "okx_perp": 0,
+      "bybit_perp": 0
+    },
+    "gapsByVenue": {
+      "binance_spot": 4,
+      "coinbase_spot": 4,
+      "okx_spot": 4,
+      "kraken_spot": 4,
+      "binance_perp": 4,
+      "okx_perp": 4,
+      "bybit_perp": 4
+    },
+    "outliersTotal": 0,
+    "degradedPctSpot": 4.545454545454546,
+    "degradedPctPerp": 4.545454545454546,
+    "notes": []
+  }
+}

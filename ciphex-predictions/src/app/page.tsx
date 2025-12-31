@@ -12,11 +12,17 @@ import { usePredictions, usePriceData, useHTXPrice, useCoinbasePrice, useGeminiP
 import { DEFAULT_ASSET_ID, getAssetById } from '@/config/assets';
 import { isExchangeSupported, isIndexAvailable, getKrakenSymbol } from '@/config/exchangeSupport';
 import { Interval, extractBaseSymbol } from '@/types';
+import { DataSource } from '@/components/header/DataSourceToggle';
+import { useAbacusCandles, formatDegradedReason } from '@/features/abacus-index/hooks/useAbacusCandles';
+import type { AssetId } from '@/features/abacus-index/types';
 
 export default function Dashboard() {
   const [selectedAssetId, setSelectedAssetId] = useState(DEFAULT_ASSET_ID);
   const [selectedInterval, setSelectedInterval] = useState<Interval>('15m');
   const [chartRefreshKey, setChartRefreshKey] = useState(0);
+
+  // Data source toggle (Binance vs Abacus:INDEX)
+  const [dataSource, setDataSource] = useState<DataSource>('binance');
 
   // Mobile UI state
   const [sheetState, setSheetState] = useState<SheetState>('collapsed');
@@ -34,18 +40,52 @@ export default function Dashboard() {
   } = usePredictions({ assetId: selectedAssetId });
 
   const {
-    candles,
+    candles: binanceCandles,
     dailyCandles,
     loading: pricesLoading,
     error: pricesError,
     refresh: refreshPrices,
-    streaming,
+    streaming: binanceStreaming,
   } = usePriceData({
     symbol: selectedAsset?.binanceSymbol || selectedAsset?.databentoSymbol || '',
     interval: selectedInterval,
     assetType: selectedAsset?.type || 'crypto',
     enableStreaming: true,
   });
+
+  // Abacus:INDEX candles (only for supported crypto assets)
+  // Map asset symbol to Abacus AssetId (currently BTC and ETH)
+  const abacusAssetId: AssetId | null = useMemo(() => {
+    if (!selectedAsset?.symbol) return null;
+    const base = extractBaseSymbol(selectedAsset.symbol);
+    if (base === 'BTC') return 'BTC';
+    if (base === 'ETH') return 'ETH';
+    return null;
+  }, [selectedAsset?.symbol]);
+
+  const {
+    candles: abacusCandles,
+    currentPrice: abacusCurrentPrice,
+    degraded: abacusDegraded,
+    degradedReason: abacusDegradedReason,
+    status: abacusStatus,
+    streaming: abacusStreaming,
+  } = useAbacusCandles({
+    asset: abacusAssetId || 'BTC',
+    enabled: abacusAssetId !== null && dataSource === 'abacus',
+  });
+
+  // Select candles based on data source
+  // Note: Always use Binance daily candles for EMA200D regardless of source
+  const candles = useMemo(() => {
+    if (dataSource === 'abacus' && abacusAssetId !== null) {
+      return abacusCandles;
+    }
+    return binanceCandles;
+  }, [dataSource, abacusAssetId, abacusCandles, binanceCandles]);
+
+  // Streaming status based on selected source
+  const streaming = dataSource === 'abacus' ? abacusStreaming : binanceStreaming;
 
   // Extract base symbol for exchange lookups (e.g., 'BTC/USDT' -> 'BTC')
   const baseSymbol = useMemo(() => {
@@ -266,19 +306,50 @@ export default function Dashboard() {
 
   const handleAssetChange = useCallback((assetId: string) => {
     setSelectedAssetId(assetId);
-  }, []);
+    // Reset to Binance when switching to an asset that doesn't support Abacus
+    // (abacusAssetId will be null for non-BTC/ETH assets)
+    const asset = getAssetById(assetId);
+    const base = asset?.symbol ? extractBaseSymbol(asset.symbol) : '';
+    const supportsAbacus = base === 'BTC' || base === 'ETH';
+    if (!supportsAbacus && dataSource === 'abacus') {
+      setDataSource('binance');
+    }
+  }, [dataSource]);
 
   const handleIntervalChange = useCallback((interval: Interval) => {
     setSelectedInterval(interval);
     refreshPredictions();
     setChartRefreshKey((prev) => prev + 1);
-  }, [refreshPredictions]);
+    // Auto-switch back to Binance if changing away from 1m while Abacus is selected
+    // (Abacus:INDEX only supports 1m candles currently)
+    if (interval !== '1m' && dataSource === 'abacus') {
+      setDataSource('binance');
+    }
+  }, [refreshPredictions, dataSource]);
 
-  // Get current price from the most recent candle
+  // Handle data source toggle with interval enforcement
+  const handleDataSourceChange = useCallback((source: DataSource) => {
+    setDataSource(source);
+    // Always reset chart view when switching data sources
+    setChartRefreshKey((prev) => prev + 1);
+    // Auto-switch to 1m when selecting Abacus (only supported interval)
+    if (source === 'abacus' && selectedInterval !== '1m') {
+      setSelectedInterval('1m');
+      refreshPredictions();
+    }
+  }, [selectedInterval, refreshPredictions]);
+
+  // Get current price based on selected data source
   const currentPrice = useMemo(() => {
-    if (candles.length === 0) return undefined;
-    return candles[candles.length - 1].close;
-  }, [candles]);
+    // When Abacus is selected AND supported AND has data, use real-time composite price
+    if (dataSource === 'abacus' && abacusAssetId !== null && abacusCurrentPrice !== null) {
+      return abacusCurrentPrice;
+    }
+    // Otherwise use Binance candle close (binanceCandles when Binance selected,
+    // or fallback when Abacus has no data yet)
+    if (binanceCandles.length === 0) return undefined;
+    return binanceCandles[binanceCandles.length - 1].close;
+  }, [binanceCandles, dataSource, abacusAssetId, abacusCurrentPrice]);
 
   // Track price direction
   useEffect(() => {
@@ -330,6 +401,14 @@ export default function Dashboard() {
         nextPrediction={nextPrediction}
         priceDirection={priceDirection}
         className="hidden md:flex"
+        dataSource={dataSource}
+        onDataSourceChange={abacusAssetId ? handleDataSourceChange : undefined}
+        abacusStatus={abacusAssetId ? {
+          degraded: abacusDegraded,
+          degradedReason: abacusDegradedReason ? formatDegradedReason(abacusDegradedReason) : undefined,
+          connectedVenues: abacusStatus.connectedSpotVenues,
+          totalVenues: abacusStatus.totalSpotVenues,
+        } : undefined}
       />
 
       {/* Mobile Header */}
