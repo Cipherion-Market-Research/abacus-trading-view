@@ -27,6 +27,7 @@ import { useSpotComposite } from '../hooks/composites/useSpotComposite';
 import { usePerpComposite } from '../hooks/composites/usePerpComposite';
 import { useBasisFeatures, interpretBasis } from '../hooks/features/useBasisFeatures';
 import { useSoakReport } from '../hooks/useSoakReport';
+import { useSoakReportApi } from '../hooks/useSoakReportApi';
 import {
   VenueTelemetry,
   ConnectionState,
@@ -44,10 +45,16 @@ import {
 // Component
 // =============================================================================
 
+// Get API base URL for display
+const API_BASE_URL = process.env.NEXT_PUBLIC_ABACUS_API_BASE_URL || 'https://api.ciphex.io/indexer/v0';
+
+export type SoakMode = 'browser' | 'api';
+
 export function AbacusIndexDebug() {
   // POC-2: Support BTC and ETH
   const [asset, setAsset] = useState<AssetId>('BTC');
   const [noteInput, setNoteInput] = useState('');
+  const [soakMode, setSoakMode] = useState<SoakMode>('browser');
 
   // POC-2 venue hooks (4 spot + 3 perp)
   const binanceSpot = useBinanceSpot({ asset });
@@ -79,16 +86,23 @@ export function AbacusIndexDebug() {
     ? interpretBasis(basis.current.basisBps)
     : null;
 
-  // Soak report
-  const soak = useSoakReport({
+  // Soak report - browser mode (always called for React rules)
+  const browserSoak = useSoakReport({
     asset,
     spotComposite,
     perpComposite,
     basis,
   });
 
-  // Lock asset toggle during soak
+  // Soak report - API mode (always called for React rules)
+  const apiSoak = useSoakReportApi({ asset });
+
+  // Select active soak based on mode
+  const soak = soakMode === 'api' ? apiSoak : browserSoak;
+
+  // Lock asset and mode toggle during soak
   const isAssetLocked = soak.state === 'running';
+  const isSoakModeLocked = browserSoak.state === 'running' || apiSoak.state === 'running';
 
   return (
     <div className="p-6 bg-gray-900 text-white min-h-screen font-mono text-sm">
@@ -134,6 +148,10 @@ export function AbacusIndexDebug() {
       {/* Soak Controls */}
       <SoakControlsPanel
         soak={soak}
+        soakMode={soakMode}
+        setSoakMode={setSoakMode}
+        isSoakModeLocked={isSoakModeLocked}
+        apiError={soakMode === 'api' ? apiSoak.apiError : null}
         noteInput={noteInput}
         setNoteInput={setNoteInput}
       />
@@ -445,12 +463,24 @@ function getStatusColor(state: ConnectionState): string {
 // =============================================================================
 
 interface SoakControlsPanelProps {
-  soak: ReturnType<typeof useSoakReport>;
+  soak: ReturnType<typeof useSoakReport> | ReturnType<typeof useSoakReportApi>;
+  soakMode: SoakMode;
+  setSoakMode: (mode: SoakMode) => void;
+  isSoakModeLocked: boolean;
+  apiError: string | null;
   noteInput: string;
   setNoteInput: (value: string) => void;
 }
 
-function SoakControlsPanel({ soak, noteInput, setNoteInput }: SoakControlsPanelProps) {
+function SoakControlsPanel({
+  soak,
+  soakMode,
+  setSoakMode,
+  isSoakModeLocked,
+  apiError,
+  noteInput,
+  setNoteInput
+}: SoakControlsPanelProps) {
   const handleAddNote = () => {
     if (noteInput.trim()) {
       soak.addNote(noteInput.trim());
@@ -461,7 +491,31 @@ function SoakControlsPanel({ soak, noteInput, setNoteInput }: SoakControlsPanelP
   return (
     <div className="mb-6 p-4 bg-gray-800 rounded-lg border border-gray-700">
       <div className="flex justify-between items-center mb-3">
-        <h2 className="text-lg font-semibold">Soak Test Controls</h2>
+        <div className="flex items-center gap-4">
+          <h2 className="text-lg font-semibold">Soak Test Controls</h2>
+
+          {/* Soak Mode Toggle */}
+          <div className={`flex bg-gray-700 rounded overflow-hidden ${isSoakModeLocked ? 'opacity-50' : ''}`}>
+            <button
+              onClick={() => !isSoakModeLocked && setSoakMode('browser')}
+              disabled={isSoakModeLocked}
+              className={`px-3 py-1 text-xs ${
+                soakMode === 'browser' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-600'
+              } ${isSoakModeLocked ? 'cursor-not-allowed' : ''}`}
+            >
+              Browser WS
+            </button>
+            <button
+              onClick={() => !isSoakModeLocked && setSoakMode('api')}
+              disabled={isSoakModeLocked}
+              className={`px-3 py-1 text-xs ${
+                soakMode === 'api' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-600'
+              } ${isSoakModeLocked ? 'cursor-not-allowed' : ''}`}
+            >
+              ECS API
+            </button>
+          </div>
+        </div>
         <div className="flex items-center gap-3">
           {/* Status indicator */}
           <span
@@ -484,6 +538,22 @@ function SoakControlsPanel({ soak, noteInput, setNoteInput }: SoakControlsPanelP
           )}
         </div>
       </div>
+
+      {/* API Mode Info */}
+      {soakMode === 'api' && (
+        <div className="mb-3 p-2 bg-purple-900/30 border border-purple-600 rounded text-purple-400 text-xs">
+          <strong>API Mode:</strong> Polling {API_BASE_URL}
+          <br />
+          <span className="text-purple-300">Type A criteria: is_gap=false, included_venues≥2 (ignores degraded flag)</span>
+        </div>
+      )}
+
+      {/* API Error */}
+      {apiError && soakMode === 'api' && (
+        <div className="mb-3 p-2 bg-red-900/30 border border-red-600 rounded text-red-400 text-xs">
+          <strong>API Error:</strong> {apiError}
+        </div>
+      )}
 
       {/* Warnings */}
       {soak.pageWentBackground && (
