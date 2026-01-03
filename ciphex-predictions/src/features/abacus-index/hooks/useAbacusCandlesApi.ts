@@ -355,21 +355,14 @@ export function useAbacusCandlesApi({
             // Update candles state with forming bar
             updateCandlesState();
 
-            // Update degraded status based on venue count
+            // Update venue count for display (but don't derive degraded from it)
+            // Degraded status is authoritative from /latest API, not SSE venue count
+            // SSE may show venues that backend excludes due to stale/outlier
             const venueCount = venuePrices.length;
-            const isDegraded = venueCount < 3;
-            setDegraded(isDegraded);
-
-            if (isDegraded) {
-              setDegradedReason(venueCount === 1 ? 'single_source' : 'below_preferred_quorum');
-            } else {
-              setDegradedReason('none');
-            }
-
             setStatus(prev => ({
               ...prev,
               connectedSpotVenues: venueCount,
-              health: venueCount >= 2 ? 'healthy' : 'degraded',
+              // Don't override health/degraded here - let /latest be authoritative
             }));
           }
         }
@@ -412,11 +405,15 @@ export function useAbacusCandlesApi({
         const spotConnected = assetVenues.filter(v => v.market_type === 'spot' && v.connected).length;
         const perpConnected = assetVenues.filter(v => v.market_type === 'perp' && v.connected).length;
 
+        // Update venue counts for display only
+        // Degraded/health status is authoritative from /latest API
         setStatus(prev => ({
           ...prev,
           connectedSpotVenues: spotConnected,
           connectedPerpVenues: perpConnected,
-          health: spotConnected >= 2 ? 'healthy' : spotConnected >= 1 ? 'degraded' : 'unhealthy',
+          totalSpotVenues: assetVenues.filter(v => v.market_type === 'spot').length,
+          totalPerpVenues: assetVenues.filter(v => v.market_type === 'perp').length,
+          // Don't override health here - let /latest be authoritative
         }));
       } catch (error) {
         console.error('[useAbacusCandlesApi] SSE telemetry parse error:', error);
@@ -426,7 +423,7 @@ export function useAbacusCandlesApi({
     eventSource.onopen = () => {
       console.log('[useAbacusCandlesApi] SSE connected');
       setStreaming(true);
-      setStatus(prev => ({ ...prev, health: 'healthy' }));
+      // Don't set health here - let /latest be authoritative
 
       // Clear fallback polling when SSE is connected
       if (fallbackIntervalRef.current) {
