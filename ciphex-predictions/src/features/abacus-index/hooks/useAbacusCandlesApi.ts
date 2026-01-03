@@ -25,7 +25,7 @@ import type { UseAbacusCandlesReturn, AbacusStatus, UseAbacusCandlesOptions } fr
 // =============================================================================
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_ABACUS_API_BASE_URL || 'https://api.ciphex.io/indexer/v0';
-const BACKFILL_LIMIT = 720; // 12 hours of 1-minute candles
+const BACKFILL_LIMIT = 1440; // 24 hours of 1-minute candles (matches Binance ~25h limit)
 const LATEST_POLL_FALLBACK_MS = 10000; // Fallback poll if SSE disconnects
 
 // =============================================================================
