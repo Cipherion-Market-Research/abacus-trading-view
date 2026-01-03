@@ -3,13 +3,13 @@
 /**
  * Abacus Candles API Hook
  *
- * Poll-based implementation that fetches composite candles from the ECS Indexer API.
- * This replaces browser-side WebSocket connections with server-side aggregation.
+ * SSE-based implementation that streams composite prices from the ECS Indexer API.
+ * Uses Server-Sent Events for real-time updates (~500ms price cadence).
  *
  * API Endpoints (Production v0.1.22 contract):
- *   - GET /v0/latest?asset=BTC&market_type=spot - Returns array of price objects
- *   - GET /v0/telemetry - Venue connection health (snake_case)
- *   - GET /v0/candles?asset=BTC&market_type=spot&limit=60 - Historical bars
+ *   - GET /v0/stream?asset=BTC - SSE stream for price + telemetry events
+ *   - GET /v0/latest?asset=BTC - Initial price fetch (fallback)
+ *   - GET /v0/candles?asset=BTC&market_type=spot&limit=720 - Historical bars (12h)
  *
  * Usage:
  *   Set NEXT_PUBLIC_ABACUS_PROVIDER=api to enable this implementation.
@@ -25,9 +25,8 @@ import type { UseAbacusCandlesReturn, AbacusStatus, UseAbacusCandlesOptions } fr
 // =============================================================================
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_ABACUS_API_BASE_URL || 'https://api.ciphex.io/indexer/v0';
-const POLL_INTERVAL_MS = 5000; // 5 second polling for /latest
-const TELEMETRY_POLL_INTERVAL_MS = 15000; // 15 second polling for /telemetry
-const BACKFILL_LIMIT = 60; // Default candles to fetch on init
+const BACKFILL_LIMIT = 720; // 12 hours of 1-minute candles
+const LATEST_POLL_FALLBACK_MS = 10000; // Fallback poll if SSE disconnects
 
 // =============================================================================
 // Production API Response Types (v0.1.22 snake_case contract)
@@ -38,9 +37,9 @@ const BACKFILL_LIMIT = 60; // Default candles to fetch on init
  */
 interface ApiLatestItem {
   asset: string;
-  market_type: string;  // snake_case
+  market_type: string;
   price: number | null;
-  time: number;         // unix seconds
+  time: number;
   degraded: boolean;
   included_venues: string[];
   last_bar: {
@@ -50,7 +49,6 @@ interface ApiLatestItem {
     low: number | null;
     close: number | null;
     volume: number;
-    // v0.1.22: Buy/sell volume separation for forecasting
     buy_volume: number;
     sell_volume: number;
     buy_count: number;
@@ -58,27 +56,6 @@ interface ApiLatestItem {
     degraded: boolean;
     is_gap: boolean;
   } | null;
-}
-
-/**
- * /v0/telemetry response
- */
-interface ApiTelemetryResponse {
-  venues: Array<{
-    venue: string;
-    asset: string;
-    market_type: string;
-    connection_state: string;
-    last_message_time: number | null;
-    message_count: number;
-    trade_count: number;
-    reconnect_count: number;
-    uptime_percent: number;
-  }>;
-  system_health: string;
-  connected_spot_venues: number;
-  connected_perp_venues: number;
-  timestamp: string;
 }
 
 /**
@@ -94,7 +71,6 @@ interface ApiCandlesResponse {
     low: number | null;
     close: number | null;
     volume: number;
-    // v0.1.22: Buy/sell volume separation for forecasting
     buy_volume: number;
     sell_volume: number;
     buy_count: number;
@@ -107,6 +83,38 @@ interface ApiCandlesResponse {
   count: number;
   start_time: number;
   end_time: number;
+}
+
+/**
+ * SSE price event data structure
+ */
+interface SSEPriceEvent {
+  type: 'price';
+  sequence: number;
+  timestamp: number;
+  data: {
+    [asset: string]: {
+      [marketType: string]: {
+        [venue: string]: number;
+      };
+    };
+  };
+}
+
+/**
+ * SSE telemetry event data structure
+ */
+interface SSETelemetryEvent {
+  type: 'telemetry';
+  sequence: number;
+  timestamp: number;
+  data: Array<{
+    venue: string;
+    asset: string;
+    market_type: string;
+    connected: boolean;
+    message_count: number;
+  }>;
 }
 
 // =============================================================================
@@ -135,38 +143,30 @@ export function useAbacusCandlesApi({
     health: 'unhealthy',
   });
 
-  // Refs for intervals
-  const latestIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const telemetryIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  // Refs
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const fallbackIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastBarTimeRef = useRef<number>(0);
   const initializedRef = useRef(false);
 
-  // Fetch /v0/latest (production contract: returns array)
+  // Fetch /v0/latest for initial state and bar updates
   const fetchLatest = useCallback(async () => {
     if (!enabled) return;
 
     try {
-      // Production API uses snake_case: market_type
       const response = await fetch(`${API_BASE_URL}/latest?asset=${asset}`);
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
       }
 
-      // Production returns array of LatestPriceResponse
       const data: ApiLatestItem[] = await response.json();
-
-      // Find spot and perp entries
       const spotEntry = data.find(d => d.market_type === 'spot');
       const perpEntry = data.find(d => d.market_type === 'perp');
 
       if (spotEntry) {
-        // Update price
         setCurrentPrice(spotEntry.price);
         setDegraded(spotEntry.degraded);
-        setStreaming(true);
 
-        // Determine degraded reason based on included_venues count
-        // With PREFERRED_QUORUM=3, degraded=true when < 3 venues
-        // But we should key off is_gap and included_venues.length for Type A soak
         let reason: DegradedReason = 'none';
         if (spotEntry.degraded) {
           if (spotEntry.included_venues.length === 1) {
@@ -177,34 +177,33 @@ export function useAbacusCandlesApi({
         }
         setDegradedReason(reason);
 
-        // Update candles with last completed bar
+        // Update candles with last completed bar if new
         if (spotEntry.last_bar && !spotEntry.last_bar.is_gap) {
           const bar = spotEntry.last_bar;
-          setCandles(prev => {
-            const newCandle: Candle = {
-              time: bar.time,
-              open: bar.open ?? 0,
-              high: bar.high ?? 0,
-              low: bar.low ?? 0,
-              close: bar.close ?? 0,
-              volume: bar.volume,
-            };
+          if (bar.time > lastBarTimeRef.current) {
+            lastBarTimeRef.current = bar.time;
+            setCandles(prev => {
+              const newCandle: Candle = {
+                time: bar.time,
+                open: bar.open ?? 0,
+                high: bar.high ?? 0,
+                low: bar.low ?? 0,
+                close: bar.close ?? 0,
+                volume: bar.volume,
+              };
 
-            // Check if we already have this candle
-            const existingIndex = prev.findIndex(c => c.time === bar.time);
-            if (existingIndex >= 0) {
-              // Update existing
-              const updated = [...prev];
-              updated[existingIndex] = newCandle;
-              return updated;
-            } else {
-              // Append new
-              return [...prev, newCandle].slice(-BACKFILL_LIMIT);
-            }
-          });
+              const existingIndex = prev.findIndex(c => c.time === bar.time);
+              if (existingIndex >= 0) {
+                const updated = [...prev];
+                updated[existingIndex] = newCandle;
+                return updated;
+              } else {
+                return [...prev, newCandle].slice(-BACKFILL_LIMIT);
+              }
+            });
+          }
         }
 
-        // Update status
         setStatus(prev => ({
           ...prev,
           spotDegraded: spotEntry.degraded,
@@ -212,7 +211,6 @@ export function useAbacusCandlesApi({
           spotDegradedReason: reason,
           connectedSpotVenues: spotEntry.included_venues.length,
           connectedPerpVenues: perpEntry?.included_venues.length ?? 0,
-          // Compute basis if both spot and perp have prices
           basisBps: (spotEntry.price && perpEntry?.price)
             ? ((perpEntry.price - spotEntry.price) / spotEntry.price) * 10000
             : null,
@@ -220,55 +218,19 @@ export function useAbacusCandlesApi({
       }
     } catch (error) {
       console.error('[useAbacusCandlesApi] fetchLatest error:', error);
-      setStreaming(false);
-      setStatus(prev => ({ ...prev, health: 'unhealthy' }));
     }
   }, [asset, enabled]);
 
-  // Fetch /v0/telemetry (production contract: snake_case)
-  const fetchTelemetry = useCallback(async () => {
-    if (!enabled) return;
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/telemetry`);
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data: ApiTelemetryResponse = await response.json();
-
-      // Filter venues by current asset
-      const assetVenues = data.venues.filter(v => v.asset === asset);
-      const spotVenues = assetVenues.filter(v => v.market_type === 'spot');
-      const perpVenues = assetVenues.filter(v => v.market_type === 'perp');
-      const connectedSpot = spotVenues.filter(v => v.connection_state === 'connected').length;
-      const connectedPerp = perpVenues.filter(v => v.connection_state === 'connected').length;
-
-      setStatus(prev => ({
-        ...prev,
-        connectedSpotVenues: connectedSpot,
-        connectedPerpVenues: connectedPerp,
-        totalSpotVenues: spotVenues.length,
-        totalPerpVenues: perpVenues.length,
-        health: data.system_health as 'healthy' | 'degraded' | 'unhealthy',
-      }));
-    } catch (error) {
-      console.error('[useAbacusCandlesApi] fetchTelemetry error:', error);
-    }
-  }, [asset, enabled]);
-
-  // Fetch /v0/candles for backfill (production contract: snake_case params, seconds)
+  // Fetch /v0/candles for historical backfill
   const fetchBackfill = useCallback(async () => {
     if (!enabled) return;
 
     try {
-      // Production API uses snake_case and unix seconds (not ms)
       const response = await fetch(
         `${API_BASE_URL}/candles?asset=${asset}&market_type=spot&limit=${BACKFILL_LIMIT}`
       );
 
       if (!response.ok) {
-        // 503 expected if no database configured - just log and continue
         if (response.status === 503) {
           console.warn('[useAbacusCandlesApi] Candles endpoint unavailable (no database)');
           return;
@@ -278,7 +240,6 @@ export function useAbacusCandlesApi({
 
       const data: ApiCandlesResponse = await response.json();
 
-      // Convert to Candle[] (filter out gap candles)
       const candleData: Candle[] = data.candles
         .filter(bar => !bar.is_gap && bar.open !== null)
         .map(bar => ({
@@ -291,32 +252,176 @@ export function useAbacusCandlesApi({
         }));
 
       setCandles(candleData);
+
+      // Track last bar time for deduplication
+      if (candleData.length > 0) {
+        lastBarTimeRef.current = candleData[candleData.length - 1].time;
+      }
     } catch (error) {
       console.error('[useAbacusCandlesApi] fetchBackfill error:', error);
     }
   }, [asset, enabled]);
+
+  // Setup SSE connection
+  const setupSSE = useCallback(() => {
+    if (!enabled) return;
+
+    // Close existing connection
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+    }
+
+    const url = `${API_BASE_URL}/stream?asset=${asset}`;
+    console.log('[useAbacusCandlesApi] Connecting to SSE:', url);
+
+    const eventSource = new EventSource(url);
+    eventSourceRef.current = eventSource;
+
+    eventSource.addEventListener('price', (event) => {
+      try {
+        const parsed: SSEPriceEvent = JSON.parse(event.data);
+        const assetData = parsed.data[asset];
+
+        if (assetData?.spot) {
+          // Calculate median price from all spot venues
+          const venuePrices = Object.values(assetData.spot).filter(p => p > 0);
+          if (venuePrices.length > 0) {
+            venuePrices.sort((a, b) => a - b);
+            const mid = Math.floor(venuePrices.length / 2);
+            const medianPrice = venuePrices.length % 2 === 0
+              ? (venuePrices[mid - 1] + venuePrices[mid]) / 2
+              : venuePrices[mid];
+
+            setCurrentPrice(medianPrice);
+            setStreaming(true);
+
+            // Update degraded status based on venue count
+            const venueCount = venuePrices.length;
+            const isDegraded = venueCount < 3;
+            setDegraded(isDegraded);
+
+            if (isDegraded) {
+              setDegradedReason(venueCount === 1 ? 'single_source' : 'below_preferred_quorum');
+            } else {
+              setDegradedReason('none');
+            }
+
+            setStatus(prev => ({
+              ...prev,
+              connectedSpotVenues: venueCount,
+              health: venueCount >= 2 ? 'healthy' : 'degraded',
+            }));
+          }
+        }
+
+        // Calculate basis from perp if available
+        if (assetData?.spot && assetData?.perp) {
+          const spotPrices = Object.values(assetData.spot).filter(p => p > 0);
+          const perpPrices = Object.values(assetData.perp).filter(p => p > 0);
+
+          if (spotPrices.length > 0 && perpPrices.length > 0) {
+            spotPrices.sort((a, b) => a - b);
+            perpPrices.sort((a, b) => a - b);
+
+            const spotMid = Math.floor(spotPrices.length / 2);
+            const perpMid = Math.floor(perpPrices.length / 2);
+
+            const spotMedian = spotPrices.length % 2 === 0
+              ? (spotPrices[spotMid - 1] + spotPrices[spotMid]) / 2
+              : spotPrices[spotMid];
+            const perpMedian = perpPrices.length % 2 === 0
+              ? (perpPrices[perpMid - 1] + perpPrices[perpMid]) / 2
+              : perpPrices[perpMid];
+
+            setStatus(prev => ({
+              ...prev,
+              connectedPerpVenues: perpPrices.length,
+              basisBps: ((perpMedian - spotMedian) / spotMedian) * 10000,
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('[useAbacusCandlesApi] SSE price parse error:', error);
+      }
+    });
+
+    eventSource.addEventListener('telemetry', (event) => {
+      try {
+        const parsed: SSETelemetryEvent = JSON.parse(event.data);
+        const assetVenues = parsed.data.filter(v => v.asset === asset);
+        const spotConnected = assetVenues.filter(v => v.market_type === 'spot' && v.connected).length;
+        const perpConnected = assetVenues.filter(v => v.market_type === 'perp' && v.connected).length;
+
+        setStatus(prev => ({
+          ...prev,
+          connectedSpotVenues: spotConnected,
+          connectedPerpVenues: perpConnected,
+          health: spotConnected >= 2 ? 'healthy' : spotConnected >= 1 ? 'degraded' : 'unhealthy',
+        }));
+      } catch (error) {
+        console.error('[useAbacusCandlesApi] SSE telemetry parse error:', error);
+      }
+    });
+
+    eventSource.onopen = () => {
+      console.log('[useAbacusCandlesApi] SSE connected');
+      setStreaming(true);
+      setStatus(prev => ({ ...prev, health: 'healthy' }));
+
+      // Clear fallback polling when SSE is connected
+      if (fallbackIntervalRef.current) {
+        clearInterval(fallbackIntervalRef.current);
+        fallbackIntervalRef.current = null;
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      console.error('[useAbacusCandlesApi] SSE error, will auto-reconnect:', error);
+      setStreaming(false);
+
+      // Start fallback polling while SSE reconnects
+      if (!fallbackIntervalRef.current) {
+        fallbackIntervalRef.current = setInterval(fetchLatest, LATEST_POLL_FALLBACK_MS);
+      }
+    };
+
+    return eventSource;
+  }, [asset, enabled, fetchLatest]);
+
+  // Poll for new bars (SSE doesn't send bar completion events yet)
+  useEffect(() => {
+    if (!enabled) return;
+
+    // Check for new bars every 5 seconds
+    const barPollInterval = setInterval(() => {
+      fetchLatest();
+    }, 5000);
+
+    return () => clearInterval(barPollInterval);
+  }, [enabled, fetchLatest]);
 
   // Initialize on mount
   useEffect(() => {
     if (!enabled || initializedRef.current) return;
     initializedRef.current = true;
 
-    // Fetch initial backfill
+    // Fetch initial data
     fetchBackfill();
-
-    // Start polling
     fetchLatest();
-    fetchTelemetry();
 
-    latestIntervalRef.current = setInterval(fetchLatest, POLL_INTERVAL_MS);
-    telemetryIntervalRef.current = setInterval(fetchTelemetry, TELEMETRY_POLL_INTERVAL_MS);
+    // Setup SSE connection
+    const eventSource = setupSSE();
 
     return () => {
-      if (latestIntervalRef.current) clearInterval(latestIntervalRef.current);
-      if (telemetryIntervalRef.current) clearInterval(telemetryIntervalRef.current);
+      if (eventSource) {
+        eventSource.close();
+      }
+      if (fallbackIntervalRef.current) {
+        clearInterval(fallbackIntervalRef.current);
+      }
       initializedRef.current = false;
     };
-  }, [enabled, fetchLatest, fetchTelemetry, fetchBackfill]);
+  }, [enabled, fetchBackfill, fetchLatest, setupSSE]);
 
   // Reset when asset changes
   useEffect(() => {
@@ -324,13 +429,31 @@ export function useAbacusCandlesApi({
 
     setCandles([]);
     setCurrentPrice(null);
+    lastBarTimeRef.current = 0;
     initializedRef.current = false;
 
-    // Re-fetch for new asset
+    // Close existing SSE and reconnect for new asset
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+
     fetchBackfill();
     fetchLatest();
-    fetchTelemetry();
-  }, [asset, enabled, fetchBackfill, fetchLatest, fetchTelemetry]);
+    setupSSE();
+  }, [asset, enabled, fetchBackfill, fetchLatest, setupSSE]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+      if (fallbackIntervalRef.current) {
+        clearInterval(fallbackIntervalRef.current);
+      }
+    };
+  }, []);
 
   return {
     candles,
