@@ -6,7 +6,7 @@
  * Poll-based implementation that fetches composite candles from the ECS Indexer API.
  * This replaces browser-side WebSocket connections with server-side aggregation.
  *
- * API Endpoints (Production v0.1.7 contract):
+ * API Endpoints (Production v0.1.22 contract):
  *   - GET /v0/latest?asset=BTC&market_type=spot - Returns array of price objects
  *   - GET /v0/telemetry - Venue connection health (snake_case)
  *   - GET /v0/candles?asset=BTC&market_type=spot&limit=60 - Historical bars
@@ -15,14 +15,9 @@
  *   Set NEXT_PUBLIC_ABACUS_PROVIDER=api to enable this implementation.
  */
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Candle } from '@/types';
-import {
-  AssetId,
-  CompositeBar,
-  DegradedReason,
-  MarketType,
-} from '../types';
+import { DegradedReason } from '../types';
 import type { UseAbacusCandlesReturn, AbacusStatus, UseAbacusCandlesOptions } from './useAbacusCandles';
 
 // =============================================================================
@@ -35,7 +30,7 @@ const TELEMETRY_POLL_INTERVAL_MS = 15000; // 15 second polling for /telemetry
 const BACKFILL_LIMIT = 60; // Default candles to fetch on init
 
 // =============================================================================
-// Production API Response Types (v0.1.7 snake_case contract)
+// Production API Response Types (v0.1.22 snake_case contract)
 // =============================================================================
 
 /**
@@ -55,6 +50,11 @@ interface ApiLatestItem {
     low: number | null;
     close: number | null;
     volume: number;
+    // v0.1.22: Buy/sell volume separation for forecasting
+    buy_volume: number;
+    sell_volume: number;
+    buy_count: number;
+    sell_count: number;
     degraded: boolean;
     is_gap: boolean;
   } | null;
@@ -94,6 +94,11 @@ interface ApiCandlesResponse {
     low: number | null;
     close: number | null;
     volume: number;
+    // v0.1.22: Buy/sell volume separation for forecasting
+    buy_volume: number;
+    sell_volume: number;
+    buy_count: number;
+    sell_count: number;
     degraded: boolean;
     is_gap: boolean;
     is_backfilled: boolean;
