@@ -200,19 +200,34 @@ export function useAbacusCandlesApi({
         setDegradedReason(reason);
 
         // Update candles with last completed bar if new
-        if (spotEntry.last_bar && !spotEntry.last_bar.is_gap) {
+        if (spotEntry.last_bar) {
           const bar = spotEntry.last_bar;
           if (bar.time > lastBarTimeRef.current) {
             lastBarTimeRef.current = bar.time;
 
-            const newCandle: Candle = {
-              time: bar.time,
-              open: bar.open ?? 0,
-              high: bar.high ?? 0,
-              low: bar.low ?? 0,
-              close: bar.close ?? 0,
-              volume: bar.volume,
-            };
+            let newCandle: Candle;
+            if (bar.is_gap || bar.open === null) {
+              // Fill gap with flat candle using last valid close
+              const lastCandle = completedCandlesRef.current[completedCandlesRef.current.length - 1];
+              const lastClose = lastCandle?.close ?? 0;
+              newCandle = {
+                time: bar.time,
+                open: lastClose,
+                high: lastClose,
+                low: lastClose,
+                close: lastClose,
+                volume: 0,
+              };
+            } else {
+              newCandle = {
+                time: bar.time,
+                open: bar.open,
+                high: bar.high ?? bar.open,
+                low: bar.low ?? bar.open,
+                close: bar.close ?? bar.open,
+                volume: bar.volume,
+              };
+            }
 
             // Update completed candles ref
             const existingIndex = completedCandlesRef.current.findIndex(c => c.time === bar.time);
@@ -268,16 +283,38 @@ export function useAbacusCandlesApi({
 
       const data: ApiCandlesResponse = await response.json();
 
-      const candleData: Candle[] = data.candles
-        .filter(bar => !bar.is_gap && bar.open !== null)
-        .map(bar => ({
-          time: bar.time,
-          open: bar.open ?? 0,
-          high: bar.high ?? 0,
-          low: bar.low ?? 0,
-          close: bar.close ?? 0,
-          volume: bar.volume,
-        }));
+      // Convert API candles, filling gaps with flat bars for chart continuity
+      // Gap candles have is_gap=true and null OHLC - fill them using previous close
+      const rawCandles = data.candles;
+      const candleData: Candle[] = [];
+      let lastValidClose = 0;
+
+      for (const bar of rawCandles) {
+        if (bar.is_gap || bar.open === null) {
+          // Fill gap with flat candle using last valid close
+          if (lastValidClose > 0) {
+            candleData.push({
+              time: bar.time,
+              open: lastValidClose,
+              high: lastValidClose,
+              low: lastValidClose,
+              close: lastValidClose,
+              volume: 0, // No volume during gaps
+            });
+          }
+        } else {
+          // Valid candle
+          candleData.push({
+            time: bar.time,
+            open: bar.open,
+            high: bar.high ?? bar.open,
+            low: bar.low ?? bar.open,
+            close: bar.close ?? bar.open,
+            volume: bar.volume,
+          });
+          lastValidClose = bar.close ?? bar.open;
+        }
+      }
 
       // Store in ref and update state
       completedCandlesRef.current = candleData;
