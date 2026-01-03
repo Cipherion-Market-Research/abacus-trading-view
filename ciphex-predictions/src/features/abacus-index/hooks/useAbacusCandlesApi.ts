@@ -149,6 +149,28 @@ export function useAbacusCandlesApi({
   const lastBarTimeRef = useRef<number>(0);
   const initializedRef = useRef(false);
 
+  // Forming bar state (synthetic bar built from SSE prices)
+  const formingBarRef = useRef<Candle | null>(null);
+  const completedCandlesRef = useRef<Candle[]>([]);
+
+  // Helper to update candles state with completed + forming bar
+  const updateCandlesState = useCallback(() => {
+    const completed = completedCandlesRef.current;
+    const forming = formingBarRef.current;
+
+    if (forming) {
+      // Check if forming bar time is after last completed bar
+      const lastCompleted = completed[completed.length - 1];
+      if (!lastCompleted || forming.time > lastCompleted.time) {
+        setCandles([...completed, forming]);
+      } else {
+        setCandles(completed);
+      }
+    } else {
+      setCandles(completed);
+    }
+  }, []);
+
   // Fetch /v0/latest for initial state and bar updates
   const fetchLatest = useCallback(async () => {
     if (!enabled) return;
@@ -182,25 +204,31 @@ export function useAbacusCandlesApi({
           const bar = spotEntry.last_bar;
           if (bar.time > lastBarTimeRef.current) {
             lastBarTimeRef.current = bar.time;
-            setCandles(prev => {
-              const newCandle: Candle = {
-                time: bar.time,
-                open: bar.open ?? 0,
-                high: bar.high ?? 0,
-                low: bar.low ?? 0,
-                close: bar.close ?? 0,
-                volume: bar.volume,
-              };
 
-              const existingIndex = prev.findIndex(c => c.time === bar.time);
-              if (existingIndex >= 0) {
-                const updated = [...prev];
-                updated[existingIndex] = newCandle;
-                return updated;
-              } else {
-                return [...prev, newCandle].slice(-BACKFILL_LIMIT);
-              }
-            });
+            const newCandle: Candle = {
+              time: bar.time,
+              open: bar.open ?? 0,
+              high: bar.high ?? 0,
+              low: bar.low ?? 0,
+              close: bar.close ?? 0,
+              volume: bar.volume,
+            };
+
+            // Update completed candles ref
+            const existingIndex = completedCandlesRef.current.findIndex(c => c.time === bar.time);
+            if (existingIndex >= 0) {
+              completedCandlesRef.current[existingIndex] = newCandle;
+            } else {
+              completedCandlesRef.current = [...completedCandlesRef.current, newCandle].slice(-BACKFILL_LIMIT);
+            }
+
+            // Reset forming bar if it matches the completed bar time
+            if (formingBarRef.current && formingBarRef.current.time === bar.time) {
+              formingBarRef.current = null;
+            }
+
+            // Update state with completed + forming bar
+            updateCandlesState();
           }
         }
 
@@ -251,7 +279,10 @@ export function useAbacusCandlesApi({
           volume: bar.volume,
         }));
 
-      setCandles(candleData);
+      // Store in ref and update state
+      completedCandlesRef.current = candleData;
+      formingBarRef.current = null;
+      updateCandlesState();
 
       // Track last bar time for deduplication
       if (candleData.length > 0) {
@@ -260,7 +291,7 @@ export function useAbacusCandlesApi({
     } catch (error) {
       console.error('[useAbacusCandlesApi] fetchBackfill error:', error);
     }
-  }, [asset, enabled]);
+  }, [asset, enabled, updateCandlesState]);
 
   // Setup SSE connection
   const setupSSE = useCallback(() => {
@@ -294,6 +325,35 @@ export function useAbacusCandlesApi({
 
             setCurrentPrice(medianPrice);
             setStreaming(true);
+
+            // Update forming bar with this price
+            const currentMinute = Math.floor(parsed.timestamp / 60000) * 60; // Floor to minute in seconds
+            const existing = formingBarRef.current;
+
+            if (existing && existing.time === currentMinute) {
+              // Update existing forming bar
+              formingBarRef.current = {
+                time: currentMinute,
+                open: existing.open,
+                high: Math.max(existing.high, medianPrice),
+                low: Math.min(existing.low, medianPrice),
+                close: medianPrice,
+                volume: existing.volume, // Volume not available from SSE
+              };
+            } else {
+              // Start new forming bar
+              formingBarRef.current = {
+                time: currentMinute,
+                open: medianPrice,
+                high: medianPrice,
+                low: medianPrice,
+                close: medianPrice,
+                volume: 0,
+              };
+            }
+
+            // Update candles state with forming bar
+            updateCandlesState();
 
             // Update degraded status based on venue count
             const venueCount = venuePrices.length;
@@ -386,7 +446,7 @@ export function useAbacusCandlesApi({
     };
 
     return eventSource;
-  }, [asset, enabled, fetchLatest]);
+  }, [asset, enabled, fetchLatest, updateCandlesState]);
 
   // Poll for new bars (SSE doesn't send bar completion events yet)
   useEffect(() => {
@@ -430,6 +490,8 @@ export function useAbacusCandlesApi({
     setCandles([]);
     setCurrentPrice(null);
     lastBarTimeRef.current = 0;
+    completedCandlesRef.current = [];
+    formingBarRef.current = null;
     initializedRef.current = false;
 
     // Close existing SSE and reconnect for new asset
