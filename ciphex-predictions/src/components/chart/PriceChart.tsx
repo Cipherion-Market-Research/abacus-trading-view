@@ -491,7 +491,7 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       lineStyle: LineStyle.Solid,
       priceLineVisible: false,
       lastValueVisible: true,
-      title: 'INDEX',
+      title: 'TV:INDEX',
       crosshairMarkerVisible: true,
       crosshairMarkerRadius: 5,
     });
@@ -1050,7 +1050,7 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       }
     };
 
-    // Composite Index overlay (TradingView-style INDEX)
+    // Composite Index overlay (TradingView-style TV:INDEX)
     // CRITICAL: Only plot when ALL 4 exchanges are live to prevent chart distortion
     // from partial data with large spreads during connection initialization
     updateExchangeSeries(
@@ -1895,7 +1895,7 @@ function ChartLegend({ ema200dValue, visibility, onToggle, exchangeVisibility, o
               {exchangeData?.support?.index && (
                 <MobileIndicatorRow
                   color={COLORS.composite_index}
-                  label="INDEX"
+                  label="TV:INDEX"
                   isVisible={exchangeVisibility.composite_index}
                   onToggle={() => onExchangeToggle('composite_index')}
                 />
@@ -2042,12 +2042,12 @@ function ChartLegend({ ema200dValue, visibility, onToggle, exchangeVisibility, o
           Exchanges <span className="text-[10px] normal-case opacity-60">(click to toggle)</span>
         </div>
 
-        {/* Composite Index (TradingView-style INDEX) */}
+        {/* Composite Index (TradingView-style TV:INDEX) */}
         {exchangeData?.support?.index && (
           <>
             <IndicatorRow
               color={COLORS.composite_index}
-              label="INDEX"
+              label="TV:INDEX"
               value={exchangeVisibility.composite_index && exchangeData?.composite_index?.currentPrice
                 ? `$${formatPrice(exchangeData.composite_index.currentPrice)}`
                 : undefined}

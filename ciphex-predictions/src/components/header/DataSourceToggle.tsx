@@ -3,7 +3,7 @@
 /**
  * Data Source Toggle
  *
- * Allows switching between Binance (default) and Abacus:INDEX as the
+ * Allows switching between Default (Binance) and Abacus:INDEX as the
  * candle data source for the chart.
  */
 
@@ -40,7 +40,7 @@ export function DataSourceToggle({
             : 'text-[#8b949e] hover:text-[#c9d1d9]'
         )}
       >
-        Binance
+        Default
       </button>
       <button
         onClick={() => onChange('abacus')}
