@@ -511,7 +511,7 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       lineStyle: LineStyle.Solid,
       priceLineVisible: false,
       lastValueVisible: true,
-      title: 'Perp:INDEX',
+      title: 'Abacus:PERP',
       crosshairMarkerVisible: true,
       crosshairMarkerRadius: 5,
     });
@@ -1931,7 +1931,7 @@ function ChartLegend({ ema200dValue, visibility, onToggle, exchangeVisibility, o
               {exchangeData?.support?.abacus_perp && (
                 <MobileIndicatorRow
                   color={COLORS.abacus_perp}
-                  label="Perp:INDEX"
+                  label="Abacus:PERP"
                   isVisible={exchangeVisibility.abacus_perp}
                   onToggle={() => onExchangeToggle('abacus_perp')}
                 />
@@ -2108,7 +2108,7 @@ function ChartLegend({ ema200dValue, visibility, onToggle, exchangeVisibility, o
           <>
             <IndicatorRow
               color={COLORS.abacus_perp}
-              label="Perp:INDEX"
+              label="Abacus:PERP"
               value={exchangeVisibility.abacus_perp && exchangeData?.abacus_perp?.currentPrice
                 ? `$${formatPrice(exchangeData.abacus_perp.currentPrice)}`
                 : undefined}
