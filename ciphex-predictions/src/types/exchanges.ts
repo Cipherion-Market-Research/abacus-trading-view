@@ -96,7 +96,6 @@ export function extractBaseSymbol(assetSymbol: string): string {
 // Exchange visibility state (persisted in localStorage)
 export interface ExchangeVisibility {
   composite_index: boolean;  // TradingView-style INDEX (average of USD exchanges)
-  abacus_perp: boolean;      // Abacus:INDEX perp composite
   htx: boolean;
   coinbase: boolean;
   gemini: boolean;
@@ -109,7 +108,6 @@ export interface ExchangeVisibility {
 
 export const DEFAULT_EXCHANGE_VISIBILITY: ExchangeVisibility = {
   composite_index: true,   // INDEX on by default (TradingView-style composite)
-  abacus_perp: false,      // Abacus perp off by default
   htx: false,
   coinbase: false,
   gemini: false,

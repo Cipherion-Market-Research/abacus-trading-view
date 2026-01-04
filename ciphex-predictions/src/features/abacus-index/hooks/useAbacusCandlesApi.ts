@@ -6,10 +6,15 @@
  * SSE-based implementation that streams composite prices from the ECS Indexer API.
  * Uses Server-Sent Events for real-time updates (~500ms price cadence).
  *
- * API Endpoints (Production v0.1.22 contract):
+ * API Endpoints (Production v0.1.22+ contract):
  *   - GET /v0/stream?asset=BTC - SSE stream for price + telemetry events
  *   - GET /v0/latest?asset=BTC - Initial price fetch (fallback)
- *   - GET /v0/candles?asset=BTC&market_type=spot&limit=720 - Historical bars (12h)
+ *   - GET /v0/candles?asset=BTC&market_type=spot|perp&limit=1440 - Historical bars
+ *
+ * Features:
+ *   - Supports both spot and perp candles via marketType parameter
+ *   - SSE provides real-time prices for both spot and perp (for header display)
+ *   - Candles are fetched for the selected marketType
  *
  * Usage:
  *   Set NEXT_PUBLIC_ABACUS_PROVIDER=api to enable this implementation.
@@ -123,13 +128,13 @@ interface SSETelemetryEvent {
 
 export function useAbacusCandlesApi({
   asset,
+  marketType = 'spot',
   enabled = true,
 }: UseAbacusCandlesOptions): UseAbacusCandlesReturn {
   // State
   const [candles, setCandles] = useState<Candle[]>([]);
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [perpPrice, setPerpPrice] = useState<number | null>(null);
-  const [perpPriceHistory, setPerpPriceHistory] = useState<Array<{ time: number; value: number }>>([]);
   const [degraded, setDegraded] = useState(false);
   const [degradedReason, setDegradedReason] = useState<DegradedReason>('none');
   const [streaming, setStreaming] = useState(false);
@@ -272,7 +277,7 @@ export function useAbacusCandlesApi({
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/candles?asset=${asset}&market_type=spot&limit=${BACKFILL_LIMIT}`
+        `${API_BASE_URL}/candles?asset=${asset}&market_type=${marketType}&limit=${BACKFILL_LIMIT}`
       );
 
       if (!response.ok) {
@@ -330,7 +335,7 @@ export function useAbacusCandlesApi({
     } catch (error) {
       console.error('[useAbacusCandlesApi] fetchBackfill error:', error);
     }
-  }, [asset, enabled, updateCandlesState]);
+  }, [asset, marketType, enabled, updateCandlesState]);
 
   // Setup SSE connection
   const setupSSE = useCallback(() => {
@@ -352,103 +357,79 @@ export function useAbacusCandlesApi({
         const parsed: SSEPriceEvent = JSON.parse(event.data);
         const assetData = parsed.data[asset];
 
+        // Helper to calculate median
+        const calcMedian = (prices: number[]): number => {
+          if (prices.length === 0) return 0;
+          const sorted = [...prices].sort((a, b) => a - b);
+          const mid = Math.floor(sorted.length / 2);
+          return sorted.length % 2 === 0
+            ? (sorted[mid - 1] + sorted[mid]) / 2
+            : sorted[mid];
+        };
+
+        // Calculate spot median (always needed for header and basis)
+        let spotMedian: number | null = null;
         if (assetData?.spot) {
-          // Calculate median price from all spot venues
-          const venuePrices = Object.values(assetData.spot).filter(p => p > 0);
-          if (venuePrices.length > 0) {
-            venuePrices.sort((a, b) => a - b);
-            const mid = Math.floor(venuePrices.length / 2);
-            const medianPrice = venuePrices.length % 2 === 0
-              ? (venuePrices[mid - 1] + venuePrices[mid]) / 2
-              : venuePrices[mid];
-
-            setCurrentPrice(medianPrice);
+          const spotPrices = Object.values(assetData.spot).filter(p => p > 0);
+          if (spotPrices.length > 0) {
+            spotMedian = calcMedian(spotPrices);
+            setCurrentPrice(spotMedian);
             setStreaming(true);
-
-            // Update forming bar with this price
-            const currentMinute = Math.floor(parsed.timestamp / 60000) * 60; // Floor to minute in seconds
-            const existing = formingBarRef.current;
-
-            if (existing && existing.time === currentMinute) {
-              // Update existing forming bar
-              formingBarRef.current = {
-                time: currentMinute,
-                open: existing.open,
-                high: Math.max(existing.high, medianPrice),
-                low: Math.min(existing.low, medianPrice),
-                close: medianPrice,
-                volume: existing.volume, // Volume not available from SSE
-              };
-            } else {
-              // Start new forming bar
-              formingBarRef.current = {
-                time: currentMinute,
-                open: medianPrice,
-                high: medianPrice,
-                low: medianPrice,
-                close: medianPrice,
-                volume: 0,
-              };
-            }
-
-            // Update candles state with forming bar
-            updateCandlesState();
-
-            // Update venue count for display (but don't derive degraded from it)
-            // Degraded status is authoritative from /latest API, not SSE venue count
-            // SSE may show venues that backend excludes due to stale/outlier
-            const venueCount = venuePrices.length;
             setStatus(prev => ({
               ...prev,
-              connectedSpotVenues: venueCount,
-              // Don't override health/degraded here - let /latest be authoritative
+              connectedSpotVenues: spotPrices.length,
             }));
           }
         }
 
-        // Calculate basis from perp if available and track perp price history
-        if (assetData?.spot && assetData?.perp) {
-          const spotPrices = Object.values(assetData.spot).filter(p => p > 0);
+        // Calculate perp median (always needed for header and basis)
+        let perpMedian: number | null = null;
+        if (assetData?.perp) {
           const perpPrices = Object.values(assetData.perp).filter(p => p > 0);
-
-          if (spotPrices.length > 0 && perpPrices.length > 0) {
-            spotPrices.sort((a, b) => a - b);
-            perpPrices.sort((a, b) => a - b);
-
-            const spotMid = Math.floor(spotPrices.length / 2);
-            const perpMid = Math.floor(perpPrices.length / 2);
-
-            const spotMedian = spotPrices.length % 2 === 0
-              ? (spotPrices[spotMid - 1] + spotPrices[spotMid]) / 2
-              : spotPrices[spotMid];
-            const perpMedian = perpPrices.length % 2 === 0
-              ? (perpPrices[perpMid - 1] + perpPrices[perpMid]) / 2
-              : perpPrices[perpMid];
-
-            // Update perp price state
+          if (perpPrices.length > 0) {
+            perpMedian = calcMedian(perpPrices);
             setPerpPrice(perpMedian);
-
-            // Add to perp price history (floor to seconds for chart alignment)
-            const priceTimeSeconds = Math.floor(parsed.timestamp / 1000);
-            setPerpPriceHistory(prev => {
-              // Dedupe by timestamp - update existing or append new
-              const existing = prev.findIndex(p => p.time === priceTimeSeconds);
-              if (existing >= 0) {
-                const updated = [...prev];
-                updated[existing] = { time: priceTimeSeconds, value: perpMedian };
-                return updated;
-              }
-              // Append and keep last 1440 entries (24h of ~1/sec updates)
-              const newHistory = [...prev, { time: priceTimeSeconds, value: perpMedian }];
-              return newHistory.slice(-1440);
-            });
-
             setStatus(prev => ({
               ...prev,
               connectedPerpVenues: perpPrices.length,
-              basisBps: ((perpMedian - spotMedian) / spotMedian) * 10000,
             }));
           }
+        }
+
+        // Calculate basis if both available
+        if (spotMedian && perpMedian) {
+          setStatus(prev => ({
+            ...prev,
+            basisBps: ((perpMedian - spotMedian) / spotMedian) * 10000,
+          }));
+        }
+
+        // Update forming bar based on selected market type
+        const priceForChart = marketType === 'perp' ? perpMedian : spotMedian;
+        if (priceForChart) {
+          const currentMinute = Math.floor(parsed.timestamp / 60000) * 60;
+          const existing = formingBarRef.current;
+
+          if (existing && existing.time === currentMinute) {
+            formingBarRef.current = {
+              time: currentMinute,
+              open: existing.open,
+              high: Math.max(existing.high, priceForChart),
+              low: Math.min(existing.low, priceForChart),
+              close: priceForChart,
+              volume: existing.volume,
+            };
+          } else {
+            formingBarRef.current = {
+              time: currentMinute,
+              open: priceForChart,
+              high: priceForChart,
+              low: priceForChart,
+              close: priceForChart,
+              volume: 0,
+            };
+          }
+          updateCandlesState();
         }
       } catch (error) {
         console.error('[useAbacusCandlesApi] SSE price parse error:', error);
@@ -500,7 +481,7 @@ export function useAbacusCandlesApi({
     };
 
     return eventSource;
-  }, [asset, enabled, fetchLatest, updateCandlesState]);
+  }, [asset, marketType, enabled, fetchLatest, updateCandlesState]);
 
   // Poll for new bars (SSE doesn't send bar completion events yet)
   useEffect(() => {
@@ -537,18 +518,28 @@ export function useAbacusCandlesApi({
     };
   }, [enabled, fetchBackfill, fetchLatest, setupSSE]);
 
-  // Reset when asset changes
+  // Reset when asset or marketType changes
   useEffect(() => {
     if (!enabled) return;
 
+    // Reset candles and forming bar state
     setCandles([]);
-    setCurrentPrice(null);
-    setPerpPrice(null);
-    setPerpPriceHistory([]);
     lastBarTimeRef.current = 0;
     completedCandlesRef.current = [];
     formingBarRef.current = null;
     initializedRef.current = false;
+
+    // Refetch candles for new market type
+    fetchBackfill();
+    fetchLatest();
+  }, [asset, marketType, enabled, fetchBackfill, fetchLatest]);
+
+  // Reconnect SSE when asset changes (SSE streams both spot and perp)
+  useEffect(() => {
+    if (!enabled) return;
+
+    setCurrentPrice(null);
+    setPerpPrice(null);
 
     // Close existing SSE and reconnect for new asset
     if (eventSourceRef.current) {
@@ -556,10 +547,8 @@ export function useAbacusCandlesApi({
       eventSourceRef.current = null;
     }
 
-    fetchBackfill();
-    fetchLatest();
     setupSSE();
-  }, [asset, enabled, fetchBackfill, fetchLatest, setupSSE]);
+  }, [asset, enabled, setupSSE]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -577,7 +566,6 @@ export function useAbacusCandlesApi({
     candles,
     currentPrice,
     perpPrice,
-    perpPriceHistory,
     degraded,
     degradedReason,
     status,

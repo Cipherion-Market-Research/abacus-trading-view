@@ -23,6 +23,8 @@ export default function Dashboard() {
 
   // Data source toggle (Binance vs Abacus:INDEX)
   const [dataSource, setDataSource] = useState<DataSource>('binance');
+  // Abacus chart mode (spot vs perp candles)
+  const [abacusChartMode, setAbacusChartMode] = useState<'spot' | 'perp'>('spot');
 
   // Mobile UI state
   const [sheetState, setSheetState] = useState<SheetState>('collapsed');
@@ -67,13 +69,13 @@ export default function Dashboard() {
     candles: abacusCandles,
     currentPrice: abacusCurrentPrice,
     perpPrice: abacusPerpPrice,
-    perpPriceHistory: abacusPerpPriceHistory,
     degraded: abacusDegraded,
     degradedReason: abacusDegradedReason,
     status: abacusStatus,
     streaming: abacusStreaming,
   } = useAbacusCandles({
     asset: abacusAssetId || 'BTC',
+    marketType: abacusChartMode,
     enabled: abacusAssetId !== null && dataSource === 'abacus',
   });
 
@@ -109,9 +111,7 @@ export default function Dashboard() {
     crypto_com_usd: isCrypto && isExchangeSupported(baseSymbol, 'crypto_com_usd'),
     crypto_com_usdt: isCrypto && isExchangeSupported(baseSymbol, 'crypto_com_usdt'),
     index: isCrypto && isIndexAvailable(baseSymbol),
-    // Abacus perp only available when Abacus data source is active
-    abacus_perp: dataSource === 'abacus' && abacusAssetId !== null && abacusStreaming,
-  }), [baseSymbol, isCrypto, dataSource, abacusAssetId, abacusStreaming]);
+  }), [baseSymbol, isCrypto]);
 
   // Kraken uses XBT for Bitcoin
   const krakenSymbol = useMemo(() => getKrakenSymbol(baseSymbol), [baseSymbol]);
@@ -278,12 +278,6 @@ export default function Dashboard() {
       currentPrice: cryptoComUsdtCurrentPrice,
       connected: cryptoComUsdtConnected,
     },
-    // Abacus perp composite from ECS SSE stream
-    abacus_perp: {
-      priceHistory: (abacusPerpPriceHistory ?? []).map(p => ({ time: p.time, price: p.value })),
-      currentPrice: abacusPerpPrice ?? null,
-      connected: abacusStreaming && abacusPerpPrice !== null && abacusPerpPrice !== undefined,
-    },
   }), [
     exchangeSupport,
     compositeIndexHistory, compositeIndexPrice, compositeConnectedCount,
@@ -295,7 +289,6 @@ export default function Dashboard() {
     bitfinexPriceHistory, bitfinexCurrentPrice, bitfinexConnected,
     cryptoComUsdPriceHistory, cryptoComUsdCurrentPrice, cryptoComUsdConnected,
     cryptoComUsdtPriceHistory, cryptoComUsdtCurrentPrice, cryptoComUsdtConnected,
-    abacusPerpPriceHistory, abacusPerpPrice, abacusStreaming,
   ]);
 
   // Manual refresh - resets chart view to default position
@@ -343,10 +336,14 @@ export default function Dashboard() {
     setDataSource(source);
     // Always reset chart view when switching data sources
     setChartRefreshKey((prev) => prev + 1);
-    // Auto-switch to 1m when selecting Abacus (only supported interval)
-    if (source === 'abacus' && selectedInterval !== '1m') {
-      setSelectedInterval('1m');
-      refreshPredictions();
+    // Reset to spot chart when switching to Abacus
+    if (source === 'abacus') {
+      setAbacusChartMode('spot');
+      // Auto-switch to 1m when selecting Abacus (only supported interval)
+      if (selectedInterval !== '1m') {
+        setSelectedInterval('1m');
+        refreshPredictions();
+      }
     }
   }, [selectedInterval, refreshPredictions]);
 
@@ -420,6 +417,11 @@ export default function Dashboard() {
           connectedVenues: abacusStatus.connectedSpotVenues,
           totalVenues: abacusStatus.totalSpotVenues,
         } : undefined}
+        abacusPerpPrice={abacusPerpPrice}
+        abacusBasisBps={abacusStatus.basisBps}
+        abacusPerpVenues={abacusStatus.connectedPerpVenues}
+        abacusChartMode={abacusChartMode}
+        onAbacusChartModeChange={dataSource === 'abacus' ? setAbacusChartMode : undefined}
       />
 
       {/* Mobile Header */}

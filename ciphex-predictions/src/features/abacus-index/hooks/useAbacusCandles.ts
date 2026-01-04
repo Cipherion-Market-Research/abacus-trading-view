@@ -55,6 +55,8 @@ export function getAbacusProvider(): AbacusProvider {
 
 export interface UseAbacusCandlesOptions {
   asset: AssetId;
+  /** Market type: 'spot' (default) or 'perp' */
+  marketType?: 'spot' | 'perp';
   enabled?: boolean;
   /** Override provider for this instance (useful for testing/debug) */
   providerOverride?: AbacusProvider;
@@ -82,14 +84,12 @@ export interface AbacusStatus {
 }
 
 export interface UseAbacusCandlesReturn {
-  /** Candles in standard format for PriceChart */
+  /** Candles in standard format for PriceChart (for selected marketType) */
   candles: Candle[];
-  /** Current spot composite price */
+  /** Current spot composite price (always tracked via SSE) */
   currentPrice: number | null;
-  /** Current perp composite price */
+  /** Current perp composite price (always tracked via SSE) */
   perpPrice?: number | null;
-  /** Perp price history for chart overlay */
-  perpPriceHistory?: Array<{ time: number; value: number }>;
   /** Is the composite degraded? */
   degraded: boolean;
   /** Degraded reason for UI display */
@@ -112,6 +112,7 @@ export interface UseAbacusCandlesReturn {
  */
 export function useAbacusCandles({
   asset,
+  marketType = 'spot',
   enabled = true,
   providerOverride,
 }: UseAbacusCandlesOptions): UseAbacusCandlesReturn {
@@ -120,6 +121,7 @@ export function useAbacusCandles({
   const useApi = provider === 'api';
 
   // Call both hooks (React rules), but only enable the active one
+  // Note: Browser implementation doesn't support marketType yet (always spot)
   const browserResult = useAbacusCandlesBrowser({
     asset,
     enabled: enabled && useBrowser,
@@ -127,6 +129,7 @@ export function useAbacusCandles({
 
   const apiResult = useAbacusCandlesApi({
     asset,
+    marketType,
     enabled: enabled && useApi,
   });
 

@@ -36,6 +36,13 @@ interface HeaderProps {
     connectedVenues: number;
     totalVenues: number;
   };
+  // Abacus mode metrics (shown when dataSource === 'abacus')
+  abacusPerpPrice?: number | null;
+  abacusBasisBps?: number | null;
+  abacusPerpVenues?: number;
+  // Abacus chart mode toggle
+  abacusChartMode?: 'spot' | 'perp';
+  onAbacusChartModeChange?: (mode: 'spot' | 'perp') => void;
 }
 
 export function Header({
@@ -52,6 +59,11 @@ export function Header({
   dataSource = 'binance',
   onDataSourceChange,
   abacusStatus,
+  abacusPerpPrice,
+  abacusBasisBps,
+  abacusPerpVenues,
+  abacusChartMode = 'spot',
+  onAbacusChartModeChange,
 }: HeaderProps) {
   // Calculate percentage deviation from prediction mid price
   const predictionMid = nextPrediction ? (nextPrediction.high + nextPrediction.low) / 2 : null;
@@ -111,8 +123,69 @@ export function Header({
           </span>
         </div>
 
-        {/* Price vs Prediction Display */}
-        {currentPrice && predictionMid && displayedDeviation !== null && (
+        {/* Metrics Display - changes based on data source */}
+        {dataSource === 'abacus' && currentPrice ? (
+          // Abacus Mode: SPOT, PERP, BASIS + Chart Toggle
+          <div className="flex items-center gap-3 pl-3 border-l border-[#30363d]">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-[#8b949e] uppercase">Spot</span>
+              <span className={`text-sm font-semibold font-mono transition-colors ${priceColorClass}`}>
+                ${formatPrice(currentPrice)}
+              </span>
+              <span className="text-[10px] text-[#8b949e]">{abacusStatus?.connectedVenues ?? 0}/{abacusStatus?.totalVenues ?? 4}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-[#8b949e] uppercase">Perp</span>
+              <span className="text-sm font-semibold text-[#f0f6fc] font-mono">
+                {abacusPerpPrice ? `$${formatPrice(abacusPerpPrice)}` : '—'}
+              </span>
+              <span className="text-[10px] text-[#8b949e]">{abacusPerpVenues ?? 0}/3</span>
+            </div>
+            {abacusBasisBps !== null && abacusBasisBps !== undefined && (
+              <span
+                className={`px-2 py-0.5 rounded text-xs font-semibold font-mono flex items-center gap-1 ${
+                  abacusBasisBps >= 0
+                    ? 'bg-[rgba(251,191,36,0.15)] text-[#fbbf24]'
+                    : 'bg-[rgba(34,211,238,0.15)] text-[#22d3ee]'
+                }`}
+                title={abacusBasisBps >= 0 ? 'Contango (perp premium)' : 'Backwardation (perp discount)'}
+              >
+                {abacusBasisBps >= 0 ? '+' : ''}{abacusBasisBps.toFixed(1)} bps
+                <span className="text-[10px] opacity-80">
+                  {abacusBasisBps >= 0 ? '▲' : '▼'}
+                </span>
+              </span>
+            )}
+            {/* Chart Mode Toggle */}
+            {onAbacusChartModeChange && (
+              <div className="flex items-center gap-1 bg-[#21262d] rounded-md p-0.5 ml-2">
+                <button
+                  onClick={() => onAbacusChartModeChange('spot')}
+                  className={cn(
+                    'px-2 py-0.5 rounded text-[10px] font-medium transition-colors',
+                    abacusChartMode === 'spot'
+                      ? 'bg-[#30363d] text-[#f0f6fc]'
+                      : 'text-[#8b949e] hover:text-[#c9d1d9]'
+                  )}
+                >
+                  Spot Chart
+                </button>
+                <button
+                  onClick={() => onAbacusChartModeChange('perp')}
+                  className={cn(
+                    'px-2 py-0.5 rounded text-[10px] font-medium transition-colors',
+                    abacusChartMode === 'perp'
+                      ? 'bg-[#30363d] text-[#f0f6fc]'
+                      : 'text-[#8b949e] hover:text-[#c9d1d9]'
+                  )}
+                >
+                  Perp Chart
+                </button>
+              </div>
+            )}
+          </div>
+        ) : currentPrice && predictionMid && displayedDeviation !== null ? (
+          // Default Mode: PRICE, PRED, % DIFF
           <div className="flex items-center gap-3 pl-3 border-l border-[#30363d]">
             <div className="flex items-center gap-2">
               <span className="text-[11px] text-[#8b949e] uppercase">Price</span>
@@ -136,7 +209,7 @@ export function Header({
               {displayedDeviation >= 0 ? '+' : ''}{displayedDeviation.toFixed(2)}%
             </span>
           </div>
-        )}
+        ) : null}
       </div>
 
       <div className="flex items-center gap-2">
