@@ -86,6 +86,10 @@ export interface UseAbacusCandlesReturn {
   candles: Candle[];
   /** Current spot composite price */
   currentPrice: number | null;
+  /** Current perp composite price */
+  perpPrice?: number | null;
+  /** Perp price history for chart overlay */
+  perpPriceHistory?: Array<{ time: number; value: number }>;
   /** Is the composite degraded? */
   degraded: boolean;
   /** Degraded reason for UI display */

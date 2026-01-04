@@ -128,6 +128,8 @@ export function useAbacusCandlesApi({
   // State
   const [candles, setCandles] = useState<Candle[]>([]);
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
+  const [perpPrice, setPerpPrice] = useState<number | null>(null);
+  const [perpPriceHistory, setPerpPriceHistory] = useState<Array<{ time: number; value: number }>>([]);
   const [degraded, setDegraded] = useState(false);
   const [degradedReason, setDegradedReason] = useState<DegradedReason>('none');
   const [streaming, setStreaming] = useState(false);
@@ -404,7 +406,7 @@ export function useAbacusCandlesApi({
           }
         }
 
-        // Calculate basis from perp if available
+        // Calculate basis from perp if available and track perp price history
         if (assetData?.spot && assetData?.perp) {
           const spotPrices = Object.values(assetData.spot).filter(p => p > 0);
           const perpPrices = Object.values(assetData.perp).filter(p => p > 0);
@@ -422,6 +424,24 @@ export function useAbacusCandlesApi({
             const perpMedian = perpPrices.length % 2 === 0
               ? (perpPrices[perpMid - 1] + perpPrices[perpMid]) / 2
               : perpPrices[perpMid];
+
+            // Update perp price state
+            setPerpPrice(perpMedian);
+
+            // Add to perp price history (floor to seconds for chart alignment)
+            const priceTimeSeconds = Math.floor(parsed.timestamp / 1000);
+            setPerpPriceHistory(prev => {
+              // Dedupe by timestamp - update existing or append new
+              const existing = prev.findIndex(p => p.time === priceTimeSeconds);
+              if (existing >= 0) {
+                const updated = [...prev];
+                updated[existing] = { time: priceTimeSeconds, value: perpMedian };
+                return updated;
+              }
+              // Append and keep last 1440 entries (24h of ~1/sec updates)
+              const newHistory = [...prev, { time: priceTimeSeconds, value: perpMedian }];
+              return newHistory.slice(-1440);
+            });
 
             setStatus(prev => ({
               ...prev,
@@ -523,6 +543,8 @@ export function useAbacusCandlesApi({
 
     setCandles([]);
     setCurrentPrice(null);
+    setPerpPrice(null);
+    setPerpPriceHistory([]);
     lastBarTimeRef.current = 0;
     completedCandlesRef.current = [];
     formingBarRef.current = null;
@@ -554,6 +576,8 @@ export function useAbacusCandlesApi({
   return {
     candles,
     currentPrice,
+    perpPrice,
+    perpPriceHistory,
     degraded,
     degradedReason,
     status,

@@ -47,6 +47,7 @@ const COLORS = {
   macdNegative: '#F6465D', // Red for bearish histogram
   // Exchange overlay colors
   composite_index: '#FFD700', // Gold for INDEX (premium/important)
+  abacus_perp: '#E040FB',    // Purple for Abacus perp (futures/derivatives)
   htx: '#00D1B2',          // HTX teal
   coinbase: '#0052FF',     // Coinbase blue
   gemini: '#00DCFA',       // Gemini cyan
@@ -87,6 +88,7 @@ interface ExchangeSupport {
   crypto_com_usd: boolean;
   crypto_com_usdt: boolean;
   index: boolean;
+  abacus_perp: boolean;
 }
 
 // Exchange price data passed from parent
@@ -134,6 +136,11 @@ interface ExchangePriceData {
     connected: boolean;
   };
   crypto_com_usdt?: {
+    priceHistory: ExchangePricePoint[];
+    currentPrice: number | null;
+    connected: boolean;
+  };
+  abacus_perp?: {
     priceHistory: ExchangePricePoint[];
     currentPrice: number | null;
     connected: boolean;
@@ -233,6 +240,7 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
 
   // Exchange overlay line series refs
   const compositeIndexSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+  const abacusPerpSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
   const htxSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
   const coinbaseSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
   const geminiSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
@@ -496,6 +504,18 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       crosshairMarkerRadius: 5,
     });
 
+    // Abacus Perp composite (purple, distinct from spot)
+    const abacusPerpSeries = chart.addLineSeries({
+      color: COLORS.abacus_perp,
+      lineWidth: 2,
+      lineStyle: LineStyle.Solid,
+      priceLineVisible: false,
+      lastValueVisible: true,
+      title: 'Perp:INDEX',
+      crosshairMarkerVisible: true,
+      crosshairMarkerRadius: 5,
+    });
+
     const htxSeries = chart.addLineSeries({
       color: COLORS.htx,
       lineWidth: 1,
@@ -599,6 +619,7 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
     ema20SeriesRef.current = ema20Series;
     ema200SeriesRef.current = ema200Series;
     compositeIndexSeriesRef.current = compositeIndexSeries;
+    abacusPerpSeriesRef.current = abacusPerpSeries;
     htxSeriesRef.current = htxSeries;
     coinbaseSeriesRef.current = coinbaseSeries;
     geminiSeriesRef.current = geminiSeries;
@@ -1057,6 +1078,13 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       compositeIndexSeriesRef,
       !!(support?.index && exchangeVisibility.composite_index && exchangeData?.composite_index?.connected),
       exchangeData?.composite_index?.priceHistory
+    );
+
+    // Abacus Perp INDEX overlay (from ECS API SSE perp composite)
+    updateExchangeSeries(
+      abacusPerpSeriesRef,
+      !!(support?.abacus_perp && exchangeVisibility.abacus_perp && exchangeData?.abacus_perp?.connected),
+      exchangeData?.abacus_perp?.priceHistory
     );
 
     // HTX overlay
@@ -1900,6 +1928,14 @@ function ChartLegend({ ema200dValue, visibility, onToggle, exchangeVisibility, o
                   onToggle={() => onExchangeToggle('composite_index')}
                 />
               )}
+              {exchangeData?.support?.abacus_perp && (
+                <MobileIndicatorRow
+                  color={COLORS.abacus_perp}
+                  label="Perp:INDEX"
+                  isVisible={exchangeVisibility.abacus_perp}
+                  onToggle={() => onExchangeToggle('abacus_perp')}
+                />
+              )}
               {exchangeData?.support?.htx && (
                 <MobileIndicatorRow
                   color={COLORS.htx}
@@ -2062,6 +2098,31 @@ function ChartLegend({ ema200dValue, visibility, onToggle, exchangeVisibility, o
                   <span className="text-[#f85149]">● Offline</span>
                 )}
                 <span className="ml-2 opacity-60">Avg USD</span>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Abacus Perp INDEX (ECS API perp composite) */}
+        {exchangeData?.support?.abacus_perp && (
+          <>
+            <IndicatorRow
+              color={COLORS.abacus_perp}
+              label="Perp:INDEX"
+              value={exchangeVisibility.abacus_perp && exchangeData?.abacus_perp?.currentPrice
+                ? `$${formatPrice(exchangeData.abacus_perp.currentPrice)}`
+                : undefined}
+              isVisible={exchangeVisibility.abacus_perp}
+              onToggle={() => onExchangeToggle('abacus_perp')}
+            />
+            {exchangeVisibility.abacus_perp && exchangeData?.abacus_perp && (
+              <div className="pl-6 text-[10px] text-[#8b949e] -mt-1 mb-1">
+                {exchangeData.abacus_perp.connected ? (
+                  <span className="text-[#3fb950]">● Live</span>
+                ) : (
+                  <span className="text-[#f85149]">● Offline</span>
+                )}
+                <span className="ml-2 opacity-60">Perp Median</span>
               </div>
             )}
           </>

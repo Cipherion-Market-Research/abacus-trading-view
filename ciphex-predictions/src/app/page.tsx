@@ -66,6 +66,8 @@ export default function Dashboard() {
   const {
     candles: abacusCandles,
     currentPrice: abacusCurrentPrice,
+    perpPrice: abacusPerpPrice,
+    perpPriceHistory: abacusPerpPriceHistory,
     degraded: abacusDegraded,
     degradedReason: abacusDegradedReason,
     status: abacusStatus,
@@ -107,7 +109,9 @@ export default function Dashboard() {
     crypto_com_usd: isCrypto && isExchangeSupported(baseSymbol, 'crypto_com_usd'),
     crypto_com_usdt: isCrypto && isExchangeSupported(baseSymbol, 'crypto_com_usdt'),
     index: isCrypto && isIndexAvailable(baseSymbol),
-  }), [baseSymbol, isCrypto]);
+    // Abacus perp only available when Abacus data source is active
+    abacus_perp: dataSource === 'abacus' && abacusAssetId !== null && abacusStreaming,
+  }), [baseSymbol, isCrypto, dataSource, abacusAssetId, abacusStreaming]);
 
   // Kraken uses XBT for Bitcoin
   const krakenSymbol = useMemo(() => getKrakenSymbol(baseSymbol), [baseSymbol]);
@@ -274,6 +278,12 @@ export default function Dashboard() {
       currentPrice: cryptoComUsdtCurrentPrice,
       connected: cryptoComUsdtConnected,
     },
+    // Abacus perp composite from ECS SSE stream
+    abacus_perp: {
+      priceHistory: (abacusPerpPriceHistory ?? []).map(p => ({ time: p.time, price: p.value })),
+      currentPrice: abacusPerpPrice ?? null,
+      connected: abacusStreaming && abacusPerpPrice !== null && abacusPerpPrice !== undefined,
+    },
   }), [
     exchangeSupport,
     compositeIndexHistory, compositeIndexPrice, compositeConnectedCount,
@@ -285,6 +295,7 @@ export default function Dashboard() {
     bitfinexPriceHistory, bitfinexCurrentPrice, bitfinexConnected,
     cryptoComUsdPriceHistory, cryptoComUsdCurrentPrice, cryptoComUsdConnected,
     cryptoComUsdtPriceHistory, cryptoComUsdtCurrentPrice, cryptoComUsdtConnected,
+    abacusPerpPriceHistory, abacusPerpPrice, abacusStreaming,
   ]);
 
   // Manual refresh - resets chart view to default position
