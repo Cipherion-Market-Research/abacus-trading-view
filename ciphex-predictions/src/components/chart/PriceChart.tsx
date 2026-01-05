@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   createChart,
   IChartApi,
@@ -40,7 +40,7 @@ const COLORS = {
   block2: '#7434f3', // Kraken Purple - Continuation
   block3: '#00BCD4', // Teal/Cyan - Persistence
   // Technical indicator colors (distinct from prediction bands)
-  ema200d: '#FF9800',      // Orange for 200-day EMA (industry standard)
+  ema9: '#FF9800',      // Orange for 9-period EMA
   ema200: '#B0BEC5',       // Silver/White for 200-period EMA (neutral reference)
   ema20: '#FF4081',        // Pink for 20-period EMA (short-term momentum)
   macdPositive: '#0ECB81', // Green for bullish histogram
@@ -58,15 +58,15 @@ const COLORS = {
 
 // Indicator visibility state type
 interface IndicatorVisibility {
-  ema200d: boolean;  // EMA 200 · 1D (daily)
-  ema200: boolean;   // EMA 200 (chart timeframe)
+  ema9: boolean;     // EMA 9
+  ema200: boolean;   // EMA 200
   ema20: boolean;    // EMA 20
   macd: boolean;     // MACD histogram
 }
 
 // Default indicator visibility - all visible by default
 const DEFAULT_INDICATOR_VISIBILITY: IndicatorVisibility = {
-  ema200d: true,
+  ema9: true,
   ema200: true,
   ema20: true,
   macd: true,
@@ -142,7 +142,6 @@ interface ExchangePriceData {
 
 interface PriceChartProps {
   candles: Candle[];
-  dailyCandles?: Candle[];
   predictions: Horizon[];
   blocks?: Block[];
   className?: string;
@@ -189,13 +188,13 @@ const INTERVAL_BAR_SPACING: Record<string, { barSpacing: number; minBarSpacing: 
 };
 
 
-export function PriceChart({ candles, dailyCandles, predictions, blocks, className, assetType, interval = '1m', refreshKey = 0, exchangeData }: PriceChartProps) {
+export function PriceChart({ candles, predictions, blocks, className, assetType, interval = '1m', refreshKey = 0, exchangeData }: PriceChartProps) {
   // Main chart container and refs
   const containerRef = useRef<HTMLDivElement>(null);
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candlestickSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
-  const ema200dPriceLineRef = useRef<ReturnType<ISeriesApi<'Candlestick'>['createPriceLine']> | null>(null);  // 200-day EMA as price line
+  const ema9SeriesRef = useRef<ISeriesApi<'Line'> | null>(null);     // 9-period EMA
   const ema200SeriesRef = useRef<ISeriesApi<'Line'> | null>(null);   // 200-period EMA (current timeframe)
   const ema20SeriesRef = useRef<ISeriesApi<'Line'> | null>(null);    // 20-period EMA (current timeframe)
 
@@ -242,39 +241,6 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
   const cryptoComUsdSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
   const cryptoComUsdtSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
 
-  // Compute EMA 200D value from daily candles (derived state, not useState)
-  const ema200dValue = useMemo(() => {
-    if (!dailyCandles || dailyCandles.length === 0) {
-      return null;
-    }
-    const sortedDailyCandles = [...dailyCandles].sort((a, b) => a.time - b.time);
-    const dailyCloses = sortedDailyCandles.map((c) => ({ time: c.time, close: c.close }));
-    const ema200dData = calculateEMA(dailyCloses, 200);
-    if (ema200dData.length === 0) {
-      return null;
-    }
-    return ema200dData[ema200dData.length - 1].value;
-  }, [dailyCandles]);
-
-  // Determine EMA 200D position relative to visible price range (derived state)
-  const ema200dPosition = useMemo((): 'above' | 'below' | 'visible' | null => {
-    if (ema200dValue === null || candles.length === 0) {
-      return null;
-    }
-    const candleHighs = candles.map(c => c.high);
-    const candleLows = candles.map(c => c.low);
-    const predictionHighs = predictions.map(p => p.high);
-    const predictionLows = predictions.map(p => p.low);
-    const maxPrice = Math.max(...candleHighs, ...predictionHighs);
-    const minPrice = Math.min(...candleLows, ...predictionLows);
-    const buffer = (maxPrice - minPrice) * 0.05;
-    if (ema200dValue > maxPrice + buffer) {
-      return 'above';
-    } else if (ema200dValue < minPrice - buffer) {
-      return 'below';
-    }
-    return 'visible';
-  }, [ema200dValue, candles, predictions]);
 
   // State for crosshair hover - prediction band values
   const [crosshairBandValues, setCrosshairBandValues] = useState<{
@@ -462,8 +428,14 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       lastValueVisible: false,
     });
 
-    // 200-day EMA is added as a price line (not a series) to avoid affecting auto-scaling
-    // It will be created dynamically when daily candle data is available
+    // 9-period EMA line overlay
+    const ema9Series = chart.addLineSeries({
+      color: COLORS.ema9,
+      lineWidth: 2,
+      priceLineVisible: false,
+      lastValueVisible: true,
+      title: 'EMA 9',
+    });
 
     // 20-period EMA line overlay (short-term momentum on current timeframe)
     const ema20Series = chart.addLineSeries({
@@ -596,6 +568,7 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
 
     chartRef.current = chart;
     candlestickSeriesRef.current = candlestickSeries;
+    ema9SeriesRef.current = ema9Series;
     ema20SeriesRef.current = ema20Series;
     ema200SeriesRef.current = ema200Series;
     compositeIndexSeriesRef.current = compositeIndexSeries;
@@ -880,7 +853,7 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
   // Update candle data - only show candles within the prediction time window
   // For stocks, additionally filter to RTH (Regular Trading Hours) only
   useEffect(() => {
-    if (!candlestickSeriesRef.current || !ema20SeriesRef.current || !ema200SeriesRef.current) return;
+    if (!candlestickSeriesRef.current || !ema9SeriesRef.current || !ema20SeriesRef.current || !ema200SeriesRef.current) return;
 
     // Clear any pending timeout and disable time scale sync during data updates
     if (updateDataTimeoutRef.current) {
@@ -893,6 +866,7 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
     if (candles.length === 0) {
       candlestickSeriesRef.current.setData([]);
       if (macdSeriesRef.current) macdSeriesRef.current.setData([]);
+      ema9SeriesRef.current.setData([]);
       ema20SeriesRef.current.setData([]);
       ema200SeriesRef.current.setData([]);
       isUpdatingData.current = false;
@@ -997,6 +971,18 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       ema200SeriesRef.current.setData(ema200LineData);
     } else {
       ema200SeriesRef.current.setData([]);
+    }
+
+    // EMA 9 - show/hide based on visibility
+    if (indicatorVisibility.ema9) {
+      const ema9Data = calculateEMA(closesForIndicators, 9);
+      const ema9LineData: LineData<Time>[] = ema9Data.map((e) => ({
+        time: e.time as Time,
+        value: e.value,
+      }));
+      ema9SeriesRef.current.setData(ema9LineData);
+    } else {
+      ema9SeriesRef.current.setData([]);
     }
 
     // Re-enable time scale sync after chart events have fully settled
@@ -1123,34 +1109,6 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       updateDataTimeoutRef.current = null;
     }, 150);
   }, [exchangeData, exchangeVisibility]);
-
-  // Create/update 200-day EMA price line when value changes
-  // The ema200dValue is computed via useMemo above, this effect handles the chart update
-  useEffect(() => {
-    // Remove existing price line first
-    if (candlestickSeriesRef.current && ema200dPriceLineRef.current) {
-      candlestickSeriesRef.current.removePriceLine(ema200dPriceLineRef.current);
-      ema200dPriceLineRef.current = null;
-    }
-
-    // Don't add price line if no value or indicator is hidden
-    if (ema200dValue === null || !indicatorVisibility.ema200d || !candlestickSeriesRef.current) {
-      return;
-    }
-
-    // Create a price line at the 200-day EMA level
-    // This shows as a horizontal reference line with a label, but doesn't affect scaling
-    const priceLine = candlestickSeriesRef.current.createPriceLine({
-      price: ema200dValue,
-      color: COLORS.ema200d,
-      lineWidth: 2,
-      lineStyle: LineStyle.Solid,
-      axisLabelVisible: true,
-      title: 'EMA 200 · 1D',
-    });
-
-    ema200dPriceLineRef.current = priceLine;
-  }, [ema200dValue, indicatorVisibility.ema200d]);
 
   // Catmull-Rom spline interpolation for smooth curves through all data points
   // This creates natural-looking curves that pass through each prediction exactly
@@ -1631,35 +1589,12 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       <div className="relative" style={{ height: mainChartHeight, minHeight: 0 }}>
         <div ref={mainContainerRef} className="w-full h-full min-w-0" />
         <ChartLegend
-          ema200dValue={ema200dValue}
           visibility={indicatorVisibility}
           onToggle={toggleIndicator}
           exchangeVisibility={exchangeVisibility}
           onExchangeToggle={toggleExchange}
           exchangeData={exchangeData}
         />
-
-        {/* EMA 200D Y-axis indicator - shows when EMA is off-screen and indicator is enabled */}
-        {indicatorVisibility.ema200d && ema200dValue !== null && ema200dPosition === 'above' && (
-          <div
-            className="absolute right-[60px] top-3 flex items-center gap-1 bg-[#FF9800] text-black text-xs font-semibold px-2 py-1 rounded shadow-lg z-20"
-            style={{ borderLeft: '3px solid #FF9800' }}
-          >
-            <span>▲</span>
-            <span>EMA 200D</span>
-            <span>${formatPrice(ema200dValue)}</span>
-          </div>
-        )}
-        {indicatorVisibility.ema200d && ema200dValue !== null && ema200dPosition === 'below' && (
-          <div
-            className="absolute right-[60px] bottom-3 flex items-center gap-1 bg-[#FF9800] text-black text-xs font-semibold px-2 py-1 rounded shadow-lg z-20"
-            style={{ borderLeft: '3px solid #FF9800' }}
-          >
-            <span>▼</span>
-            <span>EMA 200D</span>
-            <span>${formatPrice(ema200dValue)}</span>
-          </div>
-        )}
 
         {/* Prediction band Y-axis labels on crosshair hover */}
         {crosshairBandValues.high !== null && crosshairBandValues.highY !== null && (
@@ -1787,7 +1722,6 @@ function IndicatorRow({
 }
 
 interface ChartLegendProps {
-  ema200dValue: number | null;
   visibility: IndicatorVisibility;
   onToggle: (indicator: keyof IndicatorVisibility) => void;
   exchangeVisibility: ExchangeVisibility;
@@ -1795,7 +1729,7 @@ interface ChartLegendProps {
   exchangeData?: ExchangePriceData;
 }
 
-function ChartLegend({ ema200dValue, visibility, onToggle, exchangeVisibility, onExchangeToggle, exchangeData }: ChartLegendProps) {
+function ChartLegend({ visibility, onToggle, exchangeVisibility, onExchangeToggle, exchangeData }: ChartLegendProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Format large numbers with commas
@@ -1864,22 +1798,22 @@ function ChartLegend({ ema200dValue, visibility, onToggle, exchangeVisibility, o
             {/* Indicator toggles - compact mobile version */}
             <div className="space-y-1">
               <MobileIndicatorRow
-                color={COLORS.ema200d}
-                label="EMA 200D"
-                isVisible={visibility.ema200d}
-                onToggle={() => onToggle('ema200d')}
-              />
-              <MobileIndicatorRow
-                color={COLORS.ema200}
-                label="EMA 200"
-                isVisible={visibility.ema200}
-                onToggle={() => onToggle('ema200')}
+                color={COLORS.ema9}
+                label="EMA 9"
+                isVisible={visibility.ema9}
+                onToggle={() => onToggle('ema9')}
               />
               <MobileIndicatorRow
                 color={COLORS.ema20}
                 label="EMA 20"
                 isVisible={visibility.ema20}
                 onToggle={() => onToggle('ema20')}
+              />
+              <MobileIndicatorRow
+                color={COLORS.ema200}
+                label="EMA 200"
+                isVisible={visibility.ema200}
+                onToggle={() => onToggle('ema200')}
               />
               <MobileIndicatorRow
                 color={COLORS.macdPositive}
@@ -2008,18 +1942,10 @@ function ChartLegend({ ema200dValue, visibility, onToggle, exchangeVisibility, o
         </div>
 
         <IndicatorRow
-          color={COLORS.ema200d}
-          label="EMA 200 · 1D"
-          value={ema200dValue !== null ? `$${formatPrice(ema200dValue)}` : undefined}
-          isVisible={visibility.ema200d}
-          onToggle={() => onToggle('ema200d')}
-        />
-
-        <IndicatorRow
-          color={COLORS.ema200}
-          label="EMA 200"
-          isVisible={visibility.ema200}
-          onToggle={() => onToggle('ema200')}
+          color={COLORS.ema9}
+          label="EMA 9"
+          isVisible={visibility.ema9}
+          onToggle={() => onToggle('ema9')}
         />
 
         <IndicatorRow
@@ -2027,6 +1953,13 @@ function ChartLegend({ ema200dValue, visibility, onToggle, exchangeVisibility, o
           label="EMA 20"
           isVisible={visibility.ema20}
           onToggle={() => onToggle('ema20')}
+        />
+
+        <IndicatorRow
+          color={COLORS.ema200}
+          label="EMA 200"
+          isVisible={visibility.ema200}
+          onToggle={() => onToggle('ema200')}
         />
 
         <IndicatorRow

@@ -43,7 +43,6 @@ export default function Dashboard() {
 
   const {
     candles: binanceCandles,
-    dailyCandles,
     loading: pricesLoading,
     error: pricesError,
     refresh: refreshPrices,
@@ -80,7 +79,6 @@ export default function Dashboard() {
   });
 
   // Select candles based on data source
-  // Note: Always use Binance daily candles for EMA200D regardless of source
   const candles = useMemo(() => {
     if (dataSource === 'abacus' && abacusAssetId !== null) {
       return abacusCandles;
@@ -440,7 +438,6 @@ export default function Dashboard() {
         <div className="flex-1 min-w-0 relative pb-20 md:pb-0">
           <PriceChart
             candles={candles}
-            dailyCandles={dailyCandles}
             predictions={predictions?.allPredictions || []}
             blocks={predictions?.blocks}
             className="w-full h-full"

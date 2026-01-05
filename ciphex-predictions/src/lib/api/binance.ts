@@ -258,56 +258,21 @@ export function calculateLimit(interval: Interval): number {
 }
 
 /**
- * Fetch daily candles for calculating 200-day EMA.
+ * Fetch daily candles for calculating 9-day EMA.
  * This is a separate function since daily candles aren't part of the main interval selection.
  *
- * IMPORTANT: EMA is recursive and needs ALL available historical data to match TradingView.
- * TradingView uses the full history from when the pair was listed (e.g., 2017 for BTCUSDT).
- * We paginate forwards from 2017 to fetch the complete history for accurate EMA calculation.
+ * Note: For EMA 9, we only need recent data (last ~30 days is sufficient for the EMA to stabilize).
+ * We fetch the last 100 days to ensure accuracy.
  */
 export async function fetchDailyKlines(symbol: string): Promise<Candle[]> {
-  const allCandles: Candle[] = [];
   const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
-  // Start from 2017 (when most Binance pairs were listed) and work forwards
-  // Using Jan 1, 2017 as a safe starting point
-  let startTime = new Date('2017-01-01').getTime();
+  // Fetch last 100 days - sufficient for EMA 9 to stabilize
   const now = Date.now();
+  const startTime = now - (100 * ONE_DAY_MS);
 
-  while (startTime < now) {
-    const batch = await fetchKlinesBatch(symbol, '1d', BINANCE_MAX_LIMIT, startTime, undefined);
-
-    if (batch.length === 0) {
-      break;
-    }
-
-    allCandles.push(...batch);
-
-    // Move startTime to after the last candle we received
-    const lastTime = batch[batch.length - 1].time * 1000;
-    startTime = lastTime + ONE_DAY_MS;
-
-    // If we got fewer than max, we've reached the end
-    if (batch.length < BINANCE_MAX_LIMIT) {
-      break;
-    }
-
-    // Safety limit: don't fetch more than 10 years of data
-    if (allCandles.length > 3650) {
-      break;
-    }
-  }
-
-  // Deduplicate by timestamp (in case of overlapping data)
-  const seen = new Set<number>();
-  const deduped = allCandles.filter((candle) => {
-    if (seen.has(candle.time)) {
-      return false;
-    }
-    seen.add(candle.time);
-    return true;
-  });
+  const candles = await fetchKlinesBatch(symbol, '1d', 100, startTime, undefined);
 
   // Sort by time ascending
-  return deduped.sort((a, b) => a.time - b.time);
+  return candles.sort((a, b) => a.time - b.time);
 }

@@ -57,7 +57,6 @@ interface UsePriceDataOptions {
 
 interface UsePriceDataReturn {
   candles: Candle[];
-  dailyCandles: Candle[];
   loading: boolean;
   error: string | null;
   refresh: () => void;
@@ -72,7 +71,6 @@ export function usePriceData({
   enableStreaming = false,
 }: UsePriceDataOptions): UsePriceDataReturn {
   const [candles, setCandles] = useState<Candle[]>([]);
-  const [dailyCandles, setDailyCandles] = useState<Candle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [streaming, setStreaming] = useState(false);
@@ -124,35 +122,6 @@ export function usePriceData({
     setCandles([]); // Clear old data immediately
     fetchPrices();
   }, [fetchPrices]);
-
-  // Fetch daily candles for 200-day EMA (only for crypto, independent of interval)
-  useEffect(() => {
-    if (!symbol || (assetType !== 'crypto' && assetType !== 'dex')) {
-      setDailyCandles([]);
-      return;
-    }
-
-    const fetchDailyPrices = async () => {
-      try {
-        const response = await fetch(`/api/prices/crypto/${symbol}/daily`, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache',
-          },
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setDailyCandles(data);
-        }
-      } catch (err) {
-        console.error('Error fetching daily candles:', err);
-        // Non-critical error, don't block the main data
-      }
-    };
-
-    fetchDailyPrices();
-  }, [symbol, assetType]);
 
   // SSE streaming for stocks
   useEffect(() => {
@@ -360,7 +329,6 @@ export function usePriceData({
 
   return {
     candles,
-    dailyCandles,
     loading,
     error,
     refresh: fetchPrices,
