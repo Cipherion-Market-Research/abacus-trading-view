@@ -232,24 +232,38 @@ export const FUNDING_ENDPOINTS = {
 } as const;
 
 // =============================================================================
-// POC Phase Configuration
+// System Status Configuration
 // =============================================================================
 
 /**
- * Venues enabled for each POC phase
+ * System status for display in the debug harness
  */
-export const POC_PHASES = {
-  'POC-0': {
+export type SystemStatus = 'Alpha' | 'Beta' | 'Production';
+
+/**
+ * Current system status
+ */
+export const CURRENT_SYSTEM_STATUS: SystemStatus = 'Beta';
+
+// =============================================================================
+// Venue Phase Configuration
+// =============================================================================
+
+/**
+ * Venues enabled for each phase
+ */
+export const VENUE_PHASES = {
+  'alpha': {
     spot: ['binance', 'coinbase'] as VenueId[],
     perp: ['binance'] as VenueId[],
     assets: ['BTC'] as AssetId[],
   },
-  'POC-1': {
-    spot: ['binance', 'coinbase', 'okx'] as VenueId[],
+  'beta': {
+    spot: ['binance', 'coinbase', 'okx', 'kraken'] as VenueId[],
     perp: ['binance', 'okx', 'bybit'] as VenueId[],
-    assets: ['BTC'] as AssetId[],
+    assets: ['BTC', 'ETH'] as AssetId[],
   },
-  'POC-2': {
+  'production': {
     spot: ['binance', 'coinbase', 'okx', 'kraken'] as VenueId[],
     perp: ['binance', 'okx', 'bybit'] as VenueId[],
     assets: ['BTC', 'ETH'] as AssetId[],
@@ -257,16 +271,22 @@ export const POC_PHASES = {
 } as const;
 
 /**
- * Current POC phase
- * Change this to enable more venues/assets
+ * Current venue phase
+ * @deprecated Use CURRENT_SYSTEM_STATUS instead
  */
-export const CURRENT_POC_PHASE: keyof typeof POC_PHASES = 'POC-2';
+export const CURRENT_POC_PHASE = 'beta';
+
+/**
+ * @deprecated Use VENUE_PHASES instead
+ */
+export const POC_PHASES = VENUE_PHASES;
 
 /**
  * Get enabled venues for current phase
  */
 export function getEnabledVenues() {
-  return POC_PHASES[CURRENT_POC_PHASE];
+  const phase = CURRENT_SYSTEM_STATUS.toLowerCase() as keyof typeof VENUE_PHASES;
+  return VENUE_PHASES[phase];
 }
 
 // =============================================================================
@@ -274,19 +294,74 @@ export function getEnabledVenues() {
 // =============================================================================
 
 /**
- * Colors for composite lines
+ * Debug Harness UI Color Palette
+ *
+ * Background: #030719 (dark navy)
+ * Card backgrounds: #0b1120 (navy)
+ * Text primary: #dbdce0 | Text secondary: #959cab
+ * Positive: #68c58d | Secondary positive: #133f33
+ * Neutral: #92713c
+ * Negative: #c65962 | Secondary negative: #9e5159
+ * Tertiary/accent: #5fa5f9 | #6092cc
+ */
+export const UI_COLORS = {
+  // Backgrounds
+  background: '#030719',
+  cardBackground: '#0b1120',
+  cardBackgroundHover: '#111827',
+
+  // Text
+  textPrimary: '#dbdce0',
+  textSecondary: '#959cab',
+  textMuted: '#6b7280',
+
+  // Positive (green)
+  positive: '#68c58d',
+  positiveSecondary: '#133f33',
+  positiveMuted: '#2d5a40',
+
+  // Neutral (amber/gold)
+  neutral: '#92713c',
+  neutralSecondary: '#5c4a2a',
+
+  // Negative (red)
+  negative: '#c65962',
+  negativeSecondary: '#9e5159',
+  negativeMuted: '#4a2a2d',
+
+  // Tertiary/accent (blue)
+  accent: '#5fa5f9',
+  accentSecondary: '#6092cc',
+  accentMuted: '#1e3a5f',
+
+  // Borders
+  border: '#1e293b',
+  borderAccent: '#334155',
+} as const;
+
+/**
+ * Colors for composite price display (vibrant for prominence)
  */
 export const COMPOSITE_COLORS = {
-  spot: '#22C55E',    // Green
-  perp: '#3B82F6',    // Blue
-  basis: '#F59E0B',   // Amber
+  // Primary colors (vibrant)
+  spot: '#4ADE80',       // Vibrant green
+  spotGlow: '#22c55e',   // Green glow
+  spotMuted: '#166534',  // Dark green for backgrounds
+
+  perp: '#60A5FA',       // Vibrant blue
+  perpGlow: '#3b82f6',   // Blue glow
+  perpMuted: '#1e3a8a',  // Dark blue for backgrounds
+
+  basis: '#FBBF24',      // Vibrant amber
+  basisGlow: '#f59e0b',  // Amber glow
+  basisMuted: '#78350f', // Dark amber for backgrounds
 } as const;
 
 /**
  * Colors for telemetry status
  */
 export const STATUS_COLORS = {
-  healthy: '#22C55E',
-  degraded: '#F59E0B',
-  unhealthy: '#EF4444',
+  healthy: '#68c58d',
+  degraded: '#92713c',
+  unhealthy: '#c65962',
 } as const;

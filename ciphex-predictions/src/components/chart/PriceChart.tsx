@@ -491,7 +491,7 @@ export function PriceChart({ candles, dailyCandles, predictions, blocks, classNa
       lineStyle: LineStyle.Solid,
       priceLineVisible: false,
       lastValueVisible: true,
-      title: 'TV:INDEX',
+      title: 'TV:Index',
       crosshairMarkerVisible: true,
       crosshairMarkerRadius: 5,
     });
@@ -1895,7 +1895,7 @@ function ChartLegend({ ema200dValue, visibility, onToggle, exchangeVisibility, o
               {exchangeData?.support?.index && (
                 <MobileIndicatorRow
                   color={COLORS.composite_index}
-                  label="TV:INDEX"
+                  label="TV:Composite Index"
                   isVisible={exchangeVisibility.composite_index}
                   onToggle={() => onExchangeToggle('composite_index')}
                 />
@@ -2047,7 +2047,7 @@ function ChartLegend({ ema200dValue, visibility, onToggle, exchangeVisibility, o
           <>
             <IndicatorRow
               color={COLORS.composite_index}
-              label="TV:INDEX"
+              label="TV:Composite Index"
               value={exchangeVisibility.composite_index && exchangeData?.composite_index?.currentPrice
                 ? `$${formatPrice(exchangeData.composite_index.currentPrice)}`
                 : undefined}

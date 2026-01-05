@@ -1,0 +1,151 @@
+{
+  "family": "abacus-indexer-production",
+  "taskRoleArn": "arn:aws:iam::484907497221:role/ecsTaskExecutionRole",
+  "executionRoleArn": "arn:aws:iam::484907497221:role/ecsTaskExecutionRole",
+  "networkMode": "awsvpc",
+  "containerDefinitions": [
+    {
+      "name": "abacus-indexer",
+      "image": "484907497221.dkr.ecr.ca-central-1.amazonaws.com/abacus-ems/indexer:v0.1.23",
+      "cpu": 512,
+      "memory": 1024,
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "hostPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "environment": [
+        {
+          "name": "SERVICE_NAME",
+          "value": "abacus-indexer"
+        },
+        {
+          "name": "ENVIRONMENT",
+          "value": "production"
+        },
+        {
+          "name": "SERVICE_VERSION",
+          "value": "0.1.23"
+        },
+        {
+          "name": "LOG_LEVEL",
+          "value": "INFO"
+        },
+        {
+          "name": "ASSETS",
+          "value": "BTC,ETH"
+        },
+        {
+          "name": "SPOT_VENUES",
+          "value": "binance,coinbase,kraken,okx"
+        },
+        {
+          "name": "PERP_VENUES",
+          "value": "binance,okx,bybit"
+        },
+        {
+          "name": "MIN_QUORUM",
+          "value": "2"
+        },
+        {
+          "name": "PREFERRED_QUORUM",
+          "value": "3"
+        },
+        {
+          "name": "OUTLIER_THRESHOLD_BPS",
+          "value": "100"
+        },
+        {
+          "name": "SSE_PRICE_CADENCE_MS",
+          "value": "500"
+        },
+        {
+          "name": "SSE_TELEMETRY_CADENCE_MS",
+          "value": "5000"
+        },
+        {
+          "name": "STALE_THRESHOLD_BINANCE_SPOT",
+          "value": "10000"
+        },
+        {
+          "name": "STALE_THRESHOLD_BINANCE_PERP",
+          "value": "10000"
+        },
+        {
+          "name": "STALE_THRESHOLD_COINBASE_SPOT",
+          "value": "30000"
+        },
+        {
+          "name": "STALE_THRESHOLD_KRAKEN_SPOT",
+          "value": "30000"
+        },
+        {
+          "name": "STALE_THRESHOLD_OKX_SPOT",
+          "value": "15000"
+        },
+        {
+          "name": "STALE_THRESHOLD_OKX_PERP",
+          "value": "15000"
+        },
+        {
+          "name": "STALE_THRESHOLD_BYBIT_PERP",
+          "value": "15000"
+        },
+        {
+          "name": "RETENTION_DAYS",
+          "value": "14"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "DATABASE_URL",
+          "valueFrom": "arn:aws:ssm:ca-central-1:484907497221:parameter/abacus-indexer/production/database-url"
+        },
+        {
+          "name": "REDIS_URL",
+          "valueFrom": "arn:aws:ssm:ca-central-1:484907497221:parameter/abacus-indexer/production/redis-url"
+        },
+        {
+          "name": "ADMIN_API_KEY",
+          "valueFrom": "arn:aws:ssm:ca-central-1:484907497221:parameter/abacus-indexer/production/admin-api-key"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/abacus-indexer-production",
+          "awslogs-region": "ca-central-1",
+          "awslogs-stream-prefix": "ecs",
+          "awslogs-create-group": "true"
+        }
+      },
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "curl -f http://localhost:8000/health || exit 1"
+        ],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 30
+      },
+      "mountPoints": [],
+      "volumesFrom": [],
+      "systemControls": []
+    }
+  ],
+  "volumes": [],
+  "placementConstraints": [],
+  "cpu": "512",
+  "memory": "1024",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "runtimePlatform": {
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
+  }
+}

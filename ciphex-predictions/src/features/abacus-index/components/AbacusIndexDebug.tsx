@@ -3,13 +3,13 @@
 /**
  * Abacus:INDEX Debug Harness
  *
- * POC-2 validation UI for monitoring venue connections, composite calculation,
+ * Validation UI for monitoring venue connections, composite calculation,
  * and data quality metrics.
  *
- * WARNING: This is a POC harness. Keep this tab foregrounded during testing
- * or browser throttling will affect reliability measurements.
+ * NOTE: Keep this tab foregrounded during testing or browser throttling
+ * will affect reliability measurements.
  *
- * SOAK TESTING: Use the Soak Controls panel to run extended stability tests.
+ * SOAK TESTING: Expand the Soak Controls panel to run extended stability tests.
  * The soak will sample every 15s and export a JSON report for ECS handoff.
  */
 
@@ -34,11 +34,13 @@ import {
   AssetId,
 } from '../types';
 import {
-  CURRENT_POC_PHASE,
+  CURRENT_SYSTEM_STATUS,
   OUTLIER_THRESHOLD_BPS,
   CURRENT_QUORUM_POLICY,
   STATUS_COLORS,
   COMPOSITE_COLORS,
+  UI_COLORS,
+  QUORUM_POLICIES,
 } from '../constants';
 
 // =============================================================================
@@ -51,12 +53,13 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_ABACUS_API_BASE_URL || 'https://api
 export type SoakMode = 'browser' | 'api';
 
 export function AbacusIndexDebug() {
-  // POC-2: Support BTC and ETH
+  // Asset and soak state
   const [asset, setAsset] = useState<AssetId>('BTC');
   const [noteInput, setNoteInput] = useState('');
   const [soakMode, setSoakMode] = useState<SoakMode>('browser');
+  const [soakPanelOpen, setSoakPanelOpen] = useState(false);
 
-  // POC-2 venue hooks (4 spot + 3 perp)
+  // Venue hooks (4 spot + 3 perp)
   const binanceSpot = useBinanceSpot({ asset });
   const coinbaseSpot = useCoinbaseSpot({ asset });
   const okxSpot = useOKXSpot({ asset });
@@ -65,7 +68,7 @@ export function AbacusIndexDebug() {
   const okxPerp = useOKXPerp({ asset });
   const bybitPerp = useBybitPerp({ asset });
 
-  // Composites (POC-2: 4 spot venues, 3 perp venues)
+  // Composites (4 spot venues, 3 perp venues)
   const spotComposite = useSpotComposite({
     venues: { binance: binanceSpot, coinbase: coinbaseSpot, okx: okxSpot, kraken: krakenSpot },
     asset,
@@ -105,93 +108,157 @@ export function AbacusIndexDebug() {
   const isSoakModeLocked = browserSoak.state === 'running' || apiSoak.state === 'running';
 
   return (
-    <div className="p-6 bg-gray-900 text-white min-h-screen font-mono text-sm">
+    <div
+      className="p-6 min-h-screen font-mono text-sm"
+      style={{ backgroundColor: UI_COLORS.background, color: UI_COLORS.textPrimary }}
+    >
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-2">Abacus:INDEX Debug Harness</h1>
-        <div className="flex gap-4 items-center text-gray-400">
-          <span>Phase: {CURRENT_POC_PHASE}</span>
+        <h1 className="text-2xl font-bold mb-2" style={{ color: UI_COLORS.textPrimary }}>
+          Abacus:INDEX Debug Harness
+        </h1>
+        <div className="flex gap-4 items-center flex-wrap" style={{ color: UI_COLORS.textSecondary }}>
+          <span>
+            Status:{' '}
+            <span style={{ color: UI_COLORS.accent }}>{CURRENT_SYSTEM_STATUS}</span>
+          </span>
           <div className="flex items-center gap-2">
             <span>Asset:</span>
-            <div className={`flex bg-gray-800 rounded overflow-hidden ${isAssetLocked ? 'opacity-50' : ''}`}>
+            <div
+              className={`flex rounded overflow-hidden ${isAssetLocked ? 'opacity-50' : ''}`}
+              style={{ backgroundColor: UI_COLORS.cardBackground }}
+            >
               <button
                 onClick={() => !isAssetLocked && setAsset('BTC')}
                 disabled={isAssetLocked}
-                className={`px-3 py-1 text-sm ${
-                  asset === 'BTC' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-700'
-                } ${isAssetLocked ? 'cursor-not-allowed' : ''}`}
+                className={`px-3 py-1 text-sm transition-colors ${isAssetLocked ? 'cursor-not-allowed' : ''}`}
+                style={{
+                  backgroundColor: asset === 'BTC' ? UI_COLORS.accent : 'transparent',
+                  color: asset === 'BTC' ? UI_COLORS.background : UI_COLORS.textSecondary,
+                }}
               >
                 BTC
               </button>
               <button
                 onClick={() => !isAssetLocked && setAsset('ETH')}
                 disabled={isAssetLocked}
-                className={`px-3 py-1 text-sm ${
-                  asset === 'ETH' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-700'
-                } ${isAssetLocked ? 'cursor-not-allowed' : ''}`}
+                className={`px-3 py-1 text-sm transition-colors ${isAssetLocked ? 'cursor-not-allowed' : ''}`}
+                style={{
+                  backgroundColor: asset === 'ETH' ? UI_COLORS.accent : 'transparent',
+                  color: asset === 'ETH' ? UI_COLORS.background : UI_COLORS.textSecondary,
+                }}
               >
                 ETH
               </button>
             </div>
             {isAssetLocked && (
-              <span className="text-xs text-yellow-500">(locked during soak)</span>
+              <span className="text-xs" style={{ color: UI_COLORS.neutral }}>(locked during soak)</span>
             )}
           </div>
-          <span>Quorum Policy: {CURRENT_QUORUM_POLICY}</span>
-          <span>Outlier Threshold: {OUTLIER_THRESHOLD_BPS} bps</span>
+          <span>
+            Quorum: {QUORUM_POLICIES[CURRENT_QUORUM_POLICY].minQuorum}+ venues
+          </span>
+          <span>Outlier: ±{OUTLIER_THRESHOLD_BPS} bps</span>
         </div>
-        <div className="mt-2 p-2 bg-yellow-900/30 border border-yellow-600 rounded text-yellow-400 text-xs">
-          POC Limitation: Keep this tab foregrounded. Browser throttling affects reliability metrics.
+        <div
+          className="mt-2 p-2 rounded text-xs"
+          style={{
+            backgroundColor: UI_COLORS.neutralSecondary + '30',
+            borderWidth: 1,
+            borderStyle: 'solid',
+            borderColor: UI_COLORS.neutral,
+            color: UI_COLORS.neutral,
+          }}
+        >
+          User Notice: Keep this tab foregrounded. Browser throttling affects reliability metrics.
         </div>
       </div>
 
-      {/* Soak Controls */}
-      <SoakControlsPanel
-        soak={soak}
-        soakMode={soakMode}
-        setSoakMode={setSoakMode}
-        isSoakModeLocked={isSoakModeLocked}
-        apiError={soakMode === 'api' ? apiSoak.apiError : null}
-        noteInput={noteInput}
-        setNoteInput={setNoteInput}
-      />
-
-      {/* Composite Prices */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <PriceCard
-          label="SPOT COMPOSITE"
-          price={spotComposite.price}
-          degraded={spotComposite.degraded}
-          color={COMPOSITE_COLORS.spot}
-        />
-        <PriceCard
-          label="PERP COMPOSITE"
-          price={perpComposite.price}
-          degraded={perpComposite.degraded}
-          color={COMPOSITE_COLORS.perp}
-        />
-        <div className="p-4 bg-gray-800 rounded-lg">
-          <div className="text-xs text-gray-400 mb-1">BASIS</div>
-          <div
-            className="text-2xl font-bold"
-            style={{ color: COMPOSITE_COLORS.basis }}
+      {/* Soak Controls Toggle */}
+      <div className="mb-6">
+        <button
+          onClick={() => setSoakPanelOpen(!soakPanelOpen)}
+          className="flex items-center gap-2 px-3 py-2 rounded text-sm transition-opacity hover:opacity-80"
+          style={{
+            backgroundColor: UI_COLORS.cardBackground,
+            color: UI_COLORS.textSecondary,
+            borderWidth: 1,
+            borderStyle: 'solid',
+            borderColor: UI_COLORS.border,
+          }}
+        >
+          <span
+            className="transition-transform"
+            style={{ transform: soakPanelOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}
           >
-            {basis.current?.basisBps?.toFixed(2) ?? '—'} bps
+            ▶
+          </span>
+          Soak Test Controls
+          {soak.state === 'running' && (
+            <span
+              className="ml-2 px-2 py-0.5 rounded text-xs animate-pulse"
+              style={{ backgroundColor: UI_COLORS.positive, color: UI_COLORS.background }}
+            >
+              RUNNING
+            </span>
+          )}
+        </button>
+
+        {soakPanelOpen && (
+          <div className="mt-2">
+            <SoakControlsPanel
+              soak={soak}
+              soakMode={soakMode}
+              setSoakMode={setSoakMode}
+              isSoakModeLocked={isSoakModeLocked}
+              apiError={soakMode === 'api' ? apiSoak.apiError : null}
+              noteInput={noteInput}
+              setNoteInput={setNoteInput}
+            />
           </div>
-          {basisInterpretation && (
-            <div className="text-xs text-gray-400 mt-1">
-              {basisInterpretation.description}
-            </div>
-          )}
-          {basis.degraded && (
-            <div className="text-xs text-yellow-500 mt-1">DEGRADED</div>
-          )}
-        </div>
+        )}
+      </div>
+
+      {/* Composite Prices - Hero Section */}
+      <div className="grid grid-cols-3 gap-6 mb-8">
+        <CompositeCard
+          label="SPOT"
+          sublabel="COMPOSITE"
+          value={spotComposite.price?.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }) ?? '—'}
+          degraded={spotComposite.degraded}
+          accentColor={COMPOSITE_COLORS.spot}
+          glowColor={COMPOSITE_COLORS.spotGlow}
+          mutedColor={COMPOSITE_COLORS.spotMuted}
+        />
+        <CompositeCard
+          label="PERP"
+          sublabel="COMPOSITE"
+          value={perpComposite.price?.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }) ?? '—'}
+          degraded={perpComposite.degraded}
+          accentColor={COMPOSITE_COLORS.perp}
+          glowColor={COMPOSITE_COLORS.perpGlow}
+          mutedColor={COMPOSITE_COLORS.perpMuted}
+        />
+        <CompositeCard
+          label="BASIS"
+          sublabel={basisInterpretation?.description ?? 'SPREAD'}
+          value={`${basis.current?.basisBps?.toFixed(2) ?? '—'} bps`}
+          degraded={basis.degraded}
+          accentColor={COMPOSITE_COLORS.basis}
+          glowColor={COMPOSITE_COLORS.basisGlow}
+          mutedColor={COMPOSITE_COLORS.basisMuted}
+        />
       </div>
 
       {/* Venue Status Grid */}
       <div className="mb-6">
-        <h2 className="text-lg font-semibold mb-3">Spot Venues (4)</h2>
+        <h2 className="text-lg font-semibold mb-3" style={{ color: UI_COLORS.textPrimary }}>Spot Venues (4)</h2>
         <div className="grid grid-cols-4 gap-4 mb-4">
           <VenueCard
             name="Binance Spot"
@@ -218,7 +285,7 @@ export function AbacusIndexDebug() {
             error={krakenSpot.error}
           />
         </div>
-        <h2 className="text-lg font-semibold mb-3">Perp Venues</h2>
+        <h2 className="text-lg font-semibold mb-3" style={{ color: UI_COLORS.textPrimary }}>Perp Venues</h2>
         <div className="grid grid-cols-3 gap-4">
           <VenueCard
             name="Binance Perp"
@@ -257,7 +324,7 @@ export function AbacusIndexDebug() {
 
       {/* Telemetry Summary */}
       <div className="mb-6">
-        <h2 className="text-lg font-semibold mb-3">Telemetry Summary</h2>
+        <h2 className="text-lg font-semibold mb-3" style={{ color: UI_COLORS.textPrimary }}>Telemetry Summary</h2>
         <div className="grid grid-cols-4 gap-4">
           <MetricCard
             label="Connected Spot"
@@ -284,7 +351,7 @@ export function AbacusIndexDebug() {
       </div>
 
       {/* Bar Counts */}
-      <div className="text-gray-400 text-xs">
+      <div className="text-xs" style={{ color: UI_COLORS.textSecondary }}>
         <span className="mr-4">
           Spot Bars: {spotComposite.bars.length}
         </span>
@@ -303,29 +370,83 @@ export function AbacusIndexDebug() {
 // Sub-components
 // =============================================================================
 
-function PriceCard({
+/**
+ * Hero card for composite prices - designed for maximum visibility
+ */
+function CompositeCard({
   label,
-  price,
+  sublabel,
+  value,
   degraded,
-  color,
+  accentColor,
+  glowColor,
+  mutedColor,
 }: {
   label: string;
-  price: number | null;
+  sublabel: string;
+  value: string;
   degraded: boolean;
-  color: string;
+  accentColor: string;
+  glowColor: string;
+  mutedColor: string;
 }) {
   return (
-    <div className="p-4 bg-gray-800 rounded-lg">
-      <div className="text-xs text-gray-400 mb-1">{label}</div>
-      <div className="text-2xl font-bold" style={{ color }}>
-        {price?.toLocaleString(undefined, {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        }) ?? '—'}
+    <div
+      className="relative p-5 rounded-xl overflow-hidden"
+      style={{
+        backgroundColor: UI_COLORS.cardBackground,
+        borderLeft: `4px solid ${accentColor}`,
+        boxShadow: `0 0 20px ${glowColor}20, inset 0 1px 0 ${accentColor}15`,
+      }}
+    >
+      {/* Subtle gradient overlay */}
+      <div
+        className="absolute inset-0 opacity-10"
+        style={{
+          background: `linear-gradient(135deg, ${mutedColor} 0%, transparent 50%)`,
+        }}
+      />
+
+      {/* Content */}
+      <div className="relative">
+        {/* Label */}
+        <div className="flex items-baseline gap-2 mb-2">
+          <span
+            className="text-sm font-bold tracking-wider"
+            style={{ color: accentColor }}
+          >
+            {label}
+          </span>
+          <span
+            className="text-xs font-medium tracking-wide"
+            style={{ color: UI_COLORS.textSecondary }}
+          >
+            {sublabel}
+          </span>
+        </div>
+
+        {/* Value - Large and prominent */}
+        <div
+          className="text-4xl font-bold tracking-tight"
+          style={{ color: UI_COLORS.textPrimary }}
+        >
+          {value}
+        </div>
+
+        {/* Degraded indicator */}
+        {degraded && (
+          <div
+            className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium"
+            style={{
+              backgroundColor: UI_COLORS.neutralSecondary + '40',
+              color: UI_COLORS.neutral,
+            }}
+          >
+            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: UI_COLORS.neutral }} />
+            DEGRADED
+          </div>
+        )}
       </div>
-      {degraded && (
-        <div className="text-xs text-yellow-500 mt-1">DEGRADED</div>
-      )}
     </div>
   );
 }
@@ -344,25 +465,25 @@ function VenueCard({
   const statusColor = getStatusColor(telemetry.connectionState);
 
   return (
-    <div className="p-4 bg-gray-800 rounded-lg">
+    <div className="p-4 rounded-lg" style={{ backgroundColor: UI_COLORS.cardBackground }}>
       <div className="flex justify-between items-center mb-2">
-        <span className="font-semibold">{name}</span>
+        <span className="font-semibold" style={{ color: UI_COLORS.textPrimary }}>{name}</span>
         <span
-          className="px-2 py-0.5 rounded text-xs"
-          style={{ backgroundColor: statusColor, color: '#000' }}
+          className="px-2 py-0.5 rounded text-xs font-medium"
+          style={{ backgroundColor: statusColor, color: UI_COLORS.background }}
         >
           {telemetry.connectionState}
         </span>
       </div>
 
-      <div className="text-xl font-bold mb-2">
+      <div className="text-xl font-bold mb-2" style={{ color: UI_COLORS.textPrimary }}>
         {price?.toLocaleString(undefined, {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
         }) ?? '—'}
       </div>
 
-      <div className="grid grid-cols-2 gap-2 text-xs text-gray-400">
+      <div className="grid grid-cols-2 gap-2 text-xs" style={{ color: UI_COLORS.textSecondary }}>
         <div>Messages: {telemetry.messageCount}</div>
         <div>Trades: {telemetry.tradeCount}</div>
         <div>Reconnects: {telemetry.reconnectCount}</div>
@@ -372,7 +493,7 @@ function VenueCard({
       </div>
 
       {error && (
-        <div className="mt-2 text-xs text-red-400">{error}</div>
+        <div className="mt-2 text-xs" style={{ color: UI_COLORS.negative }}>{error}</div>
       )}
     </div>
   );
@@ -394,12 +515,12 @@ function CompositeBreakdown({
   health: 'healthy' | 'degraded' | 'unhealthy';
 }) {
   return (
-    <div className="p-4 bg-gray-800 rounded-lg">
+    <div className="p-4 rounded-lg" style={{ backgroundColor: UI_COLORS.cardBackground }}>
       <div className="flex justify-between items-center mb-3">
-        <span className="font-semibold">{label}</span>
+        <span className="font-semibold" style={{ color: UI_COLORS.textPrimary }}>{label}</span>
         <span
-          className="px-2 py-0.5 rounded text-xs"
-          style={{ backgroundColor: STATUS_COLORS[health], color: '#000' }}
+          className="px-2 py-0.5 rounded text-xs font-medium"
+          style={{ backgroundColor: STATUS_COLORS[health], color: UI_COLORS.background }}
         >
           {health}
         </span>
@@ -409,9 +530,8 @@ function CompositeBreakdown({
         {venues.map((v) => (
           <div
             key={v.venue}
-            className={`flex justify-between items-center text-sm ${
-              v.included ? 'text-white' : 'text-gray-500'
-            }`}
+            className="flex justify-between items-center text-sm"
+            style={{ color: v.included ? UI_COLORS.textPrimary : UI_COLORS.textMuted }}
           >
             <span>{v.venue}</span>
             <span className="flex items-center gap-2">
@@ -420,12 +540,12 @@ function CompositeBreakdown({
                 maximumFractionDigits: 2,
               }) ?? '—'}
               {v.deviationBps !== undefined && (
-                <span className="text-xs text-gray-400">
+                <span className="text-xs" style={{ color: UI_COLORS.textSecondary }}>
                   ({v.deviationBps.toFixed(1)} bps)
                 </span>
               )}
               {!v.included && v.excludeReason && (
-                <span className="text-xs text-red-400">
+                <span className="text-xs" style={{ color: UI_COLORS.negative }}>
                   [{v.excludeReason}]
                 </span>
               )}
@@ -439,9 +559,9 @@ function CompositeBreakdown({
 
 function MetricCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="p-3 bg-gray-800 rounded-lg text-center">
-      <div className="text-xs text-gray-400 mb-1">{label}</div>
-      <div className="text-lg font-bold">{value}</div>
+    <div className="p-3 rounded-lg text-center" style={{ backgroundColor: UI_COLORS.cardBackground }}>
+      <div className="text-xs mb-1" style={{ color: UI_COLORS.textSecondary }}>{label}</div>
+      <div className="text-lg font-bold" style={{ color: UI_COLORS.textPrimary }}>{value}</div>
     </div>
   );
 }
@@ -489,28 +609,43 @@ function SoakControlsPanel({
   };
 
   return (
-    <div className="mb-6 p-4 bg-gray-800 rounded-lg border border-gray-700">
+    <div
+      className="mb-6 p-4 rounded-lg"
+      style={{
+        backgroundColor: UI_COLORS.cardBackground,
+        borderWidth: 1,
+        borderStyle: 'solid',
+        borderColor: UI_COLORS.border,
+      }}
+    >
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-4">
-          <h2 className="text-lg font-semibold">Soak Test Controls</h2>
+          <h2 className="text-lg font-semibold" style={{ color: UI_COLORS.textPrimary }}>Soak Test Controls</h2>
 
           {/* Soak Mode Toggle */}
-          <div className={`flex bg-gray-700 rounded overflow-hidden ${isSoakModeLocked ? 'opacity-50' : ''}`}>
+          <div
+            className={`flex rounded overflow-hidden ${isSoakModeLocked ? 'opacity-50' : ''}`}
+            style={{ backgroundColor: UI_COLORS.background }}
+          >
             <button
               onClick={() => !isSoakModeLocked && setSoakMode('browser')}
               disabled={isSoakModeLocked}
-              className={`px-3 py-1 text-xs ${
-                soakMode === 'browser' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-600'
-              } ${isSoakModeLocked ? 'cursor-not-allowed' : ''}`}
+              className={`px-3 py-1 text-xs transition-colors ${isSoakModeLocked ? 'cursor-not-allowed' : ''}`}
+              style={{
+                backgroundColor: soakMode === 'browser' ? UI_COLORS.accent : 'transparent',
+                color: soakMode === 'browser' ? UI_COLORS.background : UI_COLORS.textSecondary,
+              }}
             >
               Browser WS
             </button>
             <button
               onClick={() => !isSoakModeLocked && setSoakMode('api')}
               disabled={isSoakModeLocked}
-              className={`px-3 py-1 text-xs ${
-                soakMode === 'api' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-600'
-              } ${isSoakModeLocked ? 'cursor-not-allowed' : ''}`}
+              className={`px-3 py-1 text-xs transition-colors ${isSoakModeLocked ? 'cursor-not-allowed' : ''}`}
+              style={{
+                backgroundColor: soakMode === 'api' ? UI_COLORS.accentSecondary : 'transparent',
+                color: soakMode === 'api' ? UI_COLORS.background : UI_COLORS.textSecondary,
+              }}
             >
               ECS API
             </button>
@@ -519,20 +654,23 @@ function SoakControlsPanel({
         <div className="flex items-center gap-3">
           {/* Status indicator */}
           <span
-            className={`px-2 py-1 rounded text-xs font-bold ${
-              soak.state === 'idle'
-                ? 'bg-gray-600 text-gray-300'
-                : soak.state === 'running'
-                ? 'bg-green-600 text-white animate-pulse'
-                : 'bg-blue-600 text-white'
-            }`}
+            className={`px-2 py-1 rounded text-xs font-bold ${soak.state === 'running' ? 'animate-pulse' : ''}`}
+            style={{
+              backgroundColor:
+                soak.state === 'idle'
+                  ? UI_COLORS.textMuted
+                  : soak.state === 'running'
+                  ? UI_COLORS.positive
+                  : UI_COLORS.accent,
+              color: UI_COLORS.background,
+            }}
           >
             {soak.state.toUpperCase()}
           </span>
 
           {/* Elapsed time */}
           {(soak.state === 'running' || soak.state === 'stopped') && (
-            <span className="text-gray-400 text-sm">
+            <span className="text-sm" style={{ color: UI_COLORS.textSecondary }}>
               {formatElapsed(soak.elapsedMs)}
             </span>
           )}
@@ -541,28 +679,64 @@ function SoakControlsPanel({
 
       {/* API Mode Info */}
       {soakMode === 'api' && (
-        <div className="mb-3 p-2 bg-purple-900/30 border border-purple-600 rounded text-purple-400 text-xs">
+        <div
+          className="mb-3 p-2 rounded text-xs"
+          style={{
+            backgroundColor: UI_COLORS.accentMuted + '30',
+            borderWidth: 1,
+            borderStyle: 'solid',
+            borderColor: UI_COLORS.accentSecondary,
+            color: UI_COLORS.accent,
+          }}
+        >
           <strong>API Mode:</strong> Polling {API_BASE_URL}
           <br />
-          <span className="text-purple-300">Type A criteria: is_gap=false, included_venues≥2 (ignores degraded flag)</span>
+          <span style={{ color: UI_COLORS.accentSecondary }}>Type A criteria: is_gap=false, included_venues≥2 (ignores degraded flag)</span>
         </div>
       )}
 
       {/* API Error */}
       {apiError && soakMode === 'api' && (
-        <div className="mb-3 p-2 bg-red-900/30 border border-red-600 rounded text-red-400 text-xs">
+        <div
+          className="mb-3 p-2 rounded text-xs"
+          style={{
+            backgroundColor: UI_COLORS.negativeMuted + '30',
+            borderWidth: 1,
+            borderStyle: 'solid',
+            borderColor: UI_COLORS.negative,
+            color: UI_COLORS.negative,
+          }}
+        >
           <strong>API Error:</strong> {apiError}
         </div>
       )}
 
       {/* Warnings */}
       {soak.pageWentBackground && (
-        <div className="mb-3 p-2 bg-yellow-900/30 border border-yellow-600 rounded text-yellow-400 text-xs">
+        <div
+          className="mb-3 p-2 rounded text-xs"
+          style={{
+            backgroundColor: UI_COLORS.neutralSecondary + '30',
+            borderWidth: 1,
+            borderStyle: 'solid',
+            borderColor: UI_COLORS.neutral,
+            color: UI_COLORS.neutral,
+          }}
+        >
           ⚠️ Page went to background during soak — results may be compromised by browser throttling.
         </div>
       )}
       {soak.showSnapshotWarning && (
-        <div className="mb-3 p-2 bg-orange-900/30 border border-orange-600 rounded text-orange-400 text-xs">
+        <div
+          className="mb-3 p-2 rounded text-xs"
+          style={{
+            backgroundColor: UI_COLORS.neutralSecondary + '40',
+            borderWidth: 1,
+            borderStyle: 'solid',
+            borderColor: UI_COLORS.neutral,
+            color: UI_COLORS.neutral,
+          }}
+        >
           ⚠️ Snapshot count exceeded 1000 — consider stopping the soak to avoid memory issues.
         </div>
       )}
@@ -570,22 +744,22 @@ function SoakControlsPanel({
       {/* Stats row */}
       <div className="flex gap-6 mb-4 text-sm">
         <div>
-          <span className="text-gray-400">Snapshots: </span>
-          <span className="font-bold">{soak.snapshotCount}</span>
+          <span style={{ color: UI_COLORS.textSecondary }}>Snapshots: </span>
+          <span className="font-bold" style={{ color: UI_COLORS.textPrimary }}>{soak.snapshotCount}</span>
         </div>
         {soak.report && (
           <>
             <div>
-              <span className="text-gray-400">Spot Connected: </span>
-              <span className="font-bold">
+              <span style={{ color: UI_COLORS.textSecondary }}>Spot Connected: </span>
+              <span className="font-bold" style={{ color: UI_COLORS.textPrimary }}>
                 {soak.report.summary.degradedPctSpot !== undefined
                   ? `${(100 - soak.report.summary.degradedPctSpot).toFixed(1)}%`
                   : '—'}
               </span>
             </div>
             <div>
-              <span className="text-gray-400">Perp Connected: </span>
-              <span className="font-bold">
+              <span style={{ color: UI_COLORS.textSecondary }}>Perp Connected: </span>
+              <span className="font-bold" style={{ color: UI_COLORS.textPrimary }}>
                 {soak.report.summary.degradedPctPerp !== undefined
                   ? `${(100 - soak.report.summary.degradedPctPerp).toFixed(1)}%`
                   : '—'}
@@ -600,7 +774,8 @@ function SoakControlsPanel({
         {soak.state === 'idle' && (
           <button
             onClick={soak.start}
-            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold"
+            className="px-4 py-2 rounded font-semibold transition-opacity hover:opacity-80"
+            style={{ backgroundColor: UI_COLORS.positive, color: UI_COLORS.background }}
           >
             Start Soak
           </button>
@@ -608,7 +783,8 @@ function SoakControlsPanel({
         {soak.state === 'running' && (
           <button
             onClick={soak.stop}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-semibold"
+            className="px-4 py-2 rounded font-semibold transition-opacity hover:opacity-80"
+            style={{ backgroundColor: UI_COLORS.negative, color: UI_COLORS.textPrimary }}
           >
             Stop Soak
           </button>
@@ -617,13 +793,15 @@ function SoakControlsPanel({
           <>
             <button
               onClick={soak.downloadJson}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-semibold"
+              className="px-4 py-2 rounded font-semibold transition-opacity hover:opacity-80"
+              style={{ backgroundColor: UI_COLORS.accent, color: UI_COLORS.background }}
             >
               Download JSON
             </button>
             <button
               onClick={soak.reset}
-              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded font-semibold"
+              className="px-4 py-2 rounded font-semibold transition-opacity hover:opacity-80"
+              style={{ backgroundColor: UI_COLORS.textMuted, color: UI_COLORS.textPrimary }}
             >
               Reset
             </button>
@@ -632,7 +810,8 @@ function SoakControlsPanel({
         {soak.state === 'running' && (
           <button
             onClick={soak.downloadJson}
-            className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded font-semibold"
+            className="px-4 py-2 rounded font-semibold transition-opacity hover:opacity-80"
+            style={{ backgroundColor: UI_COLORS.textMuted, color: UI_COLORS.textPrimary }}
           >
             Download (in progress)
           </button>
@@ -647,7 +826,14 @@ function SoakControlsPanel({
             value={noteInput}
             onChange={(e) => setNoteInput(e.target.value)}
             placeholder="Add a note..."
-            className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm placeholder-gray-500"
+            className="flex-1 px-3 py-2 rounded text-sm"
+            style={{
+              backgroundColor: UI_COLORS.background,
+              borderWidth: 1,
+              borderStyle: 'solid',
+              borderColor: UI_COLORS.border,
+              color: UI_COLORS.textPrimary,
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleAddNote();
             }}
@@ -655,7 +841,8 @@ function SoakControlsPanel({
           <button
             onClick={handleAddNote}
             disabled={!noteInput.trim()}
-            className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-opacity hover:opacity-80"
+            style={{ backgroundColor: UI_COLORS.textMuted, color: UI_COLORS.textPrimary }}
           >
             Add Note
           </button>
@@ -664,9 +851,9 @@ function SoakControlsPanel({
 
       {/* Summary display (after stopped) */}
       {soak.state === 'stopped' && soak.report && (
-        <div className="mt-4 p-3 bg-gray-900 rounded text-xs">
-          <div className="font-semibold mb-2">Summary</div>
-          <div className="grid grid-cols-2 gap-2 text-gray-400">
+        <div className="mt-4 p-3 rounded text-xs" style={{ backgroundColor: UI_COLORS.background }}>
+          <div className="font-semibold mb-2" style={{ color: UI_COLORS.textPrimary }}>Summary</div>
+          <div className="grid grid-cols-2 gap-2" style={{ color: UI_COLORS.textSecondary }}>
             <div>Duration: {formatElapsed(soak.report.run.durationMs)}</div>
             <div>Asset: {soak.report.run.asset}</div>
             <div>Spot Degraded: {soak.report.summary.degradedPctSpot.toFixed(1)}%</div>
@@ -676,8 +863,8 @@ function SoakControlsPanel({
           </div>
           {soak.report.summary.notes.length > 0 && (
             <div className="mt-2">
-              <div className="font-semibold mb-1">Notes:</div>
-              <ul className="list-disc list-inside text-gray-400">
+              <div className="font-semibold mb-1" style={{ color: UI_COLORS.textPrimary }}>Notes:</div>
+              <ul className="list-disc list-inside" style={{ color: UI_COLORS.textSecondary }}>
                 {soak.report.summary.notes.map((note, i) => (
                   <li key={i}>{note}</li>
                 ))}
