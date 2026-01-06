@@ -7,6 +7,9 @@ export interface Horizon {
   close: number; // mid price
   high: number;
   probability: number;
+  // Settlement data (only present for settled horizons)
+  variance_pct?: number;
+  in_range?: boolean;
 }
 
 export interface Block {

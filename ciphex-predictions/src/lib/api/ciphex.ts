@@ -27,15 +27,30 @@ export function transformDashboardResponse(dashboard: any): PredictionData {
   const blocks: Block[] = [];
   const allPredictions: Horizon[] = [];
 
+  // Build a lookup map from settlement data (keyed by "block_number:horizon_index")
+  const settlementMap = new Map<string, { variance_pct: number; in_range: boolean }>();
+  for (const settlement of dashboard.settlements?.settlement_data || []) {
+    const key = `${settlement.block_number}:${settlement.horizon_index}`;
+    settlementMap.set(key, {
+      variance_pct: settlement.actual?.variance_pct,
+      in_range: settlement.actual?.in_range,
+    });
+  }
+
   // Extract predictions from blocks
   for (const block of dashboard.blocks || []) {
     const blockHorizons: Horizon[] = [];
+    const blockNumber = block.block_number;
 
     for (const horizon of block.horizons || []) {
       const pred = horizon.prediction;
       if (!pred) continue;
 
       const timestamp = new Date(horizon.horizon_end_ts).getTime() / 1000;
+
+      // Look up settlement data for this horizon
+      const settlementKey = `${blockNumber}:${horizon.horizon_index}`;
+      const settlement = settlementMap.get(settlementKey);
 
       const h: Horizon = {
         time: Math.floor(timestamp),
@@ -46,6 +61,11 @@ export function transformDashboardResponse(dashboard: any): PredictionData {
         signal: pred.signal as Horizon['signal'],
         direction: pred.direction as Horizon['direction'],
         status: horizon.status,
+        // Include settlement data if available
+        ...(settlement && {
+          variance_pct: settlement.variance_pct,
+          in_range: settlement.in_range,
+        }),
       };
 
       blockHorizons.push(h);

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { Horizon, Block } from '@/types';
-import { formatTime, formatPrice } from '@/lib/utils/formatters';
+import { formatTime, formatPrice, formatVariance, getVarianceColor } from '@/lib/utils/formatters';
 
 interface HorizonsListProps {
   blocks: Block[];
@@ -46,18 +46,30 @@ export function HorizonsList({ blocks, currentHorizonIndex }: HorizonsListProps)
                 <div
                   key={idx}
                   ref={isActive ? activeRowRef : null}
-                  className={`flex justify-between items-center px-2.5 py-2 rounded-md mb-1 text-xs ${
+                  className={`flex items-center px-2.5 py-2 rounded-md mb-1 text-xs gap-2 ${
                     isActive
                       ? 'bg-[rgba(35,134,54,0.2)] border border-[#238636]'
                       : 'bg-[#21262d]'
-                  } ${isPast ? 'opacity-60' : ''}`}
+                  } ${isPast ? 'opacity-70' : ''}`}
                 >
-                  <span className="text-[#8b949e]">{formatTime(horizon.time)}</span>
-                  <span className="font-mono text-[#f0f6fc]">
+                  <span className="text-[#8b949e] shrink-0">{formatTime(horizon.time)}</span>
+                  <span className="font-mono text-[#f0f6fc] flex-1 text-right">
                     {formatPrice(horizon.close)}
                   </span>
+                  {/* Variance badge for settled horizons */}
+                  {horizon.status === 'settled' && horizon.variance_pct !== undefined && (
+                    <span
+                      className={`font-mono text-[10px] shrink-0 flex items-center gap-0.5 ${getVarianceColor(horizon.variance_pct)}`}
+                      title={horizon.in_range ? 'In range' : 'Out of range'}
+                    >
+                      {horizon.in_range && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#3fb950]" />
+                      )}
+                      {formatVariance(horizon.variance_pct)}
+                    </span>
+                  )}
                   <span
-                    className={`px-2 py-0.5 rounded-xl text-[11px] font-medium ${
+                    className={`px-2 py-0.5 rounded-xl text-[11px] font-medium shrink-0 ${
                       horizon.status === 'settled'
                         ? 'bg-[rgba(63,185,80,0.15)] text-[#3fb950]'
                         : 'bg-[rgba(210,153,34,0.15)] text-[#d29922]'

@@ -33,3 +33,16 @@ export function formatCountdown(ms: number): string {
 
   return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
+
+export function formatVariance(variance: number): string {
+  const sign = variance >= 0 ? '+' : '';
+  return `${sign}${variance.toFixed(2)}%`;
+}
+
+// Returns Tailwind color class based on variance magnitude
+export function getVarianceColor(variance: number): string {
+  const absVariance = Math.abs(variance);
+  if (absVariance <= 1) return 'text-[#3fb950]'; // Green - accurate
+  if (absVariance <= 2) return 'text-[#d29922]'; // Amber - moderate
+  return 'text-[#f85149]'; // Red - significant deviation
+}
