@@ -59,7 +59,7 @@ export function HorizonsList({ blocks, currentHorizonIndex }: HorizonsListProps)
                   {/* Variance badge for settled horizons */}
                   {horizon.status === 'settled' && horizon.variance_pct !== undefined && (
                     <span
-                      className={`font-mono text-[10px] shrink-0 flex items-center gap-0.5 ${getVarianceColor(horizon.variance_pct)}`}
+                      className={`font-mono text-[10px] shrink-0 flex items-center gap-0.5 ${getVarianceColor(horizon.variance_pct, horizon.in_range)}`}
                       title={horizon.in_range ? 'In range' : 'Out of range'}
                     >
                       {horizon.in_range && (

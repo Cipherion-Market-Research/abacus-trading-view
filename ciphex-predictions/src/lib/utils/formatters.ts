@@ -39,10 +39,12 @@ export function formatVariance(variance: number): string {
   return `${sign}${variance.toFixed(2)}%`;
 }
 
-// Returns Tailwind color class based on variance magnitude
-export function getVarianceColor(variance: number): string {
-  const absVariance = Math.abs(variance);
-  if (absVariance <= 1) return 'text-[#3fb950]'; // Green - accurate
-  if (absVariance <= 2) return 'text-[#d29922]'; // Amber - moderate
-  return 'text-[#f85149]'; // Red - significant deviation
+// Returns Tailwind color class based on variance direction and in_range status
+export function getVarianceColor(variance: number, inRange?: boolean): string {
+  // Positive variance (actual > predicted) or in_range → green
+  if (variance >= 0 || inRange) return 'text-[#3fb950]';
+  // Negative variance within -2% of lower band → amber
+  if (variance >= -2) return 'text-[#d29922]';
+  // Negative variance below -2% → red
+  return 'text-[#f85149]';
 }
