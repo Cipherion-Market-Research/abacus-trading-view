@@ -39,6 +39,11 @@ export function formatVariance(variance: number): string {
   return `${sign}${variance.toFixed(2)}%`;
 }
 
+export function formatPercentCorrect(variance: number): string {
+  const percentCorrect = 100 - Math.abs(variance);
+  return `${percentCorrect.toFixed(2)}%`;
+}
+
 // Returns Tailwind color class based on variance direction and in_range status
 export function getVarianceColor(variance: number, inRange?: boolean): string {
   // Positive variance (actual > predicted) or in_range → green

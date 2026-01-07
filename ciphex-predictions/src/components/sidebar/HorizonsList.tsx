@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { Horizon, Block } from '@/types';
-import { formatTime, formatPrice, formatVariance, getVarianceColor } from '@/lib/utils/formatters';
+import { formatTime, formatPrice, formatPercentCorrect, getVarianceColor } from '@/lib/utils/formatters';
 
 interface HorizonsListProps {
   blocks: Block[];
@@ -65,7 +65,7 @@ export function HorizonsList({ blocks, currentHorizonIndex }: HorizonsListProps)
                       {horizon.in_range && (
                         <span className="w-1.5 h-1.5 rounded-full bg-[#3fb950]" />
                       )}
-                      {formatVariance(horizon.variance_pct)}
+                      {formatPercentCorrect(horizon.variance_pct)}
                     </span>
                   )}
                   <span
