@@ -64,10 +64,10 @@ interface IndicatorVisibility {
   macd: boolean;     // MACD histogram
 }
 
-// Default indicator visibility - all visible by default
+// Default indicator visibility
 const DEFAULT_INDICATOR_VISIBILITY: IndicatorVisibility = {
   ema9: true,
-  ema200: true,
+  ema200: false,
   ema20: true,
   macd: true,
 };
