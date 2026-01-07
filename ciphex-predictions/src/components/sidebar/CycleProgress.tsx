@@ -11,10 +11,8 @@ interface CycleProgressProps {
 export function CycleProgress({ predictions, cycle }: CycleProgressProps) {
   const [timeRemaining, setTimeRemaining] = useState('--:--:--');
 
-  const settledPredictions = predictions.filter((p) => p.status === 'settled');
-  const settledCount = settledPredictions.length;
+  const settledCount = predictions.filter((p) => p.status === 'settled').length;
   const totalHorizons = predictions.length;
-  const inRangeCount = settledPredictions.filter((p) => p.in_range === true).length;
 
   // Find current horizon (first pending)
   let currentHorizonIndex = predictions.findIndex((p) => p.status === 'pending');
@@ -58,16 +56,9 @@ export function CycleProgress({ predictions, cycle }: CycleProgressProps) {
           <span className="text-[11px] text-[#8b949e] uppercase tracking-wider">
             Cycle Progress
           </span>
-          <div className="flex items-center gap-2">
-            {settledCount > 0 && (
-              <span className="text-[11px] text-[#8b949e]">
-                <span className="text-[#3fb950]">{inRangeCount}</span>/{settledCount} in range
-              </span>
-            )}
-            <span className="text-[13px] font-semibold text-[#f0f6fc]">
-              {settledCount} / {totalHorizons}
-            </span>
-          </div>
+          <span className="text-[13px] font-semibold text-[#f0f6fc]">
+            {settledCount} / {totalHorizons} Settled
+          </span>
         </div>
         <div className="flex gap-[3px] h-2">
           {predictions.map((pred, i) => {
