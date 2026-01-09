@@ -440,7 +440,7 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
     // 20-period EMA line overlay (short-term momentum on current timeframe)
     const ema20Series = chart.addLineSeries({
       color: COLORS.ema20,
-      lineWidth: 1,
+      lineWidth: 2,
       priceLineVisible: false,
       lastValueVisible: true,
       title: 'EMA 20',

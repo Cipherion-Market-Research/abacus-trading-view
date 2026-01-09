@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { Horizon, Block } from '@/types';
 import { formatTime, formatPrice, formatPercentCorrect, getVarianceColor } from '@/lib/utils/formatters';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 interface HorizonsListProps {
   blocks: Block[];
@@ -10,6 +11,46 @@ interface HorizonsListProps {
 }
 
 const BLOCK_NAMES = ['', 'Outlook', 'Continuation', 'Persistence'];
+
+// Legend component explaining accuracy color coding
+function AccuracyLegend() {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button className="w-4 h-4 rounded-full bg-[#30363d] text-[9px] text-[#8b949e] hover:bg-[#484f58] hover:text-[#f0f6fc] transition-colors flex items-center justify-center">
+          ?
+        </button>
+      </TooltipTrigger>
+      <TooltipContent
+        side="left"
+        sideOffset={8}
+        className="bg-[#161b22] border border-[#30363d] p-3 max-w-[220px] text-left"
+      >
+        <div className="text-[11px] font-medium text-[#f0f6fc] mb-2">Accuracy Legend</div>
+        <div className="space-y-1.5 text-[10px]">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#3fb950] shrink-0" />
+            <span className="text-[#c9d1d9]">In range or exceeded prediction</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#d29922] shrink-0" />
+            <span className="text-[#c9d1d9]">Slightly below prediction (&lt;2%)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#f85149] shrink-0" />
+            <span className="text-[#c9d1d9]">Below prediction (&gt;2%)</span>
+          </div>
+        </div>
+        <div className="mt-2 pt-2 border-t border-[#30363d] text-[9px] text-[#8b949e]">
+          <span className="inline-flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#3fb950]" />
+            indicates price was within predicted range
+          </span>
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 export function HorizonsList({ blocks, currentHorizonIndex }: HorizonsListProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -28,9 +69,12 @@ export function HorizonsList({ blocks, currentHorizonIndex }: HorizonsListProps)
 
   return (
     <div className="bg-[#21262d] border border-[#30363d] rounded-lg p-3 md:p-3.5 flex-1 flex flex-col min-h-0">
-      <h3 className="text-[11px] text-[#8b949e] uppercase tracking-wider mb-2 md:mb-2.5">
-        All Horizons
-      </h3>
+      <div className="flex items-center justify-between mb-2 md:mb-2.5">
+        <h3 className="text-[11px] text-[#8b949e] uppercase tracking-wider">
+          All Horizons
+        </h3>
+        <AccuracyLegend />
+      </div>
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto space-y-1 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {blocks.map((block, blockIdx) => (
           <div key={blockIdx}>
