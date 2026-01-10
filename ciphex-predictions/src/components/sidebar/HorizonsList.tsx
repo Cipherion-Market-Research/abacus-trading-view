@@ -107,7 +107,7 @@ export function HorizonsList({ blocks, currentHorizonIndex }: HorizonsListProps)
                       title={horizon.in_range ? 'In range' : 'Out of range'}
                     >
                       {horizon.in_range && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#3fb950]" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80]" />
                       )}
                       {formatPercentCorrect(horizon.variance_pct)}
                     </span>
