@@ -29,21 +29,21 @@ function AccuracyLegend() {
         <div className="text-[11px] font-medium text-[#f0f6fc] mb-2">Accuracy Legend</div>
         <div className="space-y-1.5 text-[10px]">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#3fb950] shrink-0" />
+            <span className="w-2 h-2 rounded-full bg-[#4ade80] shrink-0" />
             <span className="text-[#c9d1d9]">In range or exceeded prediction</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#d29922] shrink-0" />
+            <span className="w-2 h-2 rounded-full bg-[#fbbf24] shrink-0" />
             <span className="text-[#c9d1d9]">Slightly below prediction (&lt;2%)</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#f85149] shrink-0" />
+            <span className="w-2 h-2 rounded-full bg-[#f87171] shrink-0" />
             <span className="text-[#c9d1d9]">Below prediction (&gt;2%)</span>
           </div>
         </div>
         <div className="mt-2 pt-2 border-t border-[#30363d] text-[9px] text-[#8b949e]">
           <span className="inline-flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#3fb950]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80]" />
             indicates price was within predicted range
           </span>
         </div>
