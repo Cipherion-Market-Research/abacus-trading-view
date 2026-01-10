@@ -29,21 +29,21 @@ function AccuracyLegend() {
         <div className="text-[11px] font-medium text-[#f0f6fc] mb-2">Accuracy Legend</div>
         <div className="space-y-1.5 text-[10px]">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#4ade80] shrink-0" />
+            <span className="w-2 h-2 rounded-full bg-[#00ff88] shrink-0" />
             <span className="text-[#c9d1d9]">In range or exceeded prediction</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#fbbf24] shrink-0" />
+            <span className="w-2 h-2 rounded-full bg-[#ffea00] shrink-0" />
             <span className="text-[#c9d1d9]">Slightly below prediction (&lt;2%)</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#f87171] shrink-0" />
+            <span className="w-2 h-2 rounded-full bg-[#ff2d55] shrink-0" />
             <span className="text-[#c9d1d9]">Below prediction (&gt;2%)</span>
           </div>
         </div>
         <div className="mt-2 pt-2 border-t border-[#30363d] text-[9px] text-[#8b949e]">
           <span className="inline-flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00ff88]" />
             indicates price was within predicted range
           </span>
         </div>
@@ -107,7 +107,7 @@ export function HorizonsList({ blocks, currentHorizonIndex }: HorizonsListProps)
                       title={horizon.in_range ? 'In range' : 'Out of range'}
                     >
                       {horizon.in_range && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80]" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#00ff88]" />
                       )}
                       {formatPercentCorrect(horizon.variance_pct)}
                     </span>

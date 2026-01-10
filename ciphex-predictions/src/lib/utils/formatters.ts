@@ -46,10 +46,10 @@ export function formatPercentCorrect(variance: number): string {
 
 // Returns Tailwind color class based on variance direction and in_range status
 export function getVarianceColor(variance: number, inRange?: boolean): string {
-  // Positive variance (actual > predicted) or in_range → green
-  if (variance >= 0 || inRange) return 'text-[#4ade80]';
-  // Negative variance within -2% of lower band → amber
-  if (variance >= -2) return 'text-[#fbbf24]';
-  // Negative variance below -2% → red
-  return 'text-[#f87171]';
+  // Positive variance (actual > predicted) or in_range → electric green
+  if (variance >= 0 || inRange) return 'text-[#00ff88]';
+  // Negative variance within -2% of lower band → electric yellow
+  if (variance >= -2) return 'text-[#ffea00]';
+  // Negative variance below -2% → electric red
+  return 'text-[#ff2d55]';
 }
