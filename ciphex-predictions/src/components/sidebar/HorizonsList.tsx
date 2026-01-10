@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { Horizon, Block } from '@/types';
-import { formatTime, formatPrice, formatPercentCorrect, getVarianceStyle, ACCURACY_COLORS } from '@/lib/utils/formatters';
+import { formatTime, formatPrice, formatPercentCorrect, getVarianceColor, ACCURACY_COLORS } from '@/lib/utils/formatters';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 interface HorizonsListProps {
@@ -31,21 +31,21 @@ function AccuracyLegend() {
           <div className="flex items-center gap-2">
             <span
               className="w-2 h-2 rounded-full shrink-0"
-              style={{ backgroundColor: ACCURACY_COLORS.green, boxShadow: `0 0 6px ${ACCURACY_COLORS.green}, 0 0 12px ${ACCURACY_COLORS.green}` }}
+              style={{ backgroundColor: ACCURACY_COLORS.green }}
             />
             <span className="text-[#c9d1d9]">In range or exceeded prediction</span>
           </div>
           <div className="flex items-center gap-2">
             <span
               className="w-2 h-2 rounded-full shrink-0"
-              style={{ backgroundColor: ACCURACY_COLORS.yellow, boxShadow: `0 0 6px ${ACCURACY_COLORS.yellow}, 0 0 12px ${ACCURACY_COLORS.yellow}` }}
+              style={{ backgroundColor: ACCURACY_COLORS.yellow }}
             />
             <span className="text-[#c9d1d9]">Slightly below prediction (&lt;2%)</span>
           </div>
           <div className="flex items-center gap-2">
             <span
               className="w-2 h-2 rounded-full shrink-0"
-              style={{ backgroundColor: ACCURACY_COLORS.red, boxShadow: `0 0 6px ${ACCURACY_COLORS.red}, 0 0 12px ${ACCURACY_COLORS.red}` }}
+              style={{ backgroundColor: ACCURACY_COLORS.red }}
             />
             <span className="text-[#c9d1d9]">Below prediction (&gt;2%)</span>
           </div>
@@ -54,7 +54,7 @@ function AccuracyLegend() {
           <span className="inline-flex items-center gap-1">
             <span
               className="w-1.5 h-1.5 rounded-full"
-              style={{ backgroundColor: ACCURACY_COLORS.green, boxShadow: `0 0 4px ${ACCURACY_COLORS.green}, 0 0 8px ${ACCURACY_COLORS.green}` }}
+              style={{ backgroundColor: ACCURACY_COLORS.green }}
             />
             indicates price was within predicted range
           </span>
@@ -113,24 +113,21 @@ export function HorizonsList({ blocks, currentHorizonIndex }: HorizonsListProps)
                     {formatPrice(horizon.close)}
                   </span>
                   {/* Variance badge for settled horizons */}
-                  {horizon.status === 'settled' && horizon.variance_pct !== undefined && (() => {
-                    const style = getVarianceStyle(horizon.variance_pct, horizon.in_range);
-                    return (
-                      <span
-                        className="font-mono text-[10px] shrink-0 flex items-center gap-0.5 font-semibold"
-                        style={{ color: style.color, textShadow: style.textShadow }}
-                        title={horizon.in_range ? 'In range' : 'Out of range'}
-                      >
-                        {horizon.in_range && (
-                          <span
-                            className="w-1.5 h-1.5 rounded-full"
-                            style={{ backgroundColor: ACCURACY_COLORS.green, boxShadow: `0 0 4px ${ACCURACY_COLORS.green}, 0 0 8px ${ACCURACY_COLORS.green}` }}
-                          />
-                        )}
-                        {formatPercentCorrect(horizon.variance_pct)}
-                      </span>
-                    );
-                  })()}
+                  {horizon.status === 'settled' && horizon.variance_pct !== undefined && (
+                    <span
+                      className="font-mono text-[10px] shrink-0 flex items-center gap-0.5 font-bold"
+                      style={{ color: getVarianceColor(horizon.variance_pct, horizon.in_range) }}
+                      title={horizon.in_range ? 'In range' : 'Out of range'}
+                    >
+                      {horizon.in_range && (
+                        <span
+                          className="w-1.5 h-1.5 rounded-full"
+                          style={{ backgroundColor: ACCURACY_COLORS.green }}
+                        />
+                      )}
+                      {formatPercentCorrect(horizon.variance_pct)}
+                    </span>
+                  )}
                   <span
                     className={`px-2 py-0.5 rounded-xl text-[11px] font-medium shrink-0 ${
                       horizon.status === 'settled'
