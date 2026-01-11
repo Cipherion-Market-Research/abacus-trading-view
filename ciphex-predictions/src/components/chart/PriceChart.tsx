@@ -75,6 +75,21 @@ const DEFAULT_INDICATOR_VISIBILITY: IndicatorVisibility = {
 // localStorage key for persisting preferences
 const INDICATOR_PREFS_KEY = 'ciphex-indicator-visibility';
 const EXCHANGE_PREFS_KEY = 'ciphex-exchange-visibility';
+const LEGEND_SECTIONS_KEY = 'ciphex-legend-sections';
+
+// Legend section collapse state
+interface LegendSectionState {
+  predictions: boolean; // true = expanded, false = collapsed
+  technicals: boolean;  // true = expanded, false = collapsed
+  exchanges: boolean;   // true = expanded, false = collapsed
+}
+
+// Default: predictions expanded, others collapsed to minimize legend height
+const DEFAULT_LEGEND_SECTIONS: LegendSectionState = {
+  predictions: true,
+  technicals: false,
+  exchanges: false,
+};
 
 // Exchange support flags
 interface ExchangeSupport {
@@ -1732,6 +1747,40 @@ interface ChartLegendProps {
 function ChartLegend({ visibility, onToggle, exchangeVisibility, onExchangeToggle, exchangeData }: ChartLegendProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // Section collapse state with localStorage persistence
+  const [sectionState, setSectionState] = useState<LegendSectionState>(() => {
+    // Initialize from localStorage if available (only runs on client)
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(LEGEND_SECTIONS_KEY);
+      if (saved) {
+        try {
+          return JSON.parse(saved) as LegendSectionState;
+        } catch {
+          // Invalid JSON, use defaults
+        }
+      }
+    }
+    return DEFAULT_LEGEND_SECTIONS;
+  });
+  const hasMountedRef = useRef(false);
+
+  // Track mount state and save section state to localStorage when it changes
+  useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return;
+    }
+    localStorage.setItem(LEGEND_SECTIONS_KEY, JSON.stringify(sectionState));
+  }, [sectionState]);
+
+  // Toggle section expand/collapse
+  const toggleSection = (section: keyof LegendSectionState) => {
+    setSectionState(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
   // Format large numbers with commas
   const formatPrice = (price: number) => {
     return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1739,6 +1788,16 @@ function ChartLegend({ visibility, onToggle, exchangeVisibility, onExchangeToggl
 
   // Count active indicators for badge
   const activeCount = Object.values(visibility).filter(Boolean).length;
+
+  // Count active exchanges for badge
+  const activeExchangeCount = Object.entries(exchangeVisibility).filter(
+    ([key, value]) => value && exchangeData?.support?.[key as keyof ExchangeSupport]
+  ).length;
+
+  // Count total available exchanges
+  const totalExchangeCount = exchangeData?.support
+    ? Object.values(exchangeData.support).filter(Boolean).length
+    : 0;
 
   return (
     <>
@@ -1905,75 +1964,169 @@ function ChartLegend({ visibility, onToggle, exchangeVisibility, onExchangeToggl
 
       {/* Desktop: Full legend (always visible) */}
       <div className="hidden md:block absolute top-3 left-3 bg-[#161b22]/90 border border-[#30363d] rounded-lg px-3.5 py-2.5 backdrop-blur-sm z-10">
-        <div className="text-[11px] text-[#8b949e] uppercase tracking-wider mb-2">
-          Prediction Bands
+        {/* Collapsible Prediction Bands Section */}
+        <button
+          onClick={() => toggleSection('predictions')}
+          className="w-full flex items-center justify-between mb-1 group cursor-pointer"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-[#8b949e] uppercase tracking-wider group-hover:text-[#c9d1d9] transition-colors">
+              Prediction Bands
+            </span>
+            {!sectionState.predictions && (
+              <div className="flex gap-1">
+                <div className="w-2 h-2 rounded-sm" style={{ background: COLORS.block1 }} />
+                <div className="w-2 h-2 rounded-sm" style={{ background: COLORS.block2 }} />
+                <div className="w-2 h-2 rounded-sm" style={{ background: COLORS.block3 }} />
+              </div>
+            )}
+          </div>
+          <svg
+            className={`w-3.5 h-3.5 text-[#8b949e] group-hover:text-[#c9d1d9] transition-all duration-200 ${
+              sectionState.predictions ? 'rotate-180' : ''
+            }`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {/* Prediction Bands content - collapsible */}
+        <div
+          className={`overflow-hidden transition-all duration-200 ease-out ${
+            sectionState.predictions ? 'max-h-32 opacity-100' : 'max-h-0 opacity-0'
+          }`}
+        >
+          <div className="flex items-center gap-2 text-xs mb-1">
+            <div
+              className="w-4 h-3 rounded-sm"
+              style={{ background: COLORS.block1Fill, borderColor: COLORS.block1, borderWidth: 1, borderStyle: 'solid' }}
+            />
+            <span>Outlook</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs mb-1">
+            <div
+              className="w-4 h-3 rounded-sm"
+              style={{ background: COLORS.block2Fill, borderColor: COLORS.block2, borderWidth: 1, borderStyle: 'solid' }}
+            />
+            <span>Continuation</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs mb-1">
+            <div
+              className="w-4 h-3 rounded-sm"
+              style={{ background: COLORS.block3Fill, borderColor: COLORS.block3, borderWidth: 1, borderStyle: 'solid' }}
+            />
+            <span>Persistence</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs mt-2 pt-2 border-t border-[#30363d]">
+            <div
+              className="w-4 h-0.5 rounded"
+              style={{ background: COLORS.mid }}
+            />
+            <span className="text-[#8b949e]">Mid Target</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2 text-xs mb-1">
-          <div
-            className="w-4 h-3 rounded-sm"
-            style={{ background: COLORS.block1Fill, borderColor: COLORS.block1, borderWidth: 1, borderStyle: 'solid' }}
+
+        {/* Collapsible Indicators Section */}
+        <button
+          onClick={() => toggleSection('technicals')}
+          className="w-full flex items-center justify-between mt-3 mb-1 group cursor-pointer"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-[#8b949e] uppercase tracking-wider group-hover:text-[#c9d1d9] transition-colors">
+              Indicators
+            </span>
+            {!sectionState.technicals && (
+              <span className="text-[9px] bg-[#30363d] text-[#8b949e] px-1.5 py-0.5 rounded">
+                {activeCount}/4
+              </span>
+            )}
+          </div>
+          <svg
+            className={`w-3.5 h-3.5 text-[#8b949e] group-hover:text-[#c9d1d9] transition-all duration-200 ${
+              sectionState.technicals ? 'rotate-180' : ''
+            }`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {/* Indicators content - collapsible */}
+        <div
+          className={`overflow-hidden transition-all duration-200 ease-out ${
+            sectionState.technicals ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'
+          }`}
+        >
+          <div className="text-[10px] text-[#8b949e] opacity-60 mb-1">(click to toggle)</div>
+          <IndicatorRow
+            color={COLORS.ema9}
+            label="EMA 9"
+            isVisible={visibility.ema9}
+            onToggle={() => onToggle('ema9')}
           />
-          <span>Outlook</span>
-        </div>
-        <div className="flex items-center gap-2 text-xs mb-1">
-          <div
-            className="w-4 h-3 rounded-sm"
-            style={{ background: COLORS.block2Fill, borderColor: COLORS.block2, borderWidth: 1, borderStyle: 'solid' }}
+
+          <IndicatorRow
+            color={COLORS.ema20}
+            label="EMA 20"
+            isVisible={visibility.ema20}
+            onToggle={() => onToggle('ema20')}
           />
-          <span>Continuation</span>
-        </div>
-        <div className="flex items-center gap-2 text-xs mb-1">
-          <div
-            className="w-4 h-3 rounded-sm"
-            style={{ background: COLORS.block3Fill, borderColor: COLORS.block3, borderWidth: 1, borderStyle: 'solid' }}
+
+          <IndicatorRow
+            color={COLORS.ema200}
+            label="EMA 200"
+            isVisible={visibility.ema200}
+            onToggle={() => onToggle('ema200')}
           />
-          <span>Persistence</span>
-        </div>
-        <div className="flex items-center gap-2 text-xs mt-2 pt-2 border-t border-[#30363d]">
-          <div
-            className="w-4 h-0.5 rounded"
-            style={{ background: COLORS.mid }}
+
+          <IndicatorRow
+            color=""
+            label="MACD"
+            isMACD
+            isVisible={visibility.macd}
+            onToggle={() => onToggle('macd')}
           />
-          <span className="text-[#8b949e]">Mid Target</span>
         </div>
 
-        <div className="text-[11px] text-[#8b949e] uppercase tracking-wider mt-3 mb-2">
-          Indicators <span className="text-[10px] normal-case opacity-60">(click to toggle)</span>
-        </div>
+        {/* Collapsible Exchanges Section */}
+        <button
+          onClick={() => toggleSection('exchanges')}
+          className="w-full flex items-center justify-between mt-3 mb-1 group cursor-pointer"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-[#8b949e] uppercase tracking-wider group-hover:text-[#c9d1d9] transition-colors">
+              Exchanges
+            </span>
+            {!sectionState.exchanges && totalExchangeCount > 0 && (
+              <span className="text-[9px] bg-[#30363d] text-[#8b949e] px-1.5 py-0.5 rounded">
+                {activeExchangeCount}/{totalExchangeCount}
+              </span>
+            )}
+          </div>
+          <svg
+            className={`w-3.5 h-3.5 text-[#8b949e] group-hover:text-[#c9d1d9] transition-all duration-200 ${
+              sectionState.exchanges ? 'rotate-180' : ''
+            }`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
 
-        <IndicatorRow
-          color={COLORS.ema9}
-          label="EMA 9"
-          isVisible={visibility.ema9}
-          onToggle={() => onToggle('ema9')}
-        />
-
-        <IndicatorRow
-          color={COLORS.ema20}
-          label="EMA 20"
-          isVisible={visibility.ema20}
-          onToggle={() => onToggle('ema20')}
-        />
-
-        <IndicatorRow
-          color={COLORS.ema200}
-          label="EMA 200"
-          isVisible={visibility.ema200}
-          onToggle={() => onToggle('ema200')}
-        />
-
-        <IndicatorRow
-          color=""
-          label="MACD"
-          isMACD
-          isVisible={visibility.macd}
-          onToggle={() => onToggle('macd')}
-        />
-
-        {/* Exchange Overlays Section */}
-        <div className="text-[11px] text-[#8b949e] uppercase tracking-wider mt-3 mb-2">
-          Exchanges <span className="text-[10px] normal-case opacity-60">(click to toggle)</span>
-        </div>
+        {/* Exchanges content - collapsible */}
+        <div
+          className={`overflow-hidden transition-all duration-200 ease-out ${
+            sectionState.exchanges ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+          }`}
+        >
+          <div className="text-[10px] text-[#8b949e] opacity-60 mb-1">(click to toggle)</div>
 
         {/* Composite Index (TradingView-style TV:INDEX) */}
         {exchangeData?.support?.index && (
@@ -2199,6 +2352,7 @@ function ChartLegend({ visibility, onToggle, exchangeVisibility, onExchangeToggl
             )}
           </>
         )}
+        </div>
       </div>
     </>
   );
