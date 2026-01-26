@@ -446,7 +446,7 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
     // 9-period EMA line overlay
     const ema9Series = chart.addLineSeries({
       color: COLORS.ema9,
-      lineWidth: 2,
+      lineWidth: 1,
       priceLineVisible: false,
       lastValueVisible: true,
       title: 'EMA 9',
@@ -455,7 +455,7 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
     // 20-period EMA line overlay (short-term momentum on current timeframe)
     const ema20Series = chart.addLineSeries({
       color: COLORS.ema20,
-      lineWidth: 2,
+      lineWidth: 1,
       priceLineVisible: false,
       lastValueVisible: true,
       title: 'EMA 20',
@@ -464,17 +464,17 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
     // 200-period EMA line overlay (current timeframe)
     const ema200Series = chart.addLineSeries({
       color: COLORS.ema200,
-      lineWidth: 2,
+      lineWidth: 1,
       priceLineVisible: false,
       lastValueVisible: true,
       title: 'EMA 200',
     });
 
     // Exchange price overlay lines
-    // Composite Index first (gold, thicker line as it's the aggregated reference)
+    // Composite Index first (gold)
     const compositeIndexSeries = chart.addLineSeries({
       color: COLORS.composite_index,
-      lineWidth: 2,
+      lineWidth: 1,
       lineStyle: LineStyle.Solid,
       priceLineVisible: false,
       lastValueVisible: true,
