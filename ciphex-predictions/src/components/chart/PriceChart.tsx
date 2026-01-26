@@ -440,7 +440,8 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       lineWidth: 1,
       lineStyle: LineStyle.Dashed,
       priceLineVisible: false,
-      lastValueVisible: false,
+      lastValueVisible: true,
+      title: 'Peak HM Average',
     });
 
     // 9-period EMA line overlay
