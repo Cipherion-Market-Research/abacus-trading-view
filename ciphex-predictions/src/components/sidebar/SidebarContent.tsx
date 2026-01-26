@@ -65,7 +65,7 @@ export function SidebarContent({
   return (
     <>
       <div className="px-3 md:px-4 py-3 md:py-3.5 border-b border-[#30363d] flex justify-between items-center">
-        <h2 className="text-sm font-semibold text-[#f0f6fc]">Predictions</h2>
+        <h2 className="text-sm font-semibold text-[#f0f6fc]">Validations</h2>
         <span
           className={`px-2 py-0.5 rounded-xl text-[11px] font-medium ${
             loading

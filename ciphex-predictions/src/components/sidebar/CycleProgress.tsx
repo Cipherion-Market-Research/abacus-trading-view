@@ -90,7 +90,7 @@ export function CycleProgress({ predictions, cycle }: CycleProgressProps) {
           {timeRemaining}
         </div>
         <div className="text-[10px] text-[#8b949e] uppercase mt-0.5">
-          24H Prediction Remaining Cycle
+          24H Remaining Cycle
         </div>
       </div>
     </div>
