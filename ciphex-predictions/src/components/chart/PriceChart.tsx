@@ -821,6 +821,17 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
         return;
       }
 
+      // Only show prediction band labels when hovering over actual candle data
+      // This prevents drift/shift when hovering in the void area to the right of the last candle
+      const candleData = param.seriesData.get(series);
+      if (!candleData) {
+        setCrosshairBandValues({
+          high: null, low: null, mid: null,
+          highY: null, lowY: null, midY: null,
+        });
+        return;
+      }
+
       // Time can be a number (Unix timestamp) or a BusinessDay object
       // For our use case with Unix timestamps, we need to handle both
       const timestamp = typeof param.time === 'number' ? param.time : (param.time as { year: number; month: number; day: number }).year;
