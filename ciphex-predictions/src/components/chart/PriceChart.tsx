@@ -440,8 +440,7 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       lineWidth: 1,
       lineStyle: LineStyle.Dashed,
       priceLineVisible: false,
-      lastValueVisible: true,
-      title: 'Peak HM Average',
+      lastValueVisible: false,
     });
 
     // 9-period EMA line overlay
@@ -1639,14 +1638,15 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
         )}
         {crosshairBandValues.mid !== null && crosshairBandValues.midY !== null && (
           <div
-            className="absolute right-0 px-1.5 py-0.5 text-[11px] font-medium rounded-l pointer-events-none z-30 transition-opacity duration-75"
+            className="absolute right-0 px-1.5 py-0.5 text-[11px] font-medium rounded-l pointer-events-none z-30 transition-opacity duration-75 flex items-center gap-1.5"
             style={{
               top: crosshairBandValues.midY - 9,
               backgroundColor: COLORS.mid,
               color: '#ffffff',
             }}
           >
-            {formatPrice(crosshairBandValues.mid)}
+            <span className="opacity-80 text-[10px]">Peak HM Avg</span>
+            <span>{formatPrice(crosshairBandValues.mid)}</span>
           </div>
         )}
       </div>
