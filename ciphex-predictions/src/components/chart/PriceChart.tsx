@@ -738,7 +738,20 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
 
     // Sync main chart crosshair to MACD chart
     const handleMainCrosshairMove = (param: MouseEventParams<Time>) => {
-      if (isSyncingCrosshair.current || !macdSeriesRef.current) return;
+      if (isSyncingCrosshair.current || !macdSeriesRef.current || !candlestickSeriesRef.current) return;
+
+      // Only sync if hovering over actual candle data to prevent feedback loops in void area
+      const candleData = param.seriesData?.get(candlestickSeriesRef.current);
+      if (!candleData) {
+        // In void area - clear MACD crosshair without syncing
+        try {
+          macdChart.clearCrosshairPosition();
+        } catch {
+          // Chart may not be ready
+        }
+        return;
+      }
+
       isSyncingCrosshair.current = true;
 
       try {
@@ -814,17 +827,6 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
     const handleCrosshairMove = (param: MouseEventParams<Time>) => {
       if (!param.time || !param.point) {
         // Mouse left the chart, clear values
-        setCrosshairBandValues({
-          high: null, low: null, mid: null,
-          highY: null, lowY: null, midY: null,
-        });
-        return;
-      }
-
-      // Only show prediction band labels when hovering over actual candle data
-      // This prevents drift/shift when hovering in the void area to the right of the last candle
-      const candleData = param.seriesData.get(series);
-      if (!candleData) {
         setCrosshairBandValues({
           high: null, low: null, mid: null,
           highY: null, lowY: null, midY: null,
