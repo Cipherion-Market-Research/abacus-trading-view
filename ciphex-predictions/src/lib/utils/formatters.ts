@@ -52,8 +52,9 @@ export const ACCURACY_COLORS = {
 } as const;
 
 // Returns the appropriate bright color based on variance direction and in_range status
+// Green: within 3% or in range, Amber: within 5%, Red: outside 5%
 export function getVarianceColor(variance: number, inRange?: boolean): string {
-  if (variance >= 0 || inRange) return ACCURACY_COLORS.green;
-  if (variance >= -2) return ACCURACY_COLORS.yellow;
+  if (variance >= -3 || inRange) return ACCURACY_COLORS.green;
+  if (variance >= -5) return ACCURACY_COLORS.yellow;
   return ACCURACY_COLORS.red;
 }
