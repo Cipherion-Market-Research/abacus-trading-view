@@ -1,6 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
+
+// Isomorphic layout effect to avoid SSR warnings
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 import { PredictionData } from '@/types';
 
 interface UsePredictionsOptions {
@@ -57,9 +60,10 @@ export function usePredictions({
   }, [assetId]);
 
   // Clear predictions immediately when assetId changes to prevent showing stale data
-  useEffect(() => {
+  // Using layout effect to clear before paint (prevents "new selection + old data" paint)
+  useIsomorphicLayoutEffect(() => {
     if (prevAssetIdRef.current !== assetId) {
-      // Asset changed - clear old predictions immediately
+      // Asset changed - clear old predictions before paint
       setPredictions(null);
       prevAssetIdRef.current = assetId;
     }

@@ -164,6 +164,7 @@ interface PriceChartProps {
   interval?: '15s' | '1m' | '15m' | '1h';
   refreshKey?: number;  // Increments to trigger visible range recalculation
   exchangeData?: ExchangePriceData;  // Exchange price overlays
+  chartContextKey?: string;  // Unique key for asset+interval+effectiveSource context
 }
 
 // Check if a timestamp falls within Regular Trading Hours (9:30 AM - 4:00 PM ET)
@@ -203,7 +204,7 @@ const INTERVAL_BAR_SPACING: Record<string, { barSpacing: number; minBarSpacing: 
 };
 
 
-export function PriceChart({ candles, predictions, blocks, className, assetType, interval = '1m', refreshKey = 0, exchangeData }: PriceChartProps) {
+export function PriceChart({ candles, predictions, blocks, className, assetType, interval = '1m', refreshKey = 0, exchangeData, chartContextKey }: PriceChartProps) {
   // Main chart container and refs
   const containerRef = useRef<HTMLDivElement>(null);
   const mainContainerRef = useRef<HTMLDivElement>(null);
@@ -339,6 +340,8 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
   const lastRefreshKeyRef = useRef<number>(refreshKey);
   // Track pending timeout for visible range setting (to cancel stale ones)
   const visibleRangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Track the last chart context key to detect asset/interval/source changes
+  const lastChartContextKeyRef = useRef<string | undefined>(undefined);
 
   // Initialize main price chart
   useEffect(() => {
@@ -1353,10 +1356,41 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
   // Set visible range when interval changes or on initial load
   // ALWAYS show the most recent candles when switching intervals
   useEffect(() => {
-    if (!chartRef.current) return;
+    // Helper to safely cancel pending timeout
+    const cancelPendingTimeout = () => {
+      if (visibleRangeTimeoutRef.current) {
+        clearTimeout(visibleRangeTimeoutRef.current);
+        visibleRangeTimeoutRef.current = null;
+      }
+    };
+
+    if (!chartRef.current) {
+      cancelPendingTimeout();  // Cancel on early return
+      return;
+    }
 
     const expectedIntervalSeconds = INTERVAL_TO_SECONDS[interval] || 60;
     const useRealtimeView = interval === '15s' || interval === '1m';
+
+    // Detect chart context change (asset, interval, or effective data source)
+    const contextChanged = chartContextKey !== undefined &&
+                           lastChartContextKeyRef.current !== undefined &&
+                           lastChartContextKeyRef.current !== chartContextKey;
+
+    if (contextChanged) {
+      // Reset state for new context
+      hasSetInitialRangeRef.current = false;
+      chartRef.current.timeScale().resetTimeScale();
+      cancelPendingTimeout();
+      lastChartContextKeyRef.current = chartContextKey;
+      // CRITICAL: Return immediately to avoid setting range with stale data
+      return;
+    }
+
+    // Update ref on first render
+    if (lastChartContextKeyRef.current === undefined) {
+      lastChartContextKeyRef.current = chartContextKey;
+    }
 
     // Check if interval changed
     const intervalChanged = lastIntervalRef.current !== interval;
@@ -1373,36 +1407,40 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       hasSetInitialRangeRef.current = false;
       lastIntervalRef.current = interval;
       chartRef.current.timeScale().resetTimeScale();
-      // Cancel any pending timeout from previous interval
-      if (visibleRangeTimeoutRef.current) {
-        clearTimeout(visibleRangeTimeoutRef.current);
-        visibleRangeTimeoutRef.current = null;
-      }
+      cancelPendingTimeout();
     }
 
     // Need candle data to proceed
-    if (candles.length < 2) return;
+    if (candles.length < 2) {
+      cancelPendingTimeout();  // Cancel on early return
+      return;
+    }
 
     // CRITICAL: Verify candles match the expected interval before setting range
     const sortedCandles = [...candles].sort((a, b) => a.time - b.time);
     const recentGap = sortedCandles[sortedCandles.length - 1].time - sortedCandles[sortedCandles.length - 2].time;
 
     const isCorrectInterval = recentGap >= expectedIntervalSeconds * 0.5 && recentGap <= expectedIntervalSeconds * 2;
-    if (!isCorrectInterval) return;
+    if (!isCorrectInterval) {
+      cancelPendingTimeout();  // Cancel on early return
+      return;
+    }
 
     // Skip if we've already set the range for this data (preserve user pan/zoom)
-    if (hasSetInitialRangeRef.current) return;
+    if (hasSetInitialRangeRef.current) {
+      cancelPendingTimeout();  // Cancel on early return
+      return;
+    }
 
     // For 15m/1h, WAIT until predictions are loaded before setting range
     // This prevents the race condition where candle-based range is set first
     if (!useRealtimeView && predictions.length === 0) {
+      cancelPendingTimeout();  // Cancel on early return
       return; // Don't set any range yet, wait for predictions
     }
 
     // Cancel any pending timeout before scheduling a new one
-    if (visibleRangeTimeoutRef.current) {
-      clearTimeout(visibleRangeTimeoutRef.current);
-    }
+    cancelPendingTimeout();
 
     // Use setTimeout to ensure chart and data are ready
     // Using 300ms to allow chart to stabilize after all data loading completes
@@ -1564,7 +1602,7 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
         visibleRangeTimeoutRef.current = null;
       }
     };
-  }, [candles, predictions, blocks, interval, refreshKey, indicatorVisibility.macd]);
+  }, [candles, predictions, blocks, interval, refreshKey, indicatorVisibility.macd, chartContextKey]);
 
   // Format price for display
   const formatPrice = (price: number) => {

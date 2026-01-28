@@ -86,6 +86,19 @@ export default function Dashboard() {
     return binanceCandles;
   }, [dataSource, abacusAssetId, abacusCandles, binanceCandles]);
 
+  // Compute effective data source (Abacus only when supported)
+  const effectiveDataSource = useMemo(() => {
+    if (dataSource === 'abacus' && abacusAssetId !== null) {
+      return 'abacus';
+    }
+    return 'binance';
+  }, [dataSource, abacusAssetId]);
+
+  // Create context key for chart to detect asset/interval/source changes
+  const chartContextKey = useMemo(() => {
+    return `${selectedAssetId}-${selectedInterval}-${effectiveDataSource}`;
+  }, [selectedAssetId, selectedInterval, effectiveDataSource]);
+
   // Streaming status based on selected source
   const streaming = dataSource === 'abacus' ? abacusStreaming : binanceStreaming;
 
@@ -308,6 +321,8 @@ export default function Dashboard() {
 
   const handleAssetChange = useCallback((assetId: string) => {
     setSelectedAssetId(assetId);
+    // Trigger chart reset on asset change (matches interval/dataSource behavior)
+    setChartRefreshKey((prev) => prev + 1);
     // Reset to Binance when switching to an asset that doesn't support Abacus
     // (abacusAssetId will be null for non-BTC/ETH assets)
     const asset = getAssetById(assetId);
@@ -445,6 +460,7 @@ export default function Dashboard() {
             interval={selectedInterval}
             refreshKey={chartRefreshKey}
             exchangeData={exchangeData}
+            chartContextKey={chartContextKey}
           />
         </div>
 

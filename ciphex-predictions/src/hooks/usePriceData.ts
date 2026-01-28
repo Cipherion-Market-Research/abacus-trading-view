@@ -1,6 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
+
+// Isomorphic layout effect to avoid SSR warnings
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 import { Candle, Interval } from '@/types';
 
 // Binance WebSocket URL for kline streams
@@ -118,8 +121,9 @@ export function usePriceData({
 
   // Fetch prices on mount and when interval/symbol changes
   // Clear existing candles first to avoid mixing different interval data
-  useEffect(() => {
-    setCandles([]); // Clear old data immediately
+  // Using layout effect to clear before paint (prevents showing stale data)
+  useIsomorphicLayoutEffect(() => {
+    setCandles([]); // Clear old data before paint (in browser)
     fetchPrices();
   }, [fetchPrices]);
 
