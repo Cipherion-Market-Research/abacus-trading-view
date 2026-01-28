@@ -1381,6 +1381,12 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       // Reset state for new context
       hasSetInitialRangeRef.current = false;
       chartRef.current.timeScale().resetTimeScale();
+      // Re-enable Y-axis auto-scale (user may have manually scaled on previous asset)
+      chartRef.current.priceScale('right').applyOptions({ autoScale: true });
+      // Also reset MACD panel's Y-scale if present
+      if (macdChartRef.current) {
+        macdChartRef.current.priceScale('right').applyOptions({ autoScale: true });
+      }
       cancelPendingTimeout();
       lastChartContextKeyRef.current = chartContextKey;
       // CRITICAL: Return immediately to avoid setting range with stale data
