@@ -29,3 +29,21 @@ export interface PredictionData {
   cycle: CycleInfo;
   allPredictions: Horizon[];
 }
+
+// Horizon marker model for x-axis markers
+export interface HorizonMarkerModel {
+  id: string;                    // `${blockIndex}:${horizonIndex}`
+  time: number;                  // Original horizon time (unix seconds)
+  timeSnapped: number;           // Snapped to chart grid
+  blockIndex: number;            // 0, 1, 2
+  blockLabel: string;            // 'Outlook', 'Continuation', 'Persistence'
+  status: 'settled' | 'pending';
+  direction: 'Up' | 'Down' | 'Neutral';
+  signal: 'Favorable' | 'Ideal' | 'Certain';
+  probability: number;
+  high: number;
+  close: number;                 // Target/mid
+  low: number;
+  variance_pct?: number;         // Settlement data
+  in_range?: boolean;            // Settlement data
+}

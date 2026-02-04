@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   createChart,
   IChartApi,
@@ -15,8 +15,10 @@ import {
   Time,
   MouseEventParams,
 } from 'lightweight-charts';
-import { Candle, Horizon, Block, ExchangePricePoint, ExchangeVisibility, DEFAULT_EXCHANGE_VISIBILITY } from '@/types';
+import { Candle, Horizon, Block, ExchangePricePoint, ExchangeVisibility, DEFAULT_EXCHANGE_VISIBILITY, HorizonMarkerModel } from '@/types';
 import { calculateMACD, calculateEMA } from '@/lib/indicators';
+import { BLOCK_LABELS, INTERVAL_TO_SECONDS as SHARED_INTERVAL_TO_SECONDS } from '@/lib/chart-constants';
+import HorizonMarkers, { MarkerContent } from './HorizonMarkers';
 
 // localStorage key for persisting MACD panel height
 const MACD_PANEL_HEIGHT_KEY = 'ciphex-macd-panel-height';
@@ -224,6 +226,19 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
   const [isDraggingDivider, setIsDraggingDivider] = useState(false);
   const dividerDragStartY = useRef<number>(0);
   const dividerDragStartHeight = useRef<number>(0);
+
+  // Viewport version state - incremented on pan/zoom/resize to trigger HorizonMarkers re-render
+  const [viewportVersion, setViewportVersion] = useState(0);
+
+  // State for horizon hover from chart crosshair (desktop only)
+  const [hoveredHorizon, setHoveredHorizon] = useState<{
+    marker: HorizonMarkerModel;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  // Track when chart is ready (ref changes don't trigger re-render)
+  const [isChartReady, setIsChartReady] = useState(false);
 
   // Refs to prevent infinite sync loops between charts
   const isSyncingTimeScale = useRef(false);
@@ -590,6 +605,9 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
     ema20SeriesRef.current = ema20Series;
     ema200SeriesRef.current = ema200Series;
     compositeIndexSeriesRef.current = compositeIndexSeries;
+
+    // Mark chart as ready to trigger re-render for HorizonMarkers
+    setIsChartReady(true);
     htxSeriesRef.current = htxSeries;
     coinbaseSeriesRef.current = coinbaseSeries;
     geminiSeriesRef.current = geminiSeries;
@@ -698,12 +716,12 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       macdChartRef.current = null;
       macdSeriesRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- MACD chart recreated when visibility changes
-  }, [indicatorVisibility.macd]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- MACD chart recreated when visibility or interval changes
+  }, [indicatorVisibility.macd, interval]);
 
   // Sync time scales between main chart and MACD chart
   // ONE-WAY SYNC: Main chart controls, MACD follows
-  // Uses LOGICAL range sync now that MACD has placeholder points at prediction timestamps
+  // Uses LOGICAL range sync to ensure bar widths match between charts
   useEffect(() => {
     if (!chartRef.current || !macdChartRef.current || !indicatorVisibility.macd) return;
 
@@ -711,9 +729,8 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
     const macdChart = macdChartRef.current;
 
     // Sync main chart time scale changes to MACD chart (main → MACD)
-    // Using logical range (bar indices) - works because both charts now have
-    // data points at the same timestamps (MACD has invisible placeholders for future)
-    const handleMainTimeRangeChange = (logicalRange: { from: number; to: number } | null) => {
+    // Uses logical range (bar indices) to ensure identical bar widths
+    const handleMainLogicalRangeChange = (logicalRange: { from: number; to: number } | null) => {
       // Skip sync during initial setup or data updates (prevents range reset on exchange toggle)
       if (isSyncingTimeScale.current || isSettingInitialRange.current || isUpdatingData.current || !logicalRange) return;
       isSyncingTimeScale.current = true;
@@ -725,12 +742,12 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       isSyncingTimeScale.current = false;
     };
 
-    mainChart.timeScale().subscribeVisibleLogicalRangeChange(handleMainTimeRangeChange);
+    mainChart.timeScale().subscribeVisibleLogicalRangeChange(handleMainLogicalRangeChange);
 
     return () => {
-      mainChart.timeScale().unsubscribeVisibleLogicalRangeChange(handleMainTimeRangeChange);
+      mainChart.timeScale().unsubscribeVisibleLogicalRangeChange(handleMainLogicalRangeChange);
     };
-  }, [indicatorVisibility.macd]);
+  }, [indicatorVisibility.macd, interval]);
 
   // Sync crosshair between main chart and MACD chart
   useEffect(() => {
@@ -795,7 +812,43 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       mainChart.unsubscribeCrosshairMove(handleMainCrosshairMove);
       macdChart.unsubscribeCrosshairMove(handleMacdCrosshairMove);
     };
-  }, [indicatorVisibility.macd]);
+  }, [indicatorVisibility.macd, interval]);
+
+  // Track viewport changes (pan/zoom/resize) for HorizonMarkers positioning
+  // Uses RAF-based throttling to prevent excessive re-renders
+  useEffect(() => {
+    if (!chartRef.current) return;
+
+    const chart = chartRef.current;
+    let rafId: number | null = null;
+
+    // Throttled viewport version update using requestAnimationFrame
+    const scheduleViewportUpdate = () => {
+      if (rafId !== null) return; // Already scheduled
+      rafId = requestAnimationFrame(() => {
+        setViewportVersion(v => v + 1);
+        rafId = null;
+      });
+    };
+
+    // Subscribe to visible range changes (pan/zoom)
+    chart.timeScale().subscribeVisibleLogicalRangeChange(scheduleViewportUpdate);
+
+    // Also listen for resize via ResizeObserver on main container
+    let resizeObserver: ResizeObserver | null = null;
+    if (mainContainerRef.current) {
+      resizeObserver = new ResizeObserver(scheduleViewportUpdate);
+      resizeObserver.observe(mainContainerRef.current);
+    }
+
+    return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      chart.timeScale().unsubscribeVisibleLogicalRangeChange(scheduleViewportUpdate);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+    };
+  }, []);
 
   // Update timeScale settings when interval changes (for proper bar spacing)
   useEffect(() => {
@@ -904,16 +957,17 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       return;
     }
 
-    // Show all candles (no filtering) so they match MACD/EMA data range
-    // The visible range is controlled separately, allowing users to scroll for more history
-    let filteredCandles = candles;
+    // Sort candles by time - lightweight-charts requires sorted data for correct behavior
+    // Both candlestick and MACD must use the same sorted data for logical range sync to work
+    const sortedAllCandles = [...candles].sort((a, b) => a.time - b.time);
 
     // For stocks, filter to RTH only (9:30 AM - 4:00 PM ET)
+    let sortedFilteredCandles = sortedAllCandles;
     if (assetType === 'stock') {
-      filteredCandles = filteredCandles.filter((c) => isWithinRTH(c.time));
+      sortedFilteredCandles = sortedAllCandles.filter((c) => isWithinRTH(c.time));
     }
 
-    const candleData: CandlestickData<Time>[] = filteredCandles.map((c) => ({
+    const candleData: CandlestickData<Time>[] = sortedFilteredCandles.map((c) => ({
       time: c.time as Time,
       open: c.open,
       high: c.high,
@@ -922,9 +976,6 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
     }));
 
     candlestickSeriesRef.current.setData(candleData);
-
-    // Calculate indicators from ALL candles for accurate values
-    const sortedAllCandles = [...candles].sort((a, b) => a.time - b.time);
     const closesForIndicators = sortedAllCandles.map((c) => ({ time: c.time, close: c.close }));
 
     // MACD histogram - show/hide based on visibility (separate chart)
@@ -934,6 +985,33 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       // Create a Map of MACD data by timestamp for quick lookup
       const macdByTime = new Map(macdData.map(m => [m.time, m]));
 
+      // Helper to calculate color with intensity based on absolute MACD value
+      // |value| >= 50: FULL saturated color
+      // |value| < 50: gradient from light (near 0) to full (at 50)
+      const getIntensityColor = (value: number, isPositive: boolean): string => {
+        const absValue = Math.abs(value);
+
+        // Full saturation at 50+, gradient below that
+        const intensity = absValue >= 50 ? 1.0 : 0.2 + (absValue / 50) * 0.8;
+
+        // Blend toward white for lighter colors
+        const blendFactor = 1 - intensity;
+
+        if (isPositive) {
+          // Green: #0ECB81 = rgb(14, 203, 129)
+          const r = Math.round(14 + (255 - 14) * blendFactor);
+          const g = Math.round(203 + (255 - 203) * blendFactor);
+          const b = Math.round(129 + (255 - 129) * blendFactor);
+          return `rgb(${r}, ${g}, ${b})`;
+        } else {
+          // Red: #F6465D = rgb(246, 70, 93)
+          const r = Math.round(246 + (255 - 246) * blendFactor);
+          const g = Math.round(70 + (255 - 70) * blendFactor);
+          const b = Math.round(93 + (255 - 93) * blendFactor);
+          return `rgb(${r}, ${g}, ${b})`;
+        }
+      };
+
       // Build MACD histogram data with placeholders at ALL candle + prediction timestamps
       // This ensures bar indices match between main chart and MACD chart
       const macdHistogramData: HistogramData<Time>[] = [];
@@ -942,11 +1020,11 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       for (const candle of sortedAllCandles) {
         const macdPoint = macdByTime.get(candle.time);
         if (macdPoint) {
-          // Real MACD data
+          // Real MACD data with intensity-based color
           macdHistogramData.push({
             time: candle.time as Time,
             value: macdPoint.histogram,
-            color: macdPoint.histogram >= 0 ? COLORS.macdPositive : COLORS.macdNegative,
+            color: getIntensityColor(macdPoint.histogram, macdPoint.histogram >= 0),
           });
         } else {
           // Warm-up period - invisible placeholder
@@ -958,7 +1036,10 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
         }
       }
 
-      // Add placeholders for prediction timestamps (future)
+      // Add placeholders at prediction timestamps (15m/1h only)
+      // This ensures MACD has data at the same future timestamps as the main chart's prediction bands
+      // which is required for logical range sync to work correctly
+      // NOTE: Do NOT add placeholders for 15s/1m - they don't have prediction bands
       if (predictions.length > 0) {
         const lastCandleTime = sortedAllCandles.length > 0
           ? sortedAllCandles[sortedAllCandles.length - 1].time
@@ -1022,6 +1103,8 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
     updateDataTimeoutRef.current = setTimeout(() => {
       isUpdatingData.current = false;
       updateDataTimeoutRef.current = null;
+      // Note: MACD sync is handled by the visible range effect, not here
+      // Syncing here would happen before main chart's visible range is set
     }, 150);
   }, [candles, predictions, assetType, interval, indicatorVisibility]);
 
@@ -1043,6 +1126,40 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
     // Get support flags (default to false if not provided)
     const support = exchangeData?.support;
 
+    // Build a set of candle timestamps for resampling exchange data
+    // This ensures exchange overlays don't add extra time scale points (which breaks MACD sync)
+    const candleTimestamps = new Set(candles.map(c => c.time));
+    const sortedCandleTimes = [...candleTimestamps].sort((a, b) => a - b);
+    const intervalSeconds = INTERVAL_TO_SECONDS[interval] || 60;
+
+    // Helper to resample exchange price history to candle timestamps
+    // For each candle timestamp, find the most recent exchange price at or before that time
+    const resampleToCandles = (priceHistory: { time: number; price: number }[] | undefined): { time: number; price: number }[] => {
+      if (!priceHistory?.length || !sortedCandleTimes.length) return [];
+
+      // Sort price history by time
+      const sortedPrices = [...priceHistory].sort((a, b) => a.time - b.time);
+      const result: { time: number; price: number }[] = [];
+
+      let priceIdx = 0;
+      for (const candleTime of sortedCandleTimes) {
+        // Find the most recent price at or before this candle time
+        while (priceIdx < sortedPrices.length - 1 && sortedPrices[priceIdx + 1].time <= candleTime) {
+          priceIdx++;
+        }
+
+        // Only include if we have a price at or before this candle
+        if (priceIdx < sortedPrices.length && sortedPrices[priceIdx].time <= candleTime + intervalSeconds) {
+          result.push({
+            time: candleTime,
+            price: sortedPrices[priceIdx].price
+          });
+        }
+      }
+
+      return result;
+    };
+
     // Helper to update exchange series with proper lastValueVisible toggling
     // This ensures the y-axis price label is hidden when series has no data
     const updateExchangeSeries = (
@@ -1053,7 +1170,9 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       if (!seriesRef.current) return;
 
       if (shouldShow && priceHistory?.length) {
-        const lineData: LineData<Time>[] = priceHistory.map((p) => ({
+        // Resample to candle timestamps to prevent time scale bloat
+        const resampledHistory = resampleToCandles(priceHistory);
+        const lineData: LineData<Time>[] = resampledHistory.map((p) => ({
           time: p.time as Time,
           value: ensureNumber(p.price),
         }));
@@ -1139,7 +1258,7 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       isUpdatingData.current = false;
       updateDataTimeoutRef.current = null;
     }, 150);
-  }, [exchangeData, exchangeVisibility]);
+  }, [exchangeData, exchangeVisibility, candles, interval]);
 
   // Catmull-Rom spline interpolation for smooth curves through all data points
   // This creates natural-looking curves that pass through each prediction exactly
@@ -1353,6 +1472,103 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
     });
   }, [predictions, blocks, interpolatePredictions, interval]);
 
+  // Compute horizon markers for x-axis display
+  const horizonMarkers = useMemo<HorizonMarkerModel[]>(() => {
+    if (!blocks?.length) return [];
+
+    const intervalSeconds = INTERVAL_TO_SECONDS[interval] || 60;
+
+    return blocks.flatMap((block, blockIndex) =>
+      block.horizons.map((horizon, horizonIndex) => ({
+        id: `${blockIndex}:${horizonIndex}`,
+        time: horizon.time,
+        timeSnapped: Math.floor(horizon.time / intervalSeconds) * intervalSeconds,
+        blockIndex,
+        blockLabel: BLOCK_LABELS[blockIndex] || block.label,
+        status: horizon.status,
+        direction: horizon.direction,
+        signal: horizon.signal,
+        probability: horizon.probability,
+        high: horizon.high,
+        close: horizon.close,
+        low: horizon.low,
+        variance_pct: horizon.variance_pct,
+        in_range: horizon.in_range,
+      }))
+    );
+  }, [blocks, interval]);
+
+  // Build lookup map for horizon detection from chart crosshair
+  const horizonByTimeSnapped = useMemo(() => {
+    const map = new Map<number, HorizonMarkerModel>();
+    for (const marker of horizonMarkers) {
+      map.set(marker.timeSnapped, marker);
+    }
+    return map;
+  }, [horizonMarkers]);
+
+  // Detect when chart crosshair is over a horizon timestamp (desktop only)
+  useEffect(() => {
+    if (!chartRef.current || !horizonMarkers.length) return;
+
+    // Skip on touch devices - they use tap on dots
+    const isTouchDevice = typeof window !== 'undefined' &&
+      window.matchMedia('(pointer: coarse)').matches;
+    if (isTouchDevice) return;
+
+    const chart = chartRef.current;
+    const intervalSeconds = INTERVAL_TO_SECONDS[interval] || 60;
+
+    const handleCrosshairMove = (param: MouseEventParams<Time>) => {
+      // Ignore programmatic crosshair events (from MACD sync) - they don't have point
+      // Only process real mouse events
+      if (!param.point) {
+        return; // Don't clear hover - this is likely from sync, not mouse leaving
+      }
+
+      // Clear if mouse left chart (no time means cursor outside data area)
+      if (!param.time) {
+        setHoveredHorizon(null);
+        return;
+      }
+
+      const time = param.time as number;
+
+      // First try exact match
+      let marker = horizonByTimeSnapped.get(time);
+
+      // If no exact match, find nearest horizon within half an interval
+      if (!marker) {
+        const tolerance = intervalSeconds / 2;
+        let nearestDistance = Infinity;
+
+        for (const m of horizonMarkers) {
+          const distance = Math.abs(m.timeSnapped - time);
+          if (distance <= tolerance && distance < nearestDistance) {
+            nearestDistance = distance;
+            marker = m;
+          }
+        }
+      }
+
+      if (marker) {
+        setHoveredHorizon({
+          marker,
+          x: param.point.x,
+          y: param.point.y,
+        });
+      } else {
+        setHoveredHorizon(null);
+      }
+    };
+
+    chart.subscribeCrosshairMove(handleCrosshairMove);
+
+    return () => {
+      chart.unsubscribeCrosshairMove(handleCrosshairMove);
+    };
+  }, [horizonMarkers, horizonByTimeSnapped, interval]);
+
   // Set visible range when interval changes or on initial load
   // ALWAYS show the most recent candles when switching intervals
   useEffect(() => {
@@ -1383,12 +1599,15 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       chartRef.current.timeScale().resetTimeScale();
       // Re-enable Y-axis auto-scale (user may have manually scaled on previous asset)
       chartRef.current.priceScale('right').applyOptions({ autoScale: true });
-      // Also reset MACD panel's Y-scale if present
+      // Also reset MACD panel's Y-axis auto-scale if present
+      // Note: MACD timeScale sync is handled by the barSpacing effect and logical range subscription
       if (macdChartRef.current) {
         macdChartRef.current.priceScale('right').applyOptions({ autoScale: true });
       }
       cancelPendingTimeout();
       lastChartContextKeyRef.current = chartContextKey;
+      // Reset viewport tracking for horizon markers
+      setViewportVersion(0);
       // CRITICAL: Return immediately to avoid setting range with stale data
       return;
     }
@@ -1413,6 +1632,7 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       hasSetInitialRangeRef.current = false;
       lastIntervalRef.current = interval;
       chartRef.current.timeScale().resetTimeScale();
+      // Note: MACD timeScale sync is handled by the barSpacing effect and logical range subscription
       cancelPendingTimeout();
     }
 
@@ -1577,19 +1797,25 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
           to: rangeEnd as Time,
         });
 
-        // Also sync to MACD chart if it exists (using logical range for proper alignment)
+        // Sync MACD chart using logical range (for matching bar widths)
         if (macdChartRef.current && indicatorVisibility.macd) {
-          try {
-            const logicalRange = chartRef.current.timeScale().getVisibleLogicalRange();
-            if (logicalRange) {
-              macdChartRef.current.timeScale().setVisibleLogicalRange(logicalRange);
+          // Small delay to ensure main chart has processed the range
+          setTimeout(() => {
+            try {
+              if (!chartRef.current || !macdChartRef.current) return;
+              const logicalRange = chartRef.current.timeScale().getVisibleLogicalRange();
+              if (logicalRange) {
+                macdChartRef.current.timeScale().setVisibleLogicalRange(logicalRange);
+              }
+            } catch {
+              // MACD chart may not be ready
+            } finally {
+              isSettingInitialRange.current = false;
             }
-          } catch {
-            // MACD chart may not be ready
-          }
+          }, 50);
+        } else {
+          isSettingInitialRange.current = false;
         }
-
-        isSettingInitialRange.current = false;
       } catch {
         isSettingInitialRange.current = false;
         // Chart may not be ready yet
@@ -1640,6 +1866,8 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       setIsDraggingDivider(false);
       // Save to localStorage
       localStorage.setItem(MACD_PANEL_HEIGHT_KEY, macdPanelHeight.toString());
+      // Increment viewport version to update horizon marker positions
+      setViewportVersion(v => v + 1);
     };
 
     document.addEventListener('mousemove', handleMouseMove);
@@ -1704,6 +1932,31 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
           >
             <span className="opacity-80 text-[10px]">Peak HM Avg</span>
             <span>{formatPrice(crosshairBandValues.mid)}</span>
+          </div>
+        )}
+
+        {/* Horizon markers on x-axis */}
+        {isChartReady && chartRef.current && horizonMarkers.length > 0 && (
+          <HorizonMarkers
+            markers={horizonMarkers}
+            timeScale={chartRef.current.timeScale()}
+            containerWidth={mainContainerRef.current?.clientWidth || 0}
+            intervalSeconds={INTERVAL_TO_SECONDS[interval] || 60}
+            viewportVersion={viewportVersion}
+            markerShape="dot"
+          />
+        )}
+
+        {/* Floating horizon card when hovering over chart at horizon timestamp */}
+        {hoveredHorizon && (
+          <div
+            className="absolute z-50 pointer-events-none bg-[#161b22] border border-[#30363d] rounded-lg p-3 shadow-xl"
+            style={{
+              left: Math.min(hoveredHorizon.x + 12, (mainContainerRef.current?.clientWidth || 300) - 180),
+              top: Math.max(hoveredHorizon.y - 80, 10),
+            }}
+          >
+            <MarkerContent marker={hoveredHorizon.marker} />
           </div>
         )}
       </div>

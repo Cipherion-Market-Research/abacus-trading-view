@@ -147,3 +147,26 @@
 .pr-safe {
   padding-right: env(safe-area-inset-right, 0px);
 }
+
+/* Subtle pulse animation for pending horizon markers */
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-subtle {
+    animation: none;
+  }
+}
