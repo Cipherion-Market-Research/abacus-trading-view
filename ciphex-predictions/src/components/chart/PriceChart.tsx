@@ -760,15 +760,12 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
     const handleMainCrosshairMove = (param: MouseEventParams<Time>) => {
       if (isSyncingCrosshair.current || !macdSeriesRef.current || !candlestickSeriesRef.current) return;
 
-      // Only sync if hovering over actual candle data to prevent feedback loops in void area
+      // Check if hovering over actual candle data
       const candleData = param.seriesData?.get(candlestickSeriesRef.current);
       if (!candleData) {
-        // In void area - clear MACD crosshair without syncing
-        try {
-          macdChart.clearCrosshairPosition();
-        } catch {
-          // Chart may not be ready
-        }
+        // No candle data at this position (e.g., past horizons, future area)
+        // Don't clear MACD crosshair here - doing so triggers a cascade that
+        // clears the main chart hover state and causes horizon hover card flicker
         return;
       }
 
@@ -787,30 +784,12 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       isSyncingCrosshair.current = false;
     };
 
-    // Sync MACD chart crosshair to main chart
-    const handleMacdCrosshairMove = (param: MouseEventParams<Time>) => {
-      if (isSyncingCrosshair.current || !candlestickSeriesRef.current) return;
-      isSyncingCrosshair.current = true;
-
-      try {
-        if (param.time) {
-          mainChart.setCrosshairPosition(0, param.time, candlestickSeriesRef.current);
-        } else {
-          mainChart.clearCrosshairPosition();
-        }
-      } catch {
-        // Series may not have data yet
-      }
-
-      isSyncingCrosshair.current = false;
-    };
-
+    // One-way sync only: main chart drives MACD crosshair
+    // MACD → main sync removed to prevent hover card flicker from programmatic clears
     mainChart.subscribeCrosshairMove(handleMainCrosshairMove);
-    macdChart.subscribeCrosshairMove(handleMacdCrosshairMove);
 
     return () => {
       mainChart.unsubscribeCrosshairMove(handleMainCrosshairMove);
-      macdChart.unsubscribeCrosshairMove(handleMacdCrosshairMove);
     };
   }, [indicatorVisibility.macd, interval]);
 
