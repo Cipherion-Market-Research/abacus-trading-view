@@ -4,6 +4,7 @@ import { useMemo, useState, useCallback } from 'react';
 import { ITimeScaleApi, Time } from 'lightweight-charts';
 import { HorizonMarkerModel } from '@/types/predictions';
 import { BLOCK_COLORS, BLOCK_LABELS } from '@/lib/chart-constants';
+import { getVarianceColor, formatPercentCorrect, ACCURACY_COLORS } from '@/lib/utils/formatters';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
@@ -95,16 +96,19 @@ export function MarkerContent({ marker }: { marker: HorizonMarkerModel }) {
       {/* Settlement data if available */}
       {marker.status === 'settled' && marker.variance_pct !== undefined && (
         <div className="pt-1 border-t border-[#30363d] space-y-0.5">
-          <div className="flex justify-between">
-            <span className="text-[#8b949e]">Variance:</span>
-            <span className={marker.in_range ? 'text-[#0ECB81]' : 'text-[#F6465D]'}>
-              {marker.variance_pct.toFixed(2)}%
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-[#8b949e]">In Range:</span>
-            <span className={marker.in_range ? 'text-[#0ECB81]' : 'text-[#F6465D]'}>
-              {marker.in_range ? 'Yes' : 'No'}
+          <div className="flex justify-between items-center">
+            <span className="text-[#8b949e]">Accuracy:</span>
+            <span
+              className="font-mono font-bold flex items-center gap-1"
+              style={{ color: getVarianceColor(marker.variance_pct, marker.in_range) }}
+            >
+              {marker.in_range && (
+                <span
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: ACCURACY_COLORS.green }}
+                />
+              )}
+              {formatPercentCorrect(marker.variance_pct)}
             </span>
           </div>
         </div>
