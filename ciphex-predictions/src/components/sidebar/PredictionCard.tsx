@@ -20,7 +20,7 @@ export function PredictionCard({ prediction, isNext }: PredictionCardProps) {
       }`}
     >
       <h3 className="text-[11px] text-[#8b949e] uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-        {isNext ? 'Next Prediction' : 'Latest Prediction'}
+        {isNext ? 'Next Validation' : 'Latest Validation'}
         <span className="bg-[#238636] text-white px-1.5 py-0.5 rounded text-[9px]">
           {prediction.signal}
         </span>
