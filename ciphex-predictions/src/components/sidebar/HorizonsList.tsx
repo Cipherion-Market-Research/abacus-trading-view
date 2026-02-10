@@ -109,6 +109,14 @@ export function HorizonsList({ blocks, currentHorizonIndex }: HorizonsListProps)
                   } ${isPast ? 'opacity-70' : ''}`}
                 >
                   <span className="text-[#8b949e] shrink-0">{formatTime(horizon.time)}</span>
+                  {horizon.model_source === 'tts' && (
+                    <span
+                      className="px-1 py-0.5 rounded text-[8px] font-semibold uppercase shrink-0"
+                      style={{ color: '#c084fc', backgroundColor: 'rgba(168,85,247,0.2)' }}
+                    >
+                      TTS
+                    </span>
+                  )}
                   <span className="font-mono text-[#f0f6fc] flex-1 text-right">
                     {formatPrice(horizon.close)}
                   </span>

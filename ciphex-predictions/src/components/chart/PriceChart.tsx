@@ -15,7 +15,7 @@ import {
   Time,
   MouseEventParams,
 } from 'lightweight-charts';
-import { Candle, Horizon, Block, ExchangePricePoint, ExchangeVisibility, DEFAULT_EXCHANGE_VISIBILITY, HorizonMarkerModel } from '@/types';
+import { Candle, Horizon, Block, ExchangePricePoint, ExchangeVisibility, DEFAULT_EXCHANGE_VISIBILITY, HorizonMarkerModel, HistoricalBandData } from '@/types';
 import { calculateMACD, calculateEMA } from '@/lib/indicators';
 import { BLOCK_LABELS, INTERVAL_TO_SECONDS as SHARED_INTERVAL_TO_SECONDS } from '@/lib/chart-constants';
 import HorizonMarkers, { MarkerContent } from './HorizonMarkers';
@@ -167,6 +167,7 @@ interface PriceChartProps {
   refreshKey?: number;  // Increments to trigger visible range recalculation
   exchangeData?: ExchangePriceData;  // Exchange price overlays
   chartContextKey?: string;  // Unique key for asset+interval+effectiveSource context
+  historicalBands?: HistoricalBandData | null;  // Historical prediction bands (muted gray)
 }
 
 // Check if a timestamp falls within Regular Trading Hours (9:30 AM - 4:00 PM ET)
@@ -206,7 +207,7 @@ const INTERVAL_BAR_SPACING: Record<string, { barSpacing: number; minBarSpacing: 
 };
 
 
-export function PriceChart({ candles, predictions, blocks, className, assetType, interval = '1m', refreshKey = 0, exchangeData, chartContextKey }: PriceChartProps) {
+export function PriceChart({ candles, predictions, blocks, className, assetType, interval = '1m', refreshKey = 0, exchangeData, chartContextKey, historicalBands }: PriceChartProps) {
   // Main chart container and refs
   const containerRef = useRef<HTMLDivElement>(null);
   const mainContainerRef = useRef<HTMLDivElement>(null);
@@ -343,6 +344,10 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
     });
   };
 
+  // Historical band series (muted gray, rendered behind everything)
+  const histHighSeriesRef = useRef<ISeriesApi<'Area'> | null>(null);
+  const histLowSeriesRef = useRef<ISeriesApi<'Area'> | null>(null);
+
   // Per-block area series for colored bands (high fills + low masks)
   const blockHighSeriesRef = useRef<ISeriesApi<'Area'>[]>([]);
   const blockLowSeriesRef = useRef<ISeriesApi<'Area'>[]>([]);
@@ -417,6 +422,26 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       },
       width: mainContainerRef.current.clientWidth,
       height: mainContainerRef.current.clientHeight,
+    });
+
+    // Historical band series — created FIRST so they render behind everything
+    const histHighSeries = chart.addAreaSeries({
+      topColor: 'rgba(255,255,255,0.10)',
+      bottomColor: 'rgba(255,255,255,0.10)',
+      lineColor: 'rgba(255,255,255,0.25)',
+      lineWidth: 1,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false,
+    });
+    const histLowSeries = chart.addAreaSeries({
+      topColor: 'transparent',
+      bottomColor: 'transparent',
+      lineColor: 'rgba(255,255,255,0.25)',
+      lineWidth: 1,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false,
     });
 
     // Create 3 pairs of area series for block-colored bands
@@ -616,6 +641,8 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
     bitfinexSeriesRef.current = bitfinexSeries;
     cryptoComUsdSeriesRef.current = cryptoComUsdSeries;
     cryptoComUsdtSeriesRef.current = cryptoComUsdtSeries;
+    histHighSeriesRef.current = histHighSeries;
+    histLowSeriesRef.current = histLowSeries;
     blockHighSeriesRef.current = highSeries;
     blockLowSeriesRef.current = lowSeries;
     midLineSeriesRef.current = midLineSeries;
@@ -1451,6 +1478,51 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
     });
   }, [predictions, blocks, interpolatePredictions, interval]);
 
+  // Update historical band data (muted gray bands behind active cycle)
+  useEffect(() => {
+    if (!histHighSeriesRef.current || !histLowSeriesRef.current || !historicalBands) {
+      // Clear if no data
+      histHighSeriesRef.current?.setData([]);
+      histLowSeriesRef.current?.setData([]);
+      return;
+    }
+
+    const INTERVAL = INTERVAL_TO_SECONDS[interval] || 60;
+    const snapToGrid = (t: number) => Math.floor(t / INTERVAL) * INTERVAL;
+
+    // Flatten all cycles' horizons into a single sorted array
+    const allHorizons = historicalBands.cycles
+      .flatMap(cycle => cycle.horizons)
+      .sort((a, b) => a.time - b.time);
+
+    if (allHorizons.length === 0) {
+      histHighSeriesRef.current.setData([]);
+      histLowSeriesRef.current.setData([]);
+      return;
+    }
+
+    const highData: { time: Time; value: number }[] = [];
+    const lowData: { time: Time; value: number }[] = [];
+
+    for (const h of allHorizons) {
+      const snapped = snapToGrid(h.time);
+      highData.push({ time: snapped as Time, value: h.high });
+      lowData.push({ time: snapped as Time, value: h.low });
+    }
+
+    // Deduplicate by time (keep last value for each timestamp)
+    const dedup = (data: { time: Time; value: number }[]) => {
+      const map = new Map<number, { time: Time; value: number }>();
+      for (const d of data) {
+        map.set(d.time as number, d);
+      }
+      return [...map.values()].sort((a, b) => (a.time as number) - (b.time as number));
+    };
+
+    histHighSeriesRef.current.setData(dedup(highData) as AreaData<Time>[]);
+    histLowSeriesRef.current.setData(dedup(lowData) as AreaData<Time>[]);
+  }, [historicalBands, interval]);
+
   // Compute horizon markers for x-axis display
   const horizonMarkers = useMemo<HorizonMarkerModel[]>(() => {
     if (!blocks?.length) return [];
@@ -1473,6 +1545,8 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
         low: horizon.low,
         variance_pct: horizon.variance_pct,
         in_range: horizon.in_range,
+        model_source: horizon.model_source,
+        remaining_minutes: horizon.remaining_minutes,
       }))
     );
   }, [blocks, interval]);
@@ -1485,6 +1559,9 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
     }
     return map;
   }, [horizonMarkers]);
+
+  // Ref for debouncing horizon hover clear
+  const horizonHoverClearTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Detect when chart crosshair is over a horizon timestamp (desktop only)
   useEffect(() => {
@@ -1499,15 +1576,22 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
     const intervalSeconds = INTERVAL_TO_SECONDS[interval] || 60;
 
     const handleCrosshairMove = (param: MouseEventParams<Time>) => {
-      // Ignore programmatic crosshair events (from MACD sync) - they don't have point
-      // Only process real mouse events
-      if (!param.point) {
-        return; // Don't clear hover - this is likely from sync, not mouse leaving
+      // Cancel any pending clear
+      if (horizonHoverClearTimeout.current) {
+        clearTimeout(horizonHoverClearTimeout.current);
+        horizonHoverClearTimeout.current = null;
       }
 
-      // Clear if mouse left chart (no time means cursor outside data area)
+      // Ignore programmatic crosshair events (from MACD sync) - they don't have point
+      if (!param.point) {
+        return;
+      }
+
+      // If mouse left chart, debounce the clear to avoid flicker
       if (!param.time) {
-        setHoveredHorizon(null);
+        horizonHoverClearTimeout.current = setTimeout(() => {
+          setHoveredHorizon(null);
+        }, 100);
         return;
       }
 
@@ -1516,9 +1600,9 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       // First try exact match
       let marker = horizonByTimeSnapped.get(time);
 
-      // If no exact match, find nearest horizon within half an interval
+      // If no exact match, find nearest horizon within the interval
       if (!marker) {
-        const tolerance = intervalSeconds / 2;
+        const tolerance = intervalSeconds;
         let nearestDistance = Infinity;
 
         for (const m of horizonMarkers) {
@@ -1537,7 +1621,10 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
           y: param.point.y,
         });
       } else {
-        setHoveredHorizon(null);
+        // Debounce clear to prevent flicker from rapid events
+        horizonHoverClearTimeout.current = setTimeout(() => {
+          setHoveredHorizon(null);
+        }, 50);
       }
     };
 
@@ -1545,6 +1632,9 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
 
     return () => {
       chart.unsubscribeCrosshairMove(handleCrosshairMove);
+      if (horizonHoverClearTimeout.current) {
+        clearTimeout(horizonHoverClearTimeout.current);
+      }
     };
   }, [horizonMarkers, horizonByTimeSnapped, interval]);
 

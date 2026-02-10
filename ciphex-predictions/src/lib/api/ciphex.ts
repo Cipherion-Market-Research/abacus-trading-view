@@ -1,11 +1,11 @@
-import { PredictionData, Horizon, Block } from '@/types';
+import { PredictionData, Horizon, Block, HistoricalBandData, HistoricalCycle, HistoricalHorizon } from '@/types';
 
 const CIPHEX_API_URL = process.env.CIPHEX_API_URL || 'https://api.ciphex.io';
 const CIPHEX_API_KEY = process.env.CIPHEX_API_KEY || '';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function fetchDashboard(assetId: string): Promise<any> {
-  const response = await fetch(`${CIPHEX_API_URL}/v2/assets/${assetId}/dashboard`, {
+  const response = await fetch(`${CIPHEX_API_URL}/v2/assets/${assetId}/dashboard/hybrid`, {
     headers: {
       'Content-Type': 'application/json',
       'X-API-Key': CIPHEX_API_KEY,
@@ -66,6 +66,10 @@ export function transformDashboardResponse(dashboard: any): PredictionData {
           variance_pct: settlement.variance_pct,
           in_range: settlement.in_range,
         }),
+        // TTS hybrid fields
+        model_source: pred.model_source,
+        remaining_minutes: pred.remaining_minutes ?? null,
+        tts_metadata: pred.tts_metadata ?? null,
       };
 
       blockHorizons.push(h);
@@ -98,10 +102,108 @@ export function transformDashboardResponse(dashboard: any): PredictionData {
     cycle.currentHorizonIndex = allPredictions.length - 1;
   }
 
-  return { blocks, cycle, allPredictions };
+  // Extract hybrid metadata if present
+  const hybridMetadata = dashboard.hybrid_metadata
+    ? {
+        tts_eligible: dashboard.hybrid_metadata.tts_eligible,
+        tts_hybrid_enabled: dashboard.hybrid_metadata.tts_hybrid_enabled,
+        total_horizons: dashboard.hybrid_metadata.total_horizons,
+        tts_horizons: dashboard.hybrid_metadata.tts_horizons,
+        traditional_horizons: dashboard.hybrid_metadata.traditional_horizons,
+        tts_model_version: dashboard.hybrid_metadata.tts_model_version ?? null,
+        hybrid_generated_at: dashboard.hybrid_metadata.hybrid_generated_at ?? null,
+        asset_type: dashboard.hybrid_metadata.asset_type ?? null,
+      }
+    : undefined;
+
+  return { blocks, cycle, allPredictions, hybridMetadata };
 }
 
 export async function fetchPredictions(assetId: string): Promise<PredictionData> {
   const data = await fetchDashboard(assetId);
   return transformDashboardResponse(data);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function fetchHistory(assetId: string, days: number = 3): Promise<any> {
+  const response = await fetch(`${CIPHEX_API_URL}/v2/assets/${assetId}/dashboard/history?days=${days}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': CIPHEX_API_KEY,
+    },
+    next: { revalidate: 300 },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Ciphex History API error: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+// Transform history response: flatten cycles[].blocks[].horizons[] into HistoricalCycle.horizons[]
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function transformHistoryResponse(history: any): HistoricalBandData {
+  const cycles: HistoricalCycle[] = [];
+  let totalHorizonsSettled = 0;
+  let totalInRange = 0;
+
+  for (const cycle of history.cycles || []) {
+    const horizons: HistoricalHorizon[] = [];
+
+    for (const block of cycle.blocks || []) {
+      for (const horizon of block.horizons || []) {
+        // History endpoint puts prediction fields directly on horizon (no .prediction wrapper)
+        if (!horizon.low_range && !horizon.high_range) continue;
+
+        const timestamp = Math.floor(new Date(horizon.horizon_end_ts).getTime() / 1000);
+        const settlement = horizon.settlement;
+
+        const h: HistoricalHorizon = {
+          time: timestamp,
+          low: horizon.low_range,
+          high: horizon.high_range,
+          mid: horizon.hm_average,
+          in_range: settlement?.in_range ?? false,
+          variance_pct: settlement?.variance_pct ?? 0,
+          actual_price: settlement?.actual_price ?? 0,
+        };
+
+        horizons.push(h);
+        totalHorizonsSettled++;
+        if (h.in_range) totalInRange++;
+      }
+    }
+
+    horizons.sort((a, b) => a.time - b.time);
+
+    cycles.push({
+      cycleId: cycle.cycle_id || '',
+      cycleStart: cycle.cycle_start
+        ? Math.floor(new Date(cycle.cycle_start).getTime() / 1000)
+        : 0,
+      cycleEnd: cycle.cycle_end
+        ? Math.floor(new Date(cycle.cycle_end).getTime() / 1000)
+        : 0,
+      horizons,
+    });
+  }
+
+  cycles.sort((a, b) => a.cycleStart - b.cycleStart);
+
+  return {
+    cycles,
+    summary: {
+      totalCycles: cycles.length,
+      totalHorizonsSettled,
+      overallInRangePct: totalHorizonsSettled > 0
+        ? (totalInRange / totalHorizonsSettled) * 100
+        : 0,
+    },
+  };
+}
+
+export async function fetchHistoryData(assetId: string, days: number = 3): Promise<HistoricalBandData> {
+  const data = await fetchHistory(assetId, days);
+  return transformHistoryResponse(data);
 }

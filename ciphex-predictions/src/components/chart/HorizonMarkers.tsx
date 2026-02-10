@@ -85,6 +85,23 @@ export function MarkerContent({ marker }: { marker: HorizonMarkerModel }) {
         </div>
       </div>
 
+      {/* TTS model source badge */}
+      {marker.model_source === 'tts' && (
+        <div className="flex items-center gap-2 pt-1 border-t border-[#30363d]">
+          <span
+            className="px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase"
+            style={{ color: '#c084fc', backgroundColor: 'rgba(168,85,247,0.2)' }}
+          >
+            TTS
+          </span>
+          {marker.remaining_minutes != null && marker.remaining_minutes > 0 && (
+            <span className="text-[10px] text-[#c084fc]">
+              {marker.remaining_minutes}m to settle
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Direction and probability */}
       <div className="flex justify-between items-center pt-1 border-t border-[#30363d]">
         <span className="text-[#e6edf3]">
@@ -130,6 +147,7 @@ function HorizonMarker({
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const blockColor = BLOCK_COLORS[marker.blockIndex] || BLOCK_COLORS[0];
   const isPending = marker.status === 'pending';
+  const isTTS = marker.model_source === 'tts';
 
   // Marker visual element
   const markerElement = markerShape === 'dot' ? (
@@ -141,7 +159,9 @@ function HorizonMarker({
       `}
       style={{
         backgroundColor: blockColor,
-        boxShadow: `0 0 0 1px rgba(255,255,255,0.2)`,
+        boxShadow: isTTS
+          ? `0 0 0 2px #c084fc`
+          : `0 0 0 1px rgba(255,255,255,0.2)`,
         opacity: isPending ? 1 : 0.75,
       }}
       aria-label={`Horizon at ${formatTime(marker.time)}, target $${formatPrice(marker.close)}`}

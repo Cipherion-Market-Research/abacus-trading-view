@@ -8,4 +8,5 @@ export { useKrakenPrice } from './useKrakenPrice';
 export { useBitstampPrice } from './useBitstampPrice';
 export { useBitfinexPrice } from './useBitfinexPrice';
 export { useCompositeIndex } from './useCompositeIndex';
+export { useHistoricalBands } from './useHistoricalBands';
 export type { QuoteCurrency } from './useCryptoComPrice';

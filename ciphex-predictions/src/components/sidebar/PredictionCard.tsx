@@ -24,6 +24,14 @@ export function PredictionCard({ prediction, isNext }: PredictionCardProps) {
         <span className="bg-[#238636] text-white px-1.5 py-0.5 rounded text-[9px]">
           {prediction.signal}
         </span>
+        {prediction.model_source === 'tts' && (
+          <span
+            className="px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase"
+            style={{ color: '#c084fc', backgroundColor: 'rgba(168,85,247,0.2)' }}
+          >
+            TTS
+          </span>
+        )}
       </h3>
 
       <div className="space-y-1.5">
@@ -33,7 +41,14 @@ export function PredictionCard({ prediction, isNext }: PredictionCardProps) {
       </div>
 
       <div className="flex justify-between text-xs text-[#8b949e] pt-2.5 mt-2.5 border-t border-[#30363d]">
-        <span>{predTime.toLocaleTimeString()}</span>
+        <span className="flex items-center gap-1.5">
+          {predTime.toLocaleTimeString()}
+          {prediction.remaining_minutes != null && prediction.remaining_minutes > 0 && (
+            <span className="text-[10px] text-[#c084fc]">
+              {prediction.remaining_minutes}m to settle
+            </span>
+          )}
+        </span>
         <span
           className={`px-2 py-0.5 rounded-xl text-[11px] font-medium ${
             prediction.status === 'settled'

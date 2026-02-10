@@ -8,7 +8,7 @@ import { Sidebar } from '@/components/sidebar/Sidebar';
 import { SidebarContent } from '@/components/sidebar/SidebarContent';
 import { BottomSheet, SheetState } from '@/components/mobile/BottomSheet';
 import { MobileMenu } from '@/components/mobile/MobileMenu';
-import { usePredictions, usePriceData, useHTXPrice, useCoinbasePrice, useGeminiPrice, useCryptoComPrice, useKrakenPrice, useBitstampPrice, useBitfinexPrice, useCompositeIndex } from '@/hooks';
+import { usePredictions, usePriceData, useHTXPrice, useCoinbasePrice, useGeminiPrice, useCryptoComPrice, useKrakenPrice, useBitstampPrice, useBitfinexPrice, useCompositeIndex, useHistoricalBands } from '@/hooks';
 import { DEFAULT_ASSET_ID, getAssetById } from '@/config/assets';
 import { isExchangeSupported, isIndexAvailable, getKrakenSymbol } from '@/config/exchangeSupport';
 import { Interval, extractBaseSymbol } from '@/types';
@@ -40,6 +40,8 @@ export default function Dashboard() {
     error: predictionsError,
     refresh: refreshPredictions,
   } = usePredictions({ assetId: selectedAssetId });
+
+  const { historicalBands } = useHistoricalBands({ assetId: selectedAssetId });
 
   const {
     candles: binanceCandles,
@@ -461,6 +463,7 @@ export default function Dashboard() {
             refreshKey={chartRefreshKey}
             exchangeData={exchangeData}
             chartContextKey={chartContextKey}
+            historicalBands={historicalBands}
           />
         </div>
 
