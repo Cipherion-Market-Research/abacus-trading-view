@@ -77,7 +77,9 @@ export function transformDashboardResponse(dashboard: any): PredictionData {
     }
 
     blocks.push({
-      label: block.block_type || `Block ${block.block_number}`,
+      label: block.block_type
+        ? block.block_type.charAt(0).toUpperCase() + block.block_type.slice(1)
+        : `Block ${block.block_number}`,
       horizons: blockHorizons,
     });
   }
@@ -116,7 +118,9 @@ export function transformDashboardResponse(dashboard: any): PredictionData {
       }
     : undefined;
 
-  return { blocks, cycle, allPredictions, hybridMetadata };
+  const assetMarketType = dashboard.asset?.market_type || dashboard.hybrid_metadata?.asset_type || null;
+
+  return { blocks, cycle, allPredictions, hybridMetadata, assetMarketType };
 }
 
 export async function fetchPredictions(assetId: string): Promise<PredictionData> {

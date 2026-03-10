@@ -1,6 +1,6 @@
 export interface Horizon {
   status: 'settled' | 'pending';
-  signal: 'Favorable' | 'Ideal' | 'Certain';
+  signal: 'Favorable' | 'Ideal' | 'Certain' | 'Up' | 'Down' | 'Unknown' | 'Neutral';
   direction: 'Up' | 'Down' | 'Neutral';
   time: number; // Unix timestamp in seconds
   low: number;
@@ -48,6 +48,7 @@ export interface PredictionData {
   cycle: CycleInfo;
   allPredictions: Horizon[];
   hybridMetadata?: HybridMetadata;
+  assetMarketType?: 'CEX' | 'STOCK' | 'DEX' | null;
 }
 
 // Historical prediction data (completed cycles)
@@ -86,7 +87,7 @@ export interface HorizonMarkerModel {
   blockLabel: string;            // 'Outlook', 'Continuation', 'Persistence'
   status: 'settled' | 'pending';
   direction: 'Up' | 'Down' | 'Neutral';
-  signal: 'Favorable' | 'Ideal' | 'Certain';
+  signal: 'Favorable' | 'Ideal' | 'Certain' | 'Up' | 'Down' | 'Unknown' | 'Neutral';
   probability: number;
   high: number;
   close: number;                 // Target/mid

@@ -8,7 +8,7 @@ import { Sidebar } from '@/components/sidebar/Sidebar';
 import { SidebarContent } from '@/components/sidebar/SidebarContent';
 import { BottomSheet, SheetState } from '@/components/mobile/BottomSheet';
 import { MobileMenu } from '@/components/mobile/MobileMenu';
-import { usePredictions, usePriceData, useHTXPrice, useCoinbasePrice, useGeminiPrice, useCryptoComPrice, useKrakenPrice, useBitstampPrice, useBitfinexPrice, useCompositeIndex, useHistoricalBands } from '@/hooks';
+import { usePredictions, usePriceData, useHTXPrice, useCoinbasePrice, useGeminiPrice, useCryptoComPrice, useKrakenPrice, useBitstampPrice, useBitfinexPrice, useCompositeIndex, useHistoricalBands, useMarketStatus } from '@/hooks';
 import { DEFAULT_ASSET_ID, getAssetById } from '@/config/assets';
 import { isExchangeSupported, isIndexAvailable, getKrakenSymbol } from '@/config/exchangeSupport';
 import { Interval, extractBaseSymbol } from '@/types';
@@ -42,6 +42,10 @@ export default function Dashboard() {
   } = usePredictions({ assetId: selectedAssetId });
 
   const { historicalBands } = useHistoricalBands({ assetId: selectedAssetId });
+
+  const { marketStatus } = useMarketStatus({
+    enabled: selectedAsset?.type === 'stock',
+  });
 
   const {
     candles: binanceCandles,
@@ -437,6 +441,7 @@ export default function Dashboard() {
         abacusPerpVenues={abacusStatus.connectedPerpVenues}
         abacusChartMode={abacusChartMode}
         onAbacusChartModeChange={dataSource === 'abacus' ? setAbacusChartMode : undefined}
+        marketStatus={marketStatus}
       />
 
       {/* Mobile Header */}
@@ -461,9 +466,9 @@ export default function Dashboard() {
             assetType={selectedAsset?.type}
             interval={selectedInterval}
             refreshKey={chartRefreshKey}
-            exchangeData={exchangeData}
+            exchangeData={selectedAsset?.type === 'stock' ? undefined : exchangeData}
             chartContextKey={chartContextKey}
-            historicalBands={historicalBands}
+            historicalBands={selectedAsset?.type === 'stock' ? null : historicalBands}
           />
         </div>
 
@@ -502,6 +507,7 @@ export default function Dashboard() {
         onAssetChange={handleAssetChange}
         onIntervalChange={handleIntervalChange}
         onRefresh={handleRefresh}
+        marketStatus={marketStatus}
       />
     </div>
   );

@@ -9,4 +9,6 @@ export { useBitstampPrice } from './useBitstampPrice';
 export { useBitfinexPrice } from './useBitfinexPrice';
 export { useCompositeIndex } from './useCompositeIndex';
 export { useHistoricalBands } from './useHistoricalBands';
+export { useMarketStatus } from './useMarketStatus';
+export type { MarketStatus } from './useMarketStatus';
 export type { QuoteCurrency } from './useCryptoComPrice';

@@ -229,7 +229,19 @@ export const ASSETS: Record<string, Asset> = {
 // Feature flags for asset types
 // Set to true to enable in production
 const ENABLE_DEX = false;    // DEX tokens (coming soon)
-const ENABLE_STOCKS = false; // Stocks & ETFs (coming soon)
+const ENABLE_STOCKS = true;  // Stocks & ETFs
+
+// Sub-groups within the Stocks tab for better organization
+export const STOCK_SUB_GROUPS = [
+  {
+    label: 'Individual Stocks',
+    symbols: ['AAPL', 'AMZN', 'NVDA', 'TSLA', 'META', 'MSFT', 'GOOGL', 'GOOG'],
+  },
+  {
+    label: 'ETFs',
+    symbols: ['SPY', 'QQQ', 'DIA', 'IWM', 'XLK', 'XLF', 'XLE', 'XLI', 'XLP', 'XLV'],
+  },
+];
 
 // Group assets by type
 export const ASSET_GROUPS: AssetGroup[] = [

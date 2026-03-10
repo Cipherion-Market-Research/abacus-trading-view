@@ -1,14 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Horizon, CycleInfo } from '@/types';
+import { Horizon, CycleInfo, Block } from '@/types';
 
 interface CycleProgressProps {
   predictions: Horizon[];
   cycle: CycleInfo;
+  blocks?: Block[];
+  assetMarketType?: 'CEX' | 'STOCK' | 'DEX' | null;
 }
 
-export function CycleProgress({ predictions, cycle }: CycleProgressProps) {
+export function CycleProgress({ predictions, cycle, blocks, assetMarketType }: CycleProgressProps) {
+  const isStock = assetMarketType === 'STOCK';
+  const blockLabels = blocks?.map((b) => b.label) || (isStock ? ['Outlook', 'Continuation'] : ['Outlook', 'Continuation', 'Persistence']);
   const [timeRemaining, setTimeRemaining] = useState('--:--:--');
 
   const settledCount = predictions.filter((p) => p.status === 'settled').length;
@@ -80,9 +84,9 @@ export function CycleProgress({ predictions, cycle }: CycleProgressProps) {
           })}
         </div>
         <div className="flex justify-between mt-1.5 text-[10px] text-[#8b949e]">
-          <span>Outlook</span>
-          <span>Continuation</span>
-          <span>Persistence</span>
+          {blockLabels.map((label) => (
+            <span key={label}>{label}</span>
+          ))}
         </div>
       </div>
       <div className="text-center p-2 md:p-2.5 bg-[#161b22] rounded-md">
@@ -90,7 +94,7 @@ export function CycleProgress({ predictions, cycle }: CycleProgressProps) {
           {timeRemaining}
         </div>
         <div className="text-[10px] text-[#8b949e] uppercase mt-0.5">
-          24H Remaining Cycle
+          {isStock ? 'Trading Day' : '24H Cycle'}
         </div>
       </div>
     </div>

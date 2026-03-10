@@ -10,8 +10,6 @@ interface HorizonsListProps {
   currentHorizonIndex: number;
 }
 
-const BLOCK_NAMES = ['', 'Outlook', 'Continuation', 'Persistence'];
-
 // Legend component explaining accuracy color coding
 function AccuracyLegend() {
   return (
@@ -91,7 +89,7 @@ export function HorizonsList({ blocks, currentHorizonIndex }: HorizonsListProps)
         {blocks.map((block, blockIdx) => (
           <div key={blockIdx}>
             <div className="text-[10px] text-[#8b949e] uppercase tracking-wider py-2 pt-3 first:pt-0">
-              Block {blockIdx + 1}: {BLOCK_NAMES[blockIdx + 1]}
+              Block {blockIdx + 1}: {block.label}
             </div>
             {block.horizons.map((horizon) => {
               const idx = horizonIndex++;

@@ -89,6 +89,8 @@ export function SidebarContent({
             <CycleProgress
               predictions={predictions.allPredictions}
               cycle={predictions.cycle}
+              blocks={predictions.blocks}
+              assetMarketType={predictions.assetMarketType}
             />
             {currentPred && (
               <PredictionCard

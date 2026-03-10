@@ -2,6 +2,7 @@
 
 import { Horizon } from '@/types';
 import { formatPrice } from '@/lib/utils/formatters';
+import { getSignalStyle } from '@/lib/utils/signal-colors';
 
 interface PredictionCardProps {
   prediction: Horizon;
@@ -10,6 +11,7 @@ interface PredictionCardProps {
 
 export function PredictionCard({ prediction, isNext }: PredictionCardProps) {
   const predTime = new Date(prediction.time * 1000);
+  const signalStyle = getSignalStyle(prediction.signal);
 
   return (
     <div
@@ -21,7 +23,7 @@ export function PredictionCard({ prediction, isNext }: PredictionCardProps) {
     >
       <h3 className="text-[11px] text-[#8b949e] uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
         {isNext ? 'Next Validation' : 'Latest Validation'}
-        <span className="bg-[#238636] text-white px-1.5 py-0.5 rounded text-[9px]">
+        <span className={`${signalStyle.bg} ${signalStyle.text} px-1.5 py-0.5 rounded text-[9px]`}>
           {prediction.signal}
         </span>
         {prediction.model_source === 'tts' && (

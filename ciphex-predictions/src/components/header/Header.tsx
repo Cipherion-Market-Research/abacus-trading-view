@@ -2,19 +2,18 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Asset, Interval, Horizon } from '@/types';
-import { ASSET_GROUPS } from '@/config/assets';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
 import { DataSourceToggle, DataSource } from './DataSourceToggle';
+import { AssetSelector } from './AssetSelector';
+import type { MarketStatus } from '@/hooks/useMarketStatus';
 
 interface HeaderProps {
   selectedAsset: Asset | null;
@@ -43,6 +42,8 @@ interface HeaderProps {
   // Abacus chart mode toggle
   abacusChartMode?: 'spot' | 'perp';
   onAbacusChartModeChange?: (mode: 'spot' | 'perp') => void;
+  // Market status for stocks
+  marketStatus?: MarketStatus | null;
 }
 
 export function Header({
@@ -64,6 +65,7 @@ export function Header({
   abacusPerpVenues,
   abacusChartMode = 'spot',
   onAbacusChartModeChange,
+  marketStatus,
 }: HeaderProps) {
   // Calculate percentage deviation from prediction mid price
   const predictionMid = nextPrediction ? (nextPrediction.high + nextPrediction.low) / 2 : null;
@@ -119,8 +121,28 @@ export function Header({
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
               </span>
             )}
-            {streaming ? 'Live' : 'Offline'}
+            {streaming ? 'Live' : (selectedAsset?.type === 'stock' && marketStatus && !marketStatus.isTrading) ? 'Closed' : 'Offline'}
           </span>
+          {/* Market status badge for stocks */}
+          {selectedAsset?.type === 'stock' && marketStatus && (
+            <span
+              className={cn(
+                'flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-medium',
+                marketStatus.isTrading
+                  ? 'bg-[rgba(63,185,80,0.1)] text-[#3fb950]'
+                  : 'bg-[rgba(248,81,73,0.1)] text-[#f85149]'
+              )}
+            >
+              <span className={cn(
+                'w-1.5 h-1.5 rounded-full',
+                marketStatus.isTrading ? 'bg-[#3fb950]' : 'bg-[#f85149]'
+              )} />
+              {marketStatus.status === 'OPEN' ? 'Market Open' :
+               marketStatus.status === 'PRE_OPEN' ? 'Pre-Market' :
+               marketStatus.status === 'POST_CLOSE' ? 'After Hours' :
+               'Market Closed'}
+            </span>
+          )}
         </div>
 
         {/* Metrics Display - changes based on data source */}
@@ -213,30 +235,11 @@ export function Header({
       </div>
 
       <div className="flex items-center gap-2">
-        <Select
-          value={selectedAsset?.id}
-          onValueChange={onAssetChange}
-        >
-          <SelectTrigger className="w-[180px] bg-[#21262d] border-[#30363d] text-[#c9d1d9]">
-            <SelectValue placeholder="Select asset" />
-          </SelectTrigger>
-          <SelectContent className="bg-[#21262d] border-[#30363d]">
-            {ASSET_GROUPS.map((group) => (
-              <SelectGroup key={group.label}>
-                <SelectLabel className="text-[#8b949e]">{group.label}</SelectLabel>
-                {group.assets.map((asset) => (
-                  <SelectItem
-                    key={asset.id}
-                    value={asset.id}
-                    className="text-[#c9d1d9] focus:bg-[#30363d] focus:text-[#f0f6fc]"
-                  >
-                    {asset.symbol}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            ))}
-          </SelectContent>
-        </Select>
+        <AssetSelector
+          selectedAsset={selectedAsset}
+          onAssetChange={onAssetChange}
+          marketStatus={marketStatus}
+        />
 
         <Select
           value={selectedInterval}

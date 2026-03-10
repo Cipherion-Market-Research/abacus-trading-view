@@ -171,22 +171,25 @@ interface PriceChartProps {
 }
 
 // Check if a timestamp falls within Regular Trading Hours (9:30 AM - 4:00 PM ET)
-// RTH in UTC: 14:30 - 21:00 (accounting for EST/EDT would need more logic)
-function isWithinRTH(timestamp: number): boolean {
+// Extended trading hours filter: pre-market 4:00 AM ET through after-hours 8:00 PM ET
+// This keeps all meaningful stock data while filtering out overnight gaps
+function isWithinExtendedHours(timestamp: number): boolean {
   const date = new Date(timestamp * 1000);
   const utcHours = date.getUTCHours();
   const utcMinutes = date.getUTCMinutes();
   const timeInMinutes = utcHours * 60 + utcMinutes;
 
-  // RTH: 14:30 UTC (870 min) to 21:00 UTC (1260 min)
-  // During EST (Nov-Mar): RTH is 14:30-21:00 UTC
-  // During EDT (Mar-Nov): RTH is 13:30-20:00 UTC
-  // For simplicity, we'll use a broader window that covers both: 13:30-21:00 UTC
-  const rthStart = 13 * 60 + 30;  // 13:30 UTC (9:30 AM EDT / 8:30 AM EST)
-  const rthEnd = 21 * 60;          // 21:00 UTC (4:00 PM EST / 5:00 PM EDT)
+  // Pre-market opens at 4:00 AM ET, after-hours closes at 8:00 PM ET
+  // EST (Nov-Mar): 4:00 AM ET = 09:00 UTC, 8:00 PM ET = 01:00 UTC (+1 day)
+  // EDT (Mar-Nov): 4:00 AM ET = 08:00 UTC, 8:00 PM ET = 00:00 UTC (+1 day)
+  // Broad window covering both: 08:00 UTC to 01:00 UTC next day
+  const extStart = 8 * 60;          // 08:00 UTC (4:00 AM EDT)
+  const extEnd = 25 * 60;           // 01:00 UTC next day (use >24h for wrap)
 
-  return timeInMinutes >= rthStart && timeInMinutes <= rthEnd;
+  // Handle the wrap: 08:00 UTC to 23:59 UTC same day, or 00:00-01:00 UTC next day
+  return timeInMinutes >= extStart || timeInMinutes <= (extEnd - 24 * 60);
 }
+
 
 // Map interval strings to seconds
 const INTERVAL_TO_SECONDS: Record<string, number> = {
@@ -963,14 +966,15 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       return;
     }
 
-    // Sort candles by time - lightweight-charts requires sorted data for correct behavior
-    // Both candlestick and MACD must use the same sorted data for logical range sync to work
-    const sortedAllCandles = [...candles].sort((a, b) => a.time - b.time);
+    // Sort and deduplicate candles by time - lightweight-charts requires strictly ascending timestamps
+    const sortedAllCandles = [...candles]
+      .sort((a, b) => a.time - b.time)
+      .filter((c, i, arr) => i === 0 || c.time !== arr[i - 1].time);
 
-    // For stocks, filter to RTH only (9:30 AM - 4:00 PM ET)
+    // For stocks, filter to extended hours (4:00 AM - 8:00 PM ET) to remove overnight gaps
     let sortedFilteredCandles = sortedAllCandles;
     if (assetType === 'stock') {
-      sortedFilteredCandles = sortedAllCandles.filter((c) => isWithinRTH(c.time));
+      sortedFilteredCandles = sortedAllCandles.filter((c) => isWithinExtendedHours(c.time));
     }
 
     const candleData: CandlestickData<Time>[] = sortedFilteredCandles.map((c) => ({
@@ -1361,8 +1365,16 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
         return aTime - bTime;
       });
 
+      // Clear all block series first — prevents stale bands when switching
+      // from an asset with more blocks (e.g., crypto 3) to fewer (e.g., stock 2)
+      for (let i = 0; i < blockHighSeriesRef.current.length; i++) {
+        blockHighSeriesRef.current[i]?.setData([]);
+        blockLowSeriesRef.current[i]?.setData([]);
+        blockHighSeriesRef.current[i]?.setMarkers([]);
+      }
+
       sortedBlocks.forEach((block, index) => {
-        if (index >= 3) return; // Only support 3 blocks
+        if (index >= blockHighSeriesRef.current.length) return;
 
         const blockHorizons = block.horizons;
         if (blockHorizons.length === 0) {
@@ -1712,10 +1724,13 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
     }
 
     // CRITICAL: Verify candles match the expected interval before setting range
+    // For stocks, Yahoo Finance may return 1m candles even when 15s is requested,
+    // so allow a wider tolerance (up to 4x) for stock assets
     const sortedCandles = [...candles].sort((a, b) => a.time - b.time);
     const recentGap = sortedCandles[sortedCandles.length - 1].time - sortedCandles[sortedCandles.length - 2].time;
 
-    const isCorrectInterval = recentGap >= expectedIntervalSeconds * 0.5 && recentGap <= expectedIntervalSeconds * 2;
+    const maxMultiplier = assetType === 'stock' ? 8 : 2;
+    const isCorrectInterval = recentGap >= expectedIntervalSeconds * 0.5 && recentGap <= expectedIntervalSeconds * maxMultiplier;
     if (!isCorrectInterval) {
       cancelPendingTimeout();  // Cancel on early return
       return;
@@ -1727,8 +1742,9 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       return;
     }
 
-    // For 15m/1h, WAIT until predictions are loaded before setting range
-    // This prevents the race condition where candle-based range is set first
+    // For 15m/1h intervals, WAIT until predictions are loaded before setting range
+    // This prevents the race condition where candle-based range is set first,
+    // and ensures the view can be scoped to the prediction cycle
     if (!useRealtimeView && predictions.length === 0) {
       cancelPendingTimeout();  // Cancel on early return
       return; // Don't set any range yet, wait for predictions
@@ -1774,21 +1790,48 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       let rangeEnd: number;
 
       // Note: useRealtimeView is already defined above in outer scope
-      if (!useRealtimeView && predictions.length > 0) {
+      if (!useRealtimeView && assetType === 'stock') {
+        // Stocks 15m/1h: Show current prediction cycle (Block 1 start → Block 2 end)
+        // This focuses the view on the active prediction window instead of the entire trading day
+        const lastCandle = sortedCandles[sortedCandles.length - 1].time;
+
+        if (predictions.length > 0) {
+          // Predictions loaded: scope to prediction cycle with some leading candle context
+          const predictionTimes = predictions.map(p => p.time);
+          const firstPredTime = Math.min(...predictionTimes);
+          const lastPredTime = Math.max(...predictionTimes);
+          const predictionDuration = lastPredTime - firstPredTime;
+
+          // Show some candle history before predictions start (30% of prediction duration)
+          const leadIn = predictionDuration * 0.3;
+          rangeStart = firstPredTime - leadIn;
+          rangeEnd = lastPredTime;
+
+          const buffer = (rangeEnd - rangeStart) * 0.03;
+          rangeStart -= buffer;
+          rangeEnd += buffer;
+        } else {
+          // No predictions yet: show recent candles + buffer for upcoming predictions
+          const recentDuration = expectedIntervalSeconds * visibleCandles;
+          rangeStart = lastCandle - recentDuration;
+          rangeEnd = lastCandle + expectedIntervalSeconds * 10; // room for incoming data
+
+          const buffer = (rangeEnd - rangeStart) * 0.03;
+          rangeStart -= buffer;
+          rangeEnd += buffer;
+        }
+      } else if (!useRealtimeView && predictions.length > 0) {
         if (isMobile && blocks && blocks.length > 0) {
-          // Mobile 15m/1h: Show current block based on which block we're in
-          // Find current block (the one containing the first pending prediction or most recent)
+          // Mobile crypto 15m/1h: Show current block based on which block we're in
           const nowTimestamp = Date.now() / 1000;
           let currentBlockIndex = 0;
 
-          // Sort blocks by their first horizon time
           const sortedBlocks = [...blocks].sort((a, b) => {
             const aTime = a.horizons.length > 0 ? Math.min(...a.horizons.map(h => h.time)) : Infinity;
             const bTime = b.horizons.length > 0 ? Math.min(...b.horizons.map(h => h.time)) : Infinity;
             return aTime - bTime;
           });
 
-          // Find which block we're currently in (has pending predictions)
           for (let i = 0; i < sortedBlocks.length; i++) {
             const block = sortedBlocks[i];
             const hasPending = block.horizons.some(h => h.status === 'pending');
@@ -1796,9 +1839,8 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
               currentBlockIndex = i;
               break;
             }
-            // If no pending found, we're past this block, check next
             if (i === sortedBlocks.length - 1) {
-              currentBlockIndex = i; // Last block
+              currentBlockIndex = i;
             }
           }
 
@@ -1810,13 +1852,10 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
             const blockDuration = blockEnd - blockStart;
 
             if (currentBlockIndex === 0) {
-              // Block 1 (Outlook): Show full block start to end
               const buffer = blockDuration * 0.05;
               rangeStart = blockStart - buffer;
               rangeEnd = blockEnd + buffer;
             } else {
-              // Block 2 or 3 (Continuation/Persistence): Show half of block length
-              // Center on current time or first pending prediction
               const firstPending = currentBlock.horizons.find(h => h.status === 'pending');
               const centerTime = firstPending ? firstPending.time : nowTimestamp;
               const halfDuration = blockDuration / 2;
@@ -1824,7 +1863,6 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
               rangeEnd = centerTime + halfDuration / 2;
             }
           } else {
-            // Fallback: show all predictions
             const predictionTimes = predictions.map(p => p.time);
             const firstPredTime = Math.min(...predictionTimes);
             const lastPredTime = Math.max(...predictionTimes);
@@ -1834,13 +1872,12 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
             rangeEnd = lastPredTime + buffer;
           }
         } else {
-          // Desktop 15m/1h: Show prediction band with 5% buffer on both sides
+          // Desktop crypto 15m/1h: Show prediction band with 5% buffer on both sides
           const predictionTimes = predictions.map(p => p.time);
           const firstPredTime = Math.min(...predictionTimes);
           const lastPredTime = Math.max(...predictionTimes);
           const predictionDuration = lastPredTime - firstPredTime;
 
-          // 5% buffer on both sides of the prediction band
           const buffer = predictionDuration * 0.05;
           rangeStart = firstPredTime - buffer;
           rangeEnd = lastPredTime + buffer;
@@ -1903,7 +1940,7 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
         visibleRangeTimeoutRef.current = null;
       }
     };
-  }, [candles, predictions, blocks, interval, refreshKey, indicatorVisibility.macd, chartContextKey]);
+  }, [candles, predictions, blocks, interval, refreshKey, indicatorVisibility.macd, chartContextKey, assetType]);
 
   // Format price for display
   const formatPrice = (price: number) => {
@@ -1963,6 +2000,7 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
           exchangeVisibility={exchangeVisibility}
           onExchangeToggle={toggleExchange}
           exchangeData={exchangeData}
+          blocks={blocks}
         />
 
         {/* Prediction band Y-axis labels on crosshair hover */}
@@ -2122,34 +2160,33 @@ interface ChartLegendProps {
   exchangeVisibility: ExchangeVisibility;
   onExchangeToggle: (exchange: keyof ExchangeVisibility) => void;
   exchangeData?: ExchangePriceData;
+  blocks?: Block[];
 }
 
-function ChartLegend({ visibility, onToggle, exchangeVisibility, onExchangeToggle, exchangeData }: ChartLegendProps) {
+function ChartLegend({ visibility, onToggle, exchangeVisibility, onExchangeToggle, exchangeData, blocks }: ChartLegendProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Section collapse state with localStorage persistence
-  const [sectionState, setSectionState] = useState<LegendSectionState>(() => {
-    // Initialize from localStorage if available (only runs on client)
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(LEGEND_SECTIONS_KEY);
-      if (saved) {
-        try {
-          return JSON.parse(saved) as LegendSectionState;
-        } catch {
-          // Invalid JSON, use defaults
-        }
-      }
-    }
-    return DEFAULT_LEGEND_SECTIONS;
-  });
+  // Always initialize with defaults to avoid hydration mismatch, then hydrate from localStorage
+  const [sectionState, setSectionState] = useState<LegendSectionState>(DEFAULT_LEGEND_SECTIONS);
   const hasMountedRef = useRef(false);
 
-  // Track mount state and save section state to localStorage when it changes
+  // Hydrate from localStorage after mount (avoids SSR mismatch)
   useEffect(() => {
-    if (!hasMountedRef.current) {
-      hasMountedRef.current = true;
-      return;
+    const saved = localStorage.getItem(LEGEND_SECTIONS_KEY);
+    if (saved) {
+      try {
+        setSectionState(JSON.parse(saved) as LegendSectionState);
+      } catch {
+        // Invalid JSON, use defaults
+      }
     }
+    hasMountedRef.current = true;
+  }, []);
+
+  // Save section state to localStorage when it changes (skip initial mount)
+  useEffect(() => {
+    if (!hasMountedRef.current) return;
     localStorage.setItem(LEGEND_SECTIONS_KEY, JSON.stringify(sectionState));
   }, [sectionState]);
 
@@ -2179,6 +2216,15 @@ function ChartLegend({ visibility, onToggle, exchangeVisibility, onExchangeToggl
     ? Object.values(exchangeData.support).filter(Boolean).length
     : 0;
 
+  // Dynamic block legend items based on actual blocks
+  const blockCount = blocks?.length ?? 3;
+  const blockLegendItems = Array.from({ length: blockCount }, (_, i) => ({
+    color: [COLORS.block1, COLORS.block2, COLORS.block3][i] || COLORS.block1,
+    fillColor: [COLORS.block1Fill, COLORS.block2Fill, COLORS.block3Fill][i] || COLORS.block1Fill,
+    label: blocks?.[i]?.label || ['Outlook', 'Continuation', 'Persistence'][i] || `Block ${i + 1}`,
+    shortLabel: blocks?.[i]?.label?.slice(0, 3) || ['Out', 'Con', 'Per'][i] || `B${i + 1}`,
+  }));
+
   return (
     <>
       {/* Mobile: Collapsed compact legend (default) */}
@@ -2188,9 +2234,9 @@ function ChartLegend({ visibility, onToggle, exchangeVisibility, onExchangeToggl
       >
         {/* Prediction band colors */}
         <div className="flex gap-1">
-          <div className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.block1, opacity: 0.8 }} />
-          <div className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.block2, opacity: 0.8 }} />
-          <div className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.block3, opacity: 0.8 }} />
+          {blockLegendItems.map((item, i) => (
+            <div key={i} className="w-2.5 h-2.5 rounded-sm" style={{ background: item.color, opacity: 0.8 }} />
+          ))}
         </div>
         <span className="text-[10px] text-[#8b949e]">Legend</span>
         {activeCount < 4 && (
@@ -2220,18 +2266,12 @@ function ChartLegend({ visibility, onToggle, exchangeVisibility, onExchangeToggl
 
             {/* Compact prediction bands */}
             <div className="flex items-center gap-3 text-[10px] mb-2 pb-2 border-b border-[#30363d]">
-              <div className="flex items-center gap-1">
-                <div className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.block1 }} />
-                <span className="text-[#8b949e]">Out</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.block2 }} />
-                <span className="text-[#8b949e]">Con</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS.block3 }} />
-                <span className="text-[#8b949e]">Per</span>
-              </div>
+              {blockLegendItems.map((item, i) => (
+                <div key={i} className="flex items-center gap-1">
+                  <div className="w-2.5 h-2.5 rounded-sm" style={{ background: item.color }} />
+                  <span className="text-[#8b949e]">{item.shortLabel}</span>
+                </div>
+              ))}
             </div>
 
             {/* Indicator toggles - compact mobile version */}
@@ -2355,9 +2395,9 @@ function ChartLegend({ visibility, onToggle, exchangeVisibility, onExchangeToggl
             </span>
             {!sectionState.predictions && (
               <div className="flex gap-1">
-                <div className="w-2 h-2 rounded-sm" style={{ background: COLORS.block1 }} />
-                <div className="w-2 h-2 rounded-sm" style={{ background: COLORS.block2 }} />
-                <div className="w-2 h-2 rounded-sm" style={{ background: COLORS.block3 }} />
+                {blockLegendItems.map((item, i) => (
+                  <div key={i} className="w-2 h-2 rounded-sm" style={{ background: item.color }} />
+                ))}
               </div>
             )}
           </div>
@@ -2379,27 +2419,15 @@ function ChartLegend({ visibility, onToggle, exchangeVisibility, onExchangeToggl
             sectionState.predictions ? 'max-h-32 opacity-100' : 'max-h-0 opacity-0'
           }`}
         >
-          <div className="flex items-center gap-2 text-xs mb-1">
-            <div
-              className="w-4 h-3 rounded-sm"
-              style={{ background: COLORS.block1Fill, borderColor: COLORS.block1, borderWidth: 1, borderStyle: 'solid' }}
-            />
-            <span>Outlook</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs mb-1">
-            <div
-              className="w-4 h-3 rounded-sm"
-              style={{ background: COLORS.block2Fill, borderColor: COLORS.block2, borderWidth: 1, borderStyle: 'solid' }}
-            />
-            <span>Continuation</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs mb-1">
-            <div
-              className="w-4 h-3 rounded-sm"
-              style={{ background: COLORS.block3Fill, borderColor: COLORS.block3, borderWidth: 1, borderStyle: 'solid' }}
-            />
-            <span>Persistence</span>
-          </div>
+          {blockLegendItems.map((item, i) => (
+            <div key={i} className="flex items-center gap-2 text-xs mb-1">
+              <div
+                className="w-4 h-3 rounded-sm"
+                style={{ background: item.fillColor, borderColor: item.color, borderWidth: 1, borderStyle: 'solid' }}
+              />
+              <span>{item.label}</span>
+            </div>
+          ))}
           <div className="flex items-center gap-2 text-xs mt-2 pt-2 border-t border-[#30363d]">
             <div
               className="w-4 h-0.5 rounded"
