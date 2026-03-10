@@ -1753,17 +1753,18 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       return;
     }
 
-    // CRITICAL: Verify candles match the expected interval before setting range
-    // For stocks, Yahoo Finance may return 1m candles even when 15s is requested,
-    // so allow a wider tolerance (up to 4x) for stock assets
     const sortedCandles = [...candles].sort((a, b) => a.time - b.time);
-    const recentGap = sortedCandles[sortedCandles.length - 1].time - sortedCandles[sortedCandles.length - 2].time;
 
-    const maxMultiplier = assetType === 'stock' ? 8 : 2;
-    const isCorrectInterval = recentGap >= expectedIntervalSeconds * 0.5 && recentGap <= expectedIntervalSeconds * maxMultiplier;
-    if (!isCorrectInterval) {
-      cancelPendingTimeout();  // Cancel on early return
-      return;
+    // Verify candles match the expected interval before setting range
+    // Skip for stocks — Yahoo always returns the requested interval, and the gap
+    // between the last two raw candles can span overnight/weekend boundaries
+    if (assetType !== 'stock') {
+      const recentGap = sortedCandles[sortedCandles.length - 1].time - sortedCandles[sortedCandles.length - 2].time;
+      const isCorrectInterval = recentGap >= expectedIntervalSeconds * 0.5 && recentGap <= expectedIntervalSeconds * 2;
+      if (!isCorrectInterval) {
+        cancelPendingTimeout();
+        return;
+      }
     }
 
     // Skip if we've already set the range for this data (preserve user pan/zoom)
@@ -1821,15 +1822,17 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
 
       // Note: useRealtimeView is already defined above in outer scope
       if (!useRealtimeView && assetType === 'stock') {
-        // Stocks 15m/1h: Show today's full session (left edge to right edge)
+        // Stocks 15m/1h: Show today's session only (left edge to right edge)
         // Previous days' candles exist for MACD warm-up but are off-screen for scroll-back
         const lastCandle = sortedCandles[sortedCandles.length - 1].time;
 
-        // Find today's session start by detecting the overnight gap (>6h between candles)
-        let todayFirstCandleTime = sortedCandles[0].time;
-        for (let i = sortedCandles.length - 1; i > 0; i--) {
-          const gap = sortedCandles[i].time - sortedCandles[i - 1].time;
-          if (gap > 6 * 3600) {
+        // Determine today's date in ET timezone, then find the first candle with that date
+        const todayET = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+        let todayFirstCandleTime = lastCandle; // fallback: just show last candle area
+        for (let i = 0; i < sortedCandles.length; i++) {
+          const candleDateET = new Date(sortedCandles[i].time * 1000)
+            .toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+          if (candleDateET === todayET) {
             todayFirstCandleTime = sortedCandles[i].time;
             break;
           }
