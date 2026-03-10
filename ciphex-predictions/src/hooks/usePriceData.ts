@@ -77,7 +77,6 @@ export function usePriceData({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [streaming, setStreaming] = useState(false);
-  const eventSourceRef = useRef<EventSource | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
   const fetchPrices = useCallback(async () => {
@@ -127,60 +126,43 @@ export function usePriceData({
     fetchPrices();
   }, [fetchPrices]);
 
-  // SSE streaming for stocks
+  // Stock polling — Yahoo returns properly aggregated candles at every interval,
+  // so frequent polling gives a "live" candle experience without WebSocket/SSE complexity.
+  // Replaces the old SSE approach which streamed 1m bars regardless of chart interval.
   useEffect(() => {
-    if (!enableStreaming || assetType !== 'stock' || !symbol) {
-      return;
-    }
+    if (assetType !== 'stock' || !symbol) return;
 
-    // Clean up existing connection
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-    }
-
-    const url = `/api/prices/stock/${symbol}/stream`;
-    const eventSource = new EventSource(url);
-    eventSourceRef.current = eventSource;
-
-    eventSource.onopen = () => {
-      setStreaming(true);
+    const STOCK_POLL_MS: Record<string, number> = {
+      '15s': 10_000,
+      '1m':  10_000,
+      '15m': 15_000,
+      '1h':  15_000,
     };
+    const pollMs = STOCK_POLL_MS[interval] || 15_000;
 
-    eventSource.addEventListener('candle', (event) => {
+    setStreaming(true);
+
+    const poll = async () => {
       try {
-        const candle: Candle = JSON.parse(event.data);
-        setCandles((prev) => {
-          // Check if we should update existing candle or add new one
-          const lastCandle = prev[prev.length - 1];
-          if (lastCandle && lastCandle.time === candle.time) {
-            // Update existing candle
-            return [...prev.slice(0, -1), candle];
-          } else {
-            // Add new candle
-            return [...prev, candle];
-          }
+        const url = `/api/prices/stock/${symbol}?interval=${interval}${limit ? `&limit=${limit}` : ''}`;
+        const response = await fetch(url, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
         });
-      } catch (err) {
-        console.error('Error parsing candle event:', err);
+        if (!response.ok) return;
+        const data = await response.json();
+        setCandles(data);
+      } catch {
+        // Silent failure — next poll retries
       }
-    });
-
-    eventSource.addEventListener('error', (event) => {
-      console.error('SSE error:', event);
-      setStreaming(false);
-    });
-
-    eventSource.onerror = () => {
-      setStreaming(false);
-      eventSource.close();
     };
 
+    const id = setInterval(poll, pollMs);
     return () => {
-      eventSource.close();
-      eventSourceRef.current = null;
+      clearInterval(id);
       setStreaming(false);
     };
-  }, [enableStreaming, assetType, symbol]);
+  }, [symbol, interval, assetType, limit]);
 
   // WebSocket streaming for crypto (Binance)
   useEffect(() => {

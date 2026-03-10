@@ -30,7 +30,7 @@ async function fetchFromYahoo(symbol: string, interval: string): Promise<YahooCa
     headers: {
       'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
     },
-    next: { revalidate: 15 },
+    next: { revalidate: 5 },
   });
 
   if (!response.ok) {
