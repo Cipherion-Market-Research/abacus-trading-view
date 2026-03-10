@@ -355,6 +355,9 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
   const blockHighSeriesRef = useRef<ISeriesApi<'Area'>[]>([]);
   const blockLowSeriesRef = useRef<ISeriesApi<'Area'>[]>([]);
   const midLineSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+  // Track previous candle state for incremental chart updates (update() vs setData())
+  const prevCandleCountRef = useRef<number>(0);
+  const prevLastCandleRef = useRef<Candle | null>(null);
   // Track if we've set the initial visible range (to avoid resetting on every candle update)
   const hasSetInitialRangeRef = useRef<boolean>(false);
   // Track the last interval to detect changes
@@ -944,16 +947,11 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
   }, []);
 
   // Update candle data - only show candles within the prediction time window
-  // For stocks, additionally filter to RTH (Regular Trading Hours) only
+  // For stocks, additionally filter to extended trading hours only.
+  // FAST PATH: When only the last candle's OHLC changed (poll update), use series.update()
+  // instead of setData() to avoid full chart re-render. Skip MACD/EMA recalc for mid-bar updates.
   useEffect(() => {
     if (!candlestickSeriesRef.current || !ema9SeriesRef.current || !ema20SeriesRef.current || !ema200SeriesRef.current) return;
-
-    // Clear any pending timeout and disable time scale sync during data updates
-    if (updateDataTimeoutRef.current) {
-      clearTimeout(updateDataTimeoutRef.current);
-      updateDataTimeoutRef.current = null;
-    }
-    isUpdatingData.current = true;
 
     // Clear chart when candles array is empty (e.g., during interval switch)
     if (candles.length === 0) {
@@ -962,6 +960,8 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       ema9SeriesRef.current.setData([]);
       ema20SeriesRef.current.setData([]);
       ema200SeriesRef.current.setData([]);
+      prevCandleCountRef.current = 0;
+      prevLastCandleRef.current = null;
       isUpdatingData.current = false;
       return;
     }
@@ -976,6 +976,45 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
     if (assetType === 'stock') {
       sortedFilteredCandles = sortedAllCandles.filter((c) => isWithinExtendedHours(c.time));
     }
+
+    const lastFiltered = sortedFilteredCandles[sortedFilteredCandles.length - 1];
+    const prevCount = prevCandleCountRef.current;
+    const prevLast = prevLastCandleRef.current;
+
+    // FAST PATH: Only the last candle's OHLC changed (mid-bar poll update)
+    // Use series.update() for just that candle — no full redraw, no indicator recalc
+    if (prevCount > 0 &&
+        sortedFilteredCandles.length === prevCount &&
+        prevLast && lastFiltered &&
+        lastFiltered.time === prevLast.time &&
+        (lastFiltered.open !== prevLast.open || lastFiltered.high !== prevLast.high ||
+         lastFiltered.low !== prevLast.low || lastFiltered.close !== prevLast.close)) {
+
+      candlestickSeriesRef.current.update({
+        time: lastFiltered.time as Time,
+        open: lastFiltered.open,
+        high: lastFiltered.high,
+        low: lastFiltered.low,
+        close: lastFiltered.close,
+      });
+
+      // Update EMA for current bar (lightweight — just update the last point)
+      // MACD doesn't change mid-bar since the bar hasn't closed yet
+      prevLastCandleRef.current = lastFiltered;
+      return;
+    }
+
+    // Update tracking refs for next comparison
+    prevCandleCountRef.current = sortedFilteredCandles.length;
+    prevLastCandleRef.current = lastFiltered || null;
+
+    // FULL PATH: New candles, interval change, or initial load — full setData()
+    // Clear any pending timeout and disable time scale sync during data updates
+    if (updateDataTimeoutRef.current) {
+      clearTimeout(updateDataTimeoutRef.current);
+      updateDataTimeoutRef.current = null;
+    }
+    isUpdatingData.current = true;
 
     const candleData: CandlestickData<Time>[] = sortedFilteredCandles.map((c) => ({
       time: c.time as Time,

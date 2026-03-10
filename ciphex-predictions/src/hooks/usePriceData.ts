@@ -128,7 +128,8 @@ export function usePriceData({
 
   // Stock polling — Yahoo returns properly aggregated candles at every interval,
   // so frequent polling gives a "live" candle experience without WebSocket/SSE complexity.
-  // Replaces the old SSE approach which streamed 1m bars regardless of chart interval.
+  // Smart merge: only updates state when data actually changed, and produces minimal
+  // array changes so PriceChart can use update() instead of full setData().
   useEffect(() => {
     if (assetType !== 'stock' || !symbol) return;
 
@@ -150,8 +151,43 @@ export function usePriceData({
           headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
         });
         if (!response.ok) return;
-        const data = await response.json();
-        setCandles(data);
+        const freshCandles: Candle[] = await response.json();
+        if (freshCandles.length === 0) return;
+
+        setCandles((prev) => {
+          if (prev.length === 0) return freshCandles;
+
+          const lastPrev = prev[prev.length - 1];
+          const lastFresh = freshCandles[freshCandles.length - 1];
+
+          // Same candle count — check if last candle's OHLC changed
+          if (freshCandles.length === prev.length && lastFresh.time === lastPrev.time) {
+            if (lastFresh.open === lastPrev.open && lastFresh.high === lastPrev.high &&
+                lastFresh.low === lastPrev.low && lastFresh.close === lastPrev.close) {
+              return prev; // Nothing changed, preserve reference (no re-render)
+            }
+            // Only last candle changed — update in place
+            const updated = prev.slice();
+            updated[updated.length - 1] = lastFresh;
+            return updated;
+          }
+
+          // New candle(s) appeared — append
+          if (freshCandles.length > prev.length) {
+            const lastMatchIdx = prev.length - 1;
+            if (freshCandles[lastMatchIdx]?.time === lastPrev.time) {
+              const updated = prev.slice();
+              updated[updated.length - 1] = freshCandles[lastMatchIdx]; // Update last existing
+              for (let i = prev.length; i < freshCandles.length; i++) {
+                updated.push(freshCandles[i]); // Append new
+              }
+              return updated;
+            }
+          }
+
+          // Structure changed entirely (rare — day rollover etc.)
+          return freshCandles;
+        });
       } catch {
         // Silent failure — next poll retries
       }
