@@ -986,7 +986,12 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
     }));
 
     candlestickSeriesRef.current.setData(candleData);
+
+    // Calculate indicators using ALL candles (including previous days) for warm-up accuracy,
+    // but only OUTPUT data at timestamps matching sortedFilteredCandles so that the main chart
+    // and MACD chart have identical bar indices (critical for logical range sync).
     const closesForIndicators = sortedAllCandles.map((c) => ({ time: c.time, close: c.close }));
+    const filteredTimestamps = new Set(sortedFilteredCandles.map(c => c.time));
 
     // MACD histogram - show/hide based on visibility (separate chart)
     if (indicatorVisibility.macd && macdSeriesRef.current) {
@@ -996,25 +1001,17 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
       const macdByTime = new Map(macdData.map(m => [m.time, m]));
 
       // Helper to calculate color with intensity based on absolute MACD value
-      // |value| >= 50: FULL saturated color
-      // |value| < 50: gradient from light (near 0) to full (at 50)
       const getIntensityColor = (value: number, isPositive: boolean): string => {
         const absValue = Math.abs(value);
-
-        // Full saturation at 50+, gradient below that
         const intensity = absValue >= 50 ? 1.0 : 0.2 + (absValue / 50) * 0.8;
-
-        // Blend toward white for lighter colors
         const blendFactor = 1 - intensity;
 
         if (isPositive) {
-          // Green: #0ECB81 = rgb(14, 203, 129)
           const r = Math.round(14 + (255 - 14) * blendFactor);
           const g = Math.round(203 + (255 - 203) * blendFactor);
           const b = Math.round(129 + (255 - 129) * blendFactor);
           return `rgb(${r}, ${g}, ${b})`;
         } else {
-          // Red: #F6465D = rgb(246, 70, 93)
           const r = Math.round(246 + (255 - 246) * blendFactor);
           const g = Math.round(70 + (255 - 70) * blendFactor);
           const b = Math.round(93 + (255 - 93) * blendFactor);
@@ -1022,15 +1019,13 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
         }
       };
 
-      // Build MACD histogram data with placeholders at ALL candle + prediction timestamps
+      // Build MACD histogram data ONLY at filtered candle timestamps
       // This ensures bar indices match between main chart and MACD chart
       const macdHistogramData: HistogramData<Time>[] = [];
 
-      // Add placeholders for candle timestamps (including warm-up period)
-      for (const candle of sortedAllCandles) {
+      for (const candle of sortedFilteredCandles) {
         const macdPoint = macdByTime.get(candle.time);
         if (macdPoint) {
-          // Real MACD data with intensity-based color
           macdHistogramData.push({
             time: candle.time as Time,
             value: macdPoint.histogram,
@@ -1048,11 +1043,9 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
 
       // Add placeholders at prediction timestamps (15m/1h only)
       // This ensures MACD has data at the same future timestamps as the main chart's prediction bands
-      // which is required for logical range sync to work correctly
-      // NOTE: Do NOT add placeholders for 15s/1m - they don't have prediction bands
       if (predictions.length > 0) {
-        const lastCandleTime = sortedAllCandles.length > 0
-          ? sortedAllCandles[sortedAllCandles.length - 1].time
+        const lastCandleTime = sortedFilteredCandles.length > 0
+          ? sortedFilteredCandles[sortedFilteredCandles.length - 1].time
           : 0;
 
         for (const pred of predictions) {
@@ -1072,12 +1065,12 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
     }
 
     // EMA 20 - show/hide based on visibility
+    // Filter to only include timestamps present in displayed candles
     if (indicatorVisibility.ema20) {
       const ema20Data = calculateEMA(closesForIndicators, 20);
-      const ema20LineData: LineData<Time>[] = ema20Data.map((e) => ({
-        time: e.time as Time,
-        value: e.value,
-      }));
+      const ema20LineData: LineData<Time>[] = ema20Data
+        .filter((e) => filteredTimestamps.has(e.time))
+        .map((e) => ({ time: e.time as Time, value: e.value }));
       ema20SeriesRef.current.setData(ema20LineData);
     } else {
       ema20SeriesRef.current.setData([]);
@@ -1086,10 +1079,9 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
     // EMA 200 (chart timeframe) - show/hide based on visibility
     if (indicatorVisibility.ema200) {
       const ema200Data = calculateEMA(closesForIndicators, 200);
-      const ema200LineData: LineData<Time>[] = ema200Data.map((e) => ({
-        time: e.time as Time,
-        value: e.value,
-      }));
+      const ema200LineData: LineData<Time>[] = ema200Data
+        .filter((e) => filteredTimestamps.has(e.time))
+        .map((e) => ({ time: e.time as Time, value: e.value }));
       ema200SeriesRef.current.setData(ema200LineData);
     } else {
       ema200SeriesRef.current.setData([]);
@@ -1098,10 +1090,9 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
     // EMA 9 - show/hide based on visibility
     if (indicatorVisibility.ema9) {
       const ema9Data = calculateEMA(closesForIndicators, 9);
-      const ema9LineData: LineData<Time>[] = ema9Data.map((e) => ({
-        time: e.time as Time,
-        value: e.value,
-      }));
+      const ema9LineData: LineData<Time>[] = ema9Data
+        .filter((e) => filteredTimestamps.has(e.time))
+        .map((e) => ({ time: e.time as Time, value: e.value }));
       ema9SeriesRef.current.setData(ema9LineData);
     } else {
       ema9SeriesRef.current.setData([]);
@@ -1791,35 +1782,32 @@ export function PriceChart({ candles, predictions, blocks, className, assetType,
 
       // Note: useRealtimeView is already defined above in outer scope
       if (!useRealtimeView && assetType === 'stock') {
-        // Stocks 15m/1h: Show current prediction cycle (Block 1 start → Block 2 end)
-        // This focuses the view on the active prediction window instead of the entire trading day
+        // Stocks 15m/1h: Show today's full session (left edge to right edge)
+        // Previous days' candles exist for MACD warm-up but are off-screen for scroll-back
         const lastCandle = sortedCandles[sortedCandles.length - 1].time;
 
-        if (predictions.length > 0) {
-          // Predictions loaded: scope to prediction cycle with some leading candle context
-          const predictionTimes = predictions.map(p => p.time);
-          const firstPredTime = Math.min(...predictionTimes);
-          const lastPredTime = Math.max(...predictionTimes);
-          const predictionDuration = lastPredTime - firstPredTime;
-
-          // Show some candle history before predictions start (30% of prediction duration)
-          const leadIn = predictionDuration * 0.3;
-          rangeStart = firstPredTime - leadIn;
-          rangeEnd = lastPredTime;
-
-          const buffer = (rangeEnd - rangeStart) * 0.03;
-          rangeStart -= buffer;
-          rangeEnd += buffer;
-        } else {
-          // No predictions yet: show recent candles + buffer for upcoming predictions
-          const recentDuration = expectedIntervalSeconds * visibleCandles;
-          rangeStart = lastCandle - recentDuration;
-          rangeEnd = lastCandle + expectedIntervalSeconds * 10; // room for incoming data
-
-          const buffer = (rangeEnd - rangeStart) * 0.03;
-          rangeStart -= buffer;
-          rangeEnd += buffer;
+        // Find today's session start by detecting the overnight gap (>6h between candles)
+        let todayFirstCandleTime = sortedCandles[0].time;
+        for (let i = sortedCandles.length - 1; i > 0; i--) {
+          const gap = sortedCandles[i].time - sortedCandles[i - 1].time;
+          if (gap > 6 * 3600) {
+            todayFirstCandleTime = sortedCandles[i].time;
+            break;
+          }
         }
+
+        rangeStart = todayFirstCandleTime;
+
+        if (predictions.length > 0) {
+          const lastPredTime = Math.max(...predictions.map(p => p.time));
+          rangeEnd = Math.max(lastPredTime, lastCandle);
+        } else {
+          rangeEnd = lastCandle + 3600 * 4;
+        }
+
+        const buffer = (rangeEnd - rangeStart) * 0.03;
+        rangeStart -= buffer;
+        rangeEnd += buffer;
       } else if (!useRealtimeView && predictions.length > 0) {
         if (isMobile && blocks && blocks.length > 0) {
           // Mobile crypto 15m/1h: Show current block based on which block we're in
