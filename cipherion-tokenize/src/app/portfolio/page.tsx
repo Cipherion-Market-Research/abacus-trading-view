@@ -1,0 +1,186 @@
+"use client";
+
+import { useState } from "react";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { useWalletModal } from "@solana/wallet-adapter-react-ui";
+import { Wallet, Loader2, RefreshCw, Send } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/shared/empty-state";
+import { ErrorState } from "@/components/shared/error-state";
+import { AddressDisplay } from "@/components/shared/address-display";
+import { TransferForm } from "@/components/transfer/transfer-form";
+import { usePortfolio, type PortfolioToken } from "@/hooks/use-portfolio";
+import { formatTokenAmount } from "@/lib/utils/format";
+
+function StatusBadge({ frozen }: { frozen: boolean }) {
+  if (frozen) {
+    return (
+      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-[rgba(210,153,34,0.15)] text-[#d29922]">
+        Frozen
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-[rgba(63,185,80,0.15)] text-[#3fb950]">
+      Active
+    </span>
+  );
+}
+
+function TokenRow({
+  token,
+  isSelected,
+  onSelect,
+}: {
+  token: PortfolioToken;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      onClick={onSelect}
+      className={`w-full text-left rounded-lg border p-4 transition-colors ${
+        isSelected
+          ? "border-[#238636] bg-[rgba(35,134,54,0.05)]"
+          : "border-[#30363d] bg-[#161b22] hover:border-[#484f58]"
+      }`}
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-semibold text-[#f0f6fc]">
+              {token.name || "Unknown Token"}
+            </p>
+            <span className="font-mono text-xs text-[#8b949e]">
+              {token.symbol}
+            </span>
+            <StatusBadge frozen={token.isFrozen} />
+          </div>
+          <AddressDisplay
+            address={token.mint.toBase58()}
+            showExplorer
+            className="text-[#8b949e] mt-0.5"
+          />
+        </div>
+        <div className="text-right">
+          <p className="font-mono text-sm font-semibold text-[#f0f6fc]">
+            {formatTokenAmount(token.balance, token.decimals)}
+          </p>
+          <p className="text-[10px] text-[#8b949e]">{token.symbol}</p>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+export default function PortfolioPage() {
+  const { connected } = useWallet();
+  const { setVisible } = useWalletModal();
+  const { data: tokens, isLoading, error, refetch } = usePortfolio();
+  const [selectedMint, setSelectedMint] = useState<string | null>(null);
+
+  const selectedToken = tokens.find(
+    (t) => t.mint.toBase58() === selectedMint
+  );
+
+  return (
+    <div className="mx-auto max-w-4xl px-6 py-8">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-xl font-semibold text-[#f0f6fc]">Portfolio</h1>
+          <p className="text-sm text-[#8b949e]">
+            Your RWA token holdings and transfer controls.
+          </p>
+        </div>
+        {connected && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={refetch}
+            className="gap-1.5 border-[#30363d] bg-[#161b22] text-[#8b949e] hover:text-[#f0f6fc] hover:bg-[#21262d]"
+          >
+            <RefreshCw className="size-3" />
+            Refresh
+          </Button>
+        )}
+      </div>
+
+      {!connected ? (
+        <EmptyState
+          icon={<Wallet className="size-8" />}
+          message="Connect your wallet to view your portfolio"
+          action={
+            <Button
+              onClick={() => setVisible(true)}
+              className="gap-2 bg-[#238636] text-white hover:bg-[#2ea043]"
+            >
+              <Wallet className="size-4" />
+              Connect Wallet
+            </Button>
+          }
+        />
+      ) : isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="size-6 text-[#8b949e] animate-spin" />
+          <span className="ml-2 text-sm text-[#8b949e]">
+            Loading portfolio...
+          </span>
+        </div>
+      ) : error ? (
+        <ErrorState
+          message="Failed to load portfolio"
+          description={error.message}
+          onRetry={refetch}
+        />
+      ) : tokens.length === 0 ? (
+        <EmptyState
+          icon={<Wallet className="size-8" />}
+          message="No RWA tokens in your wallet"
+          description="Tokens will appear here once an issuer distributes them to you."
+        />
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          {/* Token list */}
+          <div className="lg:col-span-3 space-y-2">
+            {tokens.map((token) => (
+              <TokenRow
+                key={token.ata.toBase58()}
+                token={token}
+                isSelected={selectedMint === token.mint.toBase58()}
+                onSelect={() =>
+                  setSelectedMint(
+                    selectedMint === token.mint.toBase58()
+                      ? null
+                      : token.mint.toBase58()
+                  )
+                }
+              />
+            ))}
+          </div>
+
+          {/* Transfer panel */}
+          <div className="lg:col-span-2">
+            {selectedToken ? (
+              <div className="rounded-lg border border-[#30363d] bg-[#161b22] p-4 sticky top-20">
+                <div className="flex items-center gap-2 mb-4">
+                  <Send className="size-4 text-[#58a6ff]" />
+                  <h3 className="text-sm font-semibold text-[#f0f6fc]">
+                    Transfer {selectedToken.symbol}
+                  </h3>
+                </div>
+                <TransferForm token={selectedToken} onSuccess={refetch} />
+              </div>
+            ) : (
+              <div className="rounded-lg border border-[#30363d] bg-[#161b22] p-8 text-center">
+                <Send className="size-6 text-[#8b949e] mx-auto mb-2" />
+                <p className="text-xs text-[#8b949e]">
+                  Select a token to transfer
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
