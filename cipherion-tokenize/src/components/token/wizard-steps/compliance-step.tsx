@@ -10,7 +10,6 @@ export interface ComplianceData {
   transferFeeMax: string;
   enablePause: boolean;
   enablePermanentDelegate: boolean;
-  enableMemoRequired: boolean;
 }
 
 interface Props {
@@ -149,14 +148,6 @@ export function ComplianceStep({ data, onChange }: Props) {
           checked={data.enablePermanentDelegate}
           onChange={(v) => update("enablePermanentDelegate", v)}
           warning="This grants unrestricted control over all holder balances. Wallets will display a warning to holders."
-        />
-
-        <Toggle
-          label="Memo Required (per account)"
-          description="Require a memo on every inbound transfer. Applied to each investor account during onboarding, not at mint creation. Useful for audit trails and compliance reference IDs."
-          checked={data.enableMemoRequired}
-          onChange={(v) => update("enableMemoRequired", v)}
-          warning="This is an account-level extension. It will be enabled on each token account during investor onboarding — not on the mint itself."
         />
       </div>
     </div>

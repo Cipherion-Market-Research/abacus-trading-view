@@ -66,7 +66,6 @@ export const ASSET_TEMPLATES: AssetTemplate[] = [
     defaultExtensions: {
       defaultAccountState: "frozen",
       pausable: true,
-      memoTransfer: true,
     },
     defaultFramework: "reg_d",
     metadataFields: [
@@ -128,7 +127,6 @@ export const ASSET_TEMPLATES: AssetTemplate[] = [
       defaultAccountState: "frozen",
       pausable: true,
       permanentDelegate: undefined,
-      memoTransfer: true,
     },
     defaultFramework: "reg_d",
     metadataFields: [

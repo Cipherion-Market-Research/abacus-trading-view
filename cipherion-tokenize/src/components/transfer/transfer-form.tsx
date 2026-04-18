@@ -5,8 +5,10 @@ import { Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useTransfer } from "@/hooks/use-transfer";
+import { useTransferFee } from "@/hooks/use-transfer-fee";
 import { isValidPublicKey } from "@/lib/utils/validation";
 import { formatTokenAmount } from "@/lib/utils/format";
+import { calculateTransferFee } from "@/lib/utils/transfer-fee";
 import type { PortfolioToken } from "@/hooks/use-portfolio";
 
 interface TransferFormProps {
@@ -16,6 +18,7 @@ interface TransferFormProps {
 
 export function TransferForm({ token, onSuccess }: TransferFormProps) {
   const { transfer, isLoading } = useTransfer();
+  const { fee: feeConfig } = useTransferFee(token.mint);
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
@@ -31,6 +34,11 @@ export function TransferForm({ token, onSuccess }: TransferFormProps) {
     rawAmount > 0n &&
     rawAmount <= maxBalance &&
     isValidPublicKey(recipient.trim());
+
+  const feeAmount = feeConfig
+    ? calculateTransferFee(rawAmount, feeConfig.bps, feeConfig.maxFee)
+    : 0n;
+  const recipientReceives = rawAmount > feeAmount ? rawAmount - feeAmount : 0n;
 
   const handleMax = () => {
     setAmount(formatTokenAmount(maxBalance, token.decimals).replace(/,/g, ""));
@@ -119,6 +127,15 @@ export function TransferForm({ token, onSuccess }: TransferFormProps) {
         )}
       </div>
 
+      {feeConfig && feeConfig.bps > 0 && rawAmount > 0n && rawAmount <= maxBalance && (
+        <p className="text-[10px] text-[#8b949e]">
+          {(feeConfig.bps / 100).toFixed(2)}% transfer fee — recipient receives{" "}
+          <span className="font-mono text-[#f0f6fc]">
+            {formatTokenAmount(recipientReceives, token.decimals)} {token.symbol}
+          </span>
+        </p>
+      )}
+
       {showConfirm && isValid && (
         <div className="rounded-lg border border-[#238636]/30 bg-[rgba(35,134,54,0.05)] p-3 space-y-1">
           <p className="text-[11px] uppercase tracking-wider text-[#3fb950]">
@@ -131,11 +148,29 @@ export function TransferForm({ token, onSuccess }: TransferFormProps) {
             </span>
           </div>
           <div className="flex justify-between text-xs">
-            <span className="text-[#8b949e]">Amount</span>
+            <span className="text-[#8b949e]">You send</span>
             <span className="font-mono text-[#f0f6fc]">
               {amount} {token.symbol}
             </span>
           </div>
+          {feeConfig && feeConfig.bps > 0 && (
+            <>
+              <div className="flex justify-between text-xs">
+                <span className="text-[#8b949e]">
+                  Fee ({(feeConfig.bps / 100).toFixed(2)}%)
+                </span>
+                <span className="font-mono text-[#d29922]">
+                  −{formatTokenAmount(feeAmount, token.decimals)} {token.symbol}
+                </span>
+              </div>
+              <div className="flex justify-between text-xs pt-1 border-t border-[#238636]/20">
+                <span className="text-[#8b949e]">Recipient receives</span>
+                <span className="font-mono text-[#3fb950] font-semibold">
+                  {formatTokenAmount(recipientReceives, token.decimals)} {token.symbol}
+                </span>
+              </div>
+            </>
+          )}
         </div>
       )}
 

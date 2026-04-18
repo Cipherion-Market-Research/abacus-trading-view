@@ -76,7 +76,6 @@ export function ReviewStep({ state }: Props) {
           : undefined,
         pausable: compliance.enablePause,
         permanentDelegate: compliance.enablePermanentDelegate ? undefined : undefined,
-        memoTransfer: compliance.enableMemoRequired,
       },
       initialSupply: supply.initialSupply
         ? BigInt(Math.floor(parseFloat(supply.initialSupply) * Number(multiplier)))
@@ -129,7 +128,6 @@ export function ReviewStep({ state }: Props) {
               enabled={compliance.enablePermanentDelegate}
               label="Permanent Delegate"
             />
-            <Badge enabled={compliance.enableMemoRequired} label="Memo Required" />
           </div>
           {compliance.enableTransferFees && (
             <Row

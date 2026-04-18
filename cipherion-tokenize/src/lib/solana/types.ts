@@ -42,7 +42,6 @@ export interface TokenExtensionConfig {
   transferFee?: { bps: number; maxFee: bigint };
   pausable?: boolean;
   permanentDelegate?: PublicKey;
-  memoTransfer?: boolean;
   transferHook?: PublicKey;
 }
 

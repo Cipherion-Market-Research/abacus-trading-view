@@ -39,7 +39,6 @@ const DEFAULT_STATE: WizardState = {
     transferFeeMax: "",
     enablePause: true,
     enablePermanentDelegate: false,
-    enableMemoRequired: false,
   },
   supply: {
     initialSupply: "",
@@ -123,7 +122,6 @@ export function CreateWizard() {
           : undefined,
         pausable: compliance.enablePause,
         permanentDelegate: compliance.enablePermanentDelegate ? publicKey : undefined,
-        memoTransfer: compliance.enableMemoRequired,
       },
       initialSupply,
       metadata: allMetadata,

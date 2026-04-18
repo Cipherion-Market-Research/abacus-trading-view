@@ -4,7 +4,6 @@ import {
   AccountLayout,
   createThawAccountInstruction,
   createAssociatedTokenAccountInstruction,
-  createEnableRequiredMemoTransfersInstruction,
   getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
 import { getConnection } from "./connection";
@@ -123,13 +122,11 @@ export async function createAndThawAccount(
   mint: PublicKey,
   owner: PublicKey,
   payer: PublicKey,
-  signAndSend: (tx: Transaction, signers: Keypair[]) => Promise<string>,
-  enableMemo: boolean = false
+  signAndSend: (tx: Transaction, signers: Keypair[]) => Promise<string>
 ): Promise<{ ata: PublicKey; signature: string }> {
   const connection = getConnection();
   const ata = getAssociatedTokenAddressSync(mint, owner, false, TOKEN_2022_PROGRAM_ID);
 
-  // Check if ATA already exists
   const existing = await connection.getAccountInfo(ata);
   if (existing) {
     if (existing.data.length >= 165) {
@@ -148,18 +145,10 @@ export async function createAndThawAccount(
     );
   }
 
-  // Create ATA + thaw + optional memo requirement in one transaction
   const instructions: TransactionInstruction[] = [
     createAssociatedTokenAccountInstruction(payer, ata, owner, mint, TOKEN_2022_PROGRAM_ID),
     createThawAccountInstruction(ata, mint, payer, [], TOKEN_2022_PROGRAM_ID),
   ];
-
-  // MemoTransfer is an account-level extension — enable it during onboarding if requested
-  if (enableMemo) {
-    instructions.push(
-      createEnableRequiredMemoTransfersInstruction(ata, payer, [], TOKEN_2022_PROGRAM_ID)
-    );
-  }
 
   const tx = new Transaction().add(...instructions);
   const signature = await signAndSend(tx, []);

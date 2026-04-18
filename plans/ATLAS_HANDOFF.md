@@ -141,17 +141,11 @@ These are intentional MVP shortcuts with documented production upgrade paths. Ea
 
 ## Known Gaps (Not Blocking Deploy)
 
-### Gap 1: Transfer fee preview on transfer form
-- **What:** When a token has TransferFeeConfig, the transfer form doesn't show the fee breakdown before sending. The fee still applies correctly on-chain.
-- **Where:** `src/components/transfer/transfer-form.tsx`
-- **Fix:** Read `TransferFeeConfig` from the mint via `getTransferFeeConfig()`, calculate `amount * bps / 10000`, display "Recipient receives X, fee: Y" before the confirm step.
-- **Effort:** ~30 min
+### Gap 1: Transfer fee preview on transfer form — RESOLVED (2026-04-18)
+Fee preview now surfaces in two places in `transfer-form.tsx`: a subtle hint under the amount field ("X.XX% transfer fee — recipient receives Y") and a full breakdown in the confirm card. Backed by `useTransferFee(mint)` hook and `calculateTransferFee()` util.
 
-### Gap 2: MemoTransfer passthrough during onboarding
-- **What:** The creation wizard has a "Memo Required (per account)" toggle. The code to enable it is wired in `account-service.ts` (`createAndThawAccount` accepts `enableMemo` param), but the onboard form UI doesn't pass the flag through the hook.
-- **Where:** `src/components/holders/onboard-form.tsx` → `src/hooks/use-compliance.ts`
-- **Fix:** Read token metadata for a `memo_required` flag (stored on-chain during creation if the toggle was ON), pass `enableMemo: true` to `createAndThawAccount`.
-- **Effort:** ~30 min
+### Gap 2: MemoTransfer — REMOVED (2026-04-18)
+Investigation showed the feature as conceived was architecturally impossible: MemoTransfer is an account-level extension that the **account owner** must sign to enable, so the issuer cannot enable it at onboarding. The toggle, type field, and dead `enableMemo` code path were removed. For mint-level memo enforcement in production, the canonical Solana pattern is a Transfer Hook (Phase 1B) — not this extension. See [Solana docs](https://solana.com/docs/tokens/extensions/memo-transfer).
 
 ### Gap 3: Explorer page is address-lookup only
 - **What:** Requires full 44-char mint address. No browsable directory of tokens.
