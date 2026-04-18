@@ -7,7 +7,7 @@ import { ToastContainer } from "@/components/ui/toast";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const hideAppChrome = pathname === "/";
+  const hideAppChrome = pathname === "/" || pathname === "/faq";
 
   return (
     <SolanaWalletProvider>
