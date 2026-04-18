@@ -158,23 +158,23 @@ export function SignupFlow() {
       {phase === "pending" && <PendingScreen onApproveNow={approveNow} />}
       {phase === "approved" && <ApprovedScreen formData={formData} />}
       {phase === "form" && (
-        <section className="mx-auto w-full max-w-[720px] px-8 pt-12 pb-16 flex-1">
+        <section className="mx-auto w-full max-w-[720px] px-5 md:px-8 pt-8 md:pt-12 pb-12 md:pb-16 flex-1">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-[12px] text-[#8b949e] hover:text-[#f0f6fc] mb-6"
+            className="inline-flex items-center gap-1.5 text-[12px] text-[#8b949e] hover:text-[#f0f6fc] mb-5 md:mb-6"
           >
             <ArrowLeft className="size-3.5" />
             Back to overview
           </Link>
 
-          <div className="mb-4 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-[#3fb950]">
+          <div className="mb-3 md:mb-4 font-mono text-[10px] md:text-[11px] font-medium uppercase tracking-[0.14em] text-[#3fb950]">
             / apply for access
           </div>
-          <h1 className="m-0 mb-4 text-[44px] font-semibold leading-[1.05] tracking-[-0.03em]">
+          <h1 className="m-0 mb-3 md:mb-4 text-[28px] md:text-[36px] xl:text-[44px] font-semibold leading-[1.05] tracking-[-0.03em]">
             Institutional onboarding,{" "}
             <span className="text-[#3fb950]">streamlined</span>.
           </h1>
-          <p className="m-0 mb-10 text-[15px] leading-[1.6] text-[#8b949e]">
+          <p className="m-0 mb-8 md:mb-10 text-[14px] md:text-[15px] leading-[1.6] text-[#8b949e]">
             Three short steps. Your application routes to the counterparty
             desk and your wallet is bound to your identity for audit
             purposes.
@@ -182,7 +182,7 @@ export function SignupFlow() {
 
           <StepIndicator step={step} />
 
-          <div className="mt-8 rounded-lg border border-[#21262d] bg-[#0d1117] p-8">
+          <div className="mt-6 md:mt-8 rounded-lg border border-[#21262d] bg-[#0d1117] p-5 md:p-8">
             {step === 0 && (
               <Step0
                 formData={formData}
@@ -266,12 +266,12 @@ export function SignupFlow() {
 
 function StepIndicator({ step }: { step: Step }) {
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
       {STEP_LABELS.map((label, i) => {
         const active = i === step;
         const done = i < step;
         return (
-          <div key={label} className="flex items-center gap-3">
+          <div key={label} className="flex items-center gap-2 sm:gap-3">
             <div
               className={`size-6 rounded-full flex items-center justify-center text-[11px] font-mono font-medium transition-colors ${
                 active
@@ -284,13 +284,13 @@ function StepIndicator({ step }: { step: Step }) {
               {done ? <CheckCircle2 className="size-3.5" /> : i + 1}
             </div>
             <span
-              className={`text-[12px] font-medium ${active || done ? "text-[#f0f6fc]" : "text-[#6e7681]"}`}
+              className={`hidden sm:inline text-[12px] font-medium ${active || done ? "text-[#f0f6fc]" : "text-[#6e7681]"}`}
             >
               {label}
             </span>
             {i < STEP_LABELS.length - 1 && (
               <div
-                className={`h-px w-8 ${done ? "bg-[#3fb950]" : "bg-[#30363d]"}`}
+                className={`h-px w-4 sm:w-8 ${done ? "bg-[#3fb950]" : "bg-[#30363d]"}`}
               />
             )}
           </div>
@@ -527,7 +527,7 @@ function PendingScreen({ onApproveNow }: { onApproveNow: () => void }) {
       <div className="mb-4 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-[#d29922]">
         / pending review
       </div>
-      <h1 className="m-0 mb-4 text-[36px] font-semibold leading-[1.1] tracking-[-0.03em]">
+      <h1 className="m-0 mb-4 text-[26px] md:text-[32px] xl:text-[36px] font-semibold leading-[1.1] tracking-[-0.03em]">
         Routing to the counterparty desk.
       </h1>
       <p className="m-0 mb-8 text-[15px] leading-[1.6] text-[#8b949e]">
@@ -555,7 +555,7 @@ function ApprovedScreen({ formData }: { formData: KycFormData }) {
       <div className="mb-4 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-[#3fb950]">
         / approved
       </div>
-      <h1 className="m-0 mb-4 text-[36px] font-semibold leading-[1.1] tracking-[-0.03em]">
+      <h1 className="m-0 mb-4 text-[26px] md:text-[32px] xl:text-[36px] font-semibold leading-[1.1] tracking-[-0.03em]">
         Welcome to Atlas,{" "}
         <span className="text-[#3fb950]">
           {formData.fullName.split(" ")[0] || "operator"}

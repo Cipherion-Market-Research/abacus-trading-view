@@ -346,15 +346,15 @@ export function FaqPage() {
       <MarketingNav />
 
       {/* ─── Page intro ─── */}
-      <section className="mx-auto max-w-[1280px] px-8 pt-12 pb-12 border-b border-[#21262d]">
-        <div className="mb-5 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-[#3fb950]">
+      <section className="mx-auto max-w-[1280px] px-5 md:px-8 pt-10 md:pt-12 pb-10 md:pb-12 border-b border-[#21262d]">
+        <div className="mb-4 md:mb-5 font-mono text-[10px] md:text-[11px] font-medium uppercase tracking-[0.14em] text-[#3fb950]">
           / questions, by audience
         </div>
-        <h1 className="m-0 mb-5 max-w-[860px] text-[60px] font-semibold leading-[1.0] tracking-[-0.035em]">
+        <h1 className="m-0 mb-4 md:mb-5 max-w-[860px] text-[32px] md:text-[44px] xl:text-[60px] font-semibold leading-[1.02] tracking-[-0.035em]">
           Pick your role. Read what&apos;s{" "}
           <span className="text-[#3fb950]">relevant</span>.
         </h1>
-        <p className="m-0 max-w-[620px] text-[17px] leading-[1.55] text-[#8b949e]">
+        <p className="m-0 max-w-[620px] text-[14px] md:text-[16px] xl:text-[17px] leading-[1.55] text-[#8b949e]">
           Issuers, investors, compliance officers, and engineers each see a
           different surface of Atlas. Pick yours and see the questions tuned to
           your decisions.
@@ -362,8 +362,8 @@ export function FaqPage() {
       </section>
 
       {/* ─── Persona bar + body ─── */}
-      <section className="mx-auto max-w-[1280px] px-8 py-12">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-[#21262d] border border-[#21262d] rounded-xl overflow-hidden mb-8">
+      <section className="mx-auto max-w-[1280px] px-5 md:px-8 py-10 md:py-12">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-[#21262d] border border-[#21262d] rounded-xl overflow-hidden mb-6 md:mb-8">
           {PERSONAS.map((p) => {
             const Icon = p.icon;
             const active = p.key === activeKey;
@@ -450,38 +450,58 @@ export function FaqPage() {
             className="rounded-lg border border-[#21262d] bg-[#0d1117] p-5 lg:sticky lg:top-6"
             style={{ borderColor: activePersona.tint.replace("0.10", "0.25").replace("0.12", "0.25") }}
           >
-            <div className="flex items-center gap-2 mb-1">
-              <span
-                className="size-2 rounded-sm"
-                style={{ background: activePersona.color }}
-              />
-              <h4 className="m-0 text-[13px] font-semibold text-[#f0f6fc]">
-                {activePersona.asideTitle}
-              </h4>
-            </div>
-            <div className="font-mono text-[11px] text-[#8b949e] mb-4">
-              {activePersona.asideSub}
-            </div>
-            <ul className="m-0 p-0 list-none">
-              {items.map((item, i) => (
-                <li
-                  key={`aside-${activeKey}-${i}`}
-                  className="py-2 border-t border-[#21262d] first:border-t-0"
-                >
-                  <button
-                    type="button"
-                    onClick={() => setOpenIndex(i)}
-                    className="text-left text-[12px] text-[#c9d1d9] hover:text-[#f0f6fc] transition-colors w-full"
+            {/* Desktop header: persona label + subtitle */}
+            <div className="hidden lg:block">
+              <div className="flex items-center gap-2 mb-1">
+                <span
+                  className="size-2 rounded-sm"
+                  style={{ background: activePersona.color }}
+                />
+                <h4 className="m-0 text-[13px] font-semibold text-[#f0f6fc]">
+                  {activePersona.asideTitle}
+                </h4>
+              </div>
+              <div className="font-mono text-[11px] text-[#8b949e] mb-4">
+                {activePersona.asideSub}
+              </div>
+              <ul className="m-0 p-0 list-none">
+                {items.map((item, i) => (
+                  <li
+                    key={`aside-${activeKey}-${i}`}
+                    className="py-2 border-t border-[#21262d] first:border-t-0"
                   >
-                    <span className="font-mono text-[10px] text-[#6e7681] mr-2">
-                      Q{i + 1}
-                    </span>
-                    {item.q}
-                  </button>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-4 pt-4 border-t border-[#21262d] flex flex-col gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setOpenIndex(i)}
+                      className="text-left text-[12px] text-[#c9d1d9] hover:text-[#f0f6fc] transition-colors w-full"
+                    >
+                      <span className="font-mono text-[10px] text-[#6e7681] mr-2">
+                        Q{i + 1}
+                      </span>
+                      {item.q}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Mobile header: CTA prompt only */}
+            <div className="lg:hidden">
+              <div className="flex items-center gap-2 mb-2">
+                <span
+                  className="size-2 rounded-sm"
+                  style={{ background: activePersona.color }}
+                />
+                <h4 className="m-0 text-[14px] font-semibold text-[#f0f6fc]">
+                  Didn&apos;t find your answer?
+                </h4>
+              </div>
+              <p className="m-0 text-[13px] leading-[1.55] text-[#8b949e]">
+                Jump into the platform or talk to the counterparty desk.
+              </p>
+            </div>
+
+            <div className="mt-4 lg:pt-4 lg:border-t lg:border-[#21262d] flex flex-col gap-2.5">
               {activePersona.ctas.map((cta) => (
                 <Link
                   key={cta.label}

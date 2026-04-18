@@ -7,6 +7,7 @@ import { Search, Loader2, AlertCircle, ImageOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { isValidPublicKey } from "@/lib/utils/validation";
 import type { RegistryEntry } from "@/lib/registry";
+import { PageHeader } from "@/components/shared/page-header";
 
 interface ListResponse {
   configured: boolean;
@@ -121,14 +122,12 @@ export default function ExplorerPage() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-8">
-      <h1 className="text-xl font-semibold text-[#f0f6fc] mb-1">
-        Atlas Token Catalog
-      </h1>
-      <p className="text-sm text-[#8b949e] mb-6">
-        Public directory of every RWA token created through CipheX Atlas. No
-        wallet required.
-      </p>
+    <div className="mx-auto max-w-[1280px] px-6 py-8">
+      <PageHeader
+        eyebrow="public catalog"
+        title="Atlas Token Catalog"
+        subtitle="Public directory of every RWA token created through CipheX Atlas. No wallet required."
+      />
 
       <div className="flex gap-2 mb-6">
         <div className="relative flex-1">

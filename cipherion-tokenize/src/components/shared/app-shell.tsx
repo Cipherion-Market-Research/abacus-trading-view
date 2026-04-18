@@ -18,7 +18,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <SolanaWalletProvider>
-      <div className="flex min-h-screen flex-col bg-[#0d1117]">
+      <div className="flex min-h-screen flex-col bg-[#0a0e13]">
         {!hideAppChrome && <AppHeader />}
         <main className="flex-1">{children}</main>
       </div>

@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { useTokenList } from "@/hooks/use-token-list";
 import { RequireKyc } from "@/components/auth/require-kyc";
+import { PageHeader } from "@/components/shared/page-header";
 
 function TokensContent() {
   const { connected } = useWallet();
@@ -17,26 +18,25 @@ function TokensContent() {
   const { data: tokens, isLoading, error, refetch } = useTokenList();
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-semibold text-[#f0f6fc]">My Tokens</h1>
-          <p className="text-sm text-[#8b949e]">
-            Tokens you have created or manage.
-          </p>
-        </div>
-        {connected && (
-          <Link href="/create">
-            <Button
-              size="sm"
-              className="gap-1.5 bg-[#238636] text-white hover:bg-[#2ea043]"
-            >
-              <Plus className="size-3.5" />
-              Create Token
-            </Button>
-          </Link>
-        )}
-      </div>
+    <div className="mx-auto max-w-[1280px] px-6 py-8">
+      <PageHeader
+        eyebrow="your tokens"
+        title="My Tokens"
+        subtitle="Tokens you have created or manage."
+        actions={
+          connected ? (
+            <Link href="/create">
+              <Button
+                size="sm"
+                className="gap-1.5 bg-[#238636] text-white hover:bg-[#2ea043]"
+              >
+                <Plus className="size-3.5" />
+                Create Token
+              </Button>
+            </Link>
+          ) : undefined
+        }
+      />
 
       {!connected ? (
         <EmptyState

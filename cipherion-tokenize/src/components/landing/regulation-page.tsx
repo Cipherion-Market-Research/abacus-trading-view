@@ -111,15 +111,15 @@ export function RegulationPage() {
       <MarketingNav />
 
       {/* ─── Hero ─── */}
-      <section className="mx-auto max-w-[1280px] px-8 pt-16 pb-14 border-b border-[#21262d]">
-        <div className="mb-5 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-[#3fb950]">
+      <section className="mx-auto max-w-[1280px] px-5 md:px-8 pt-10 md:pt-16 pb-10 md:pb-14 border-b border-[#21262d]">
+        <div className="mb-4 md:mb-5 font-mono text-[10px] md:text-[11px] font-medium uppercase tracking-[0.14em] text-[#3fb950]">
           / regulation
         </div>
-        <h1 className="m-0 mb-6 max-w-[960px] text-[68px] font-semibold leading-[0.98] tracking-[-0.035em]">
+        <h1 className="m-0 mb-5 md:mb-6 max-w-[960px] text-[36px] md:text-[52px] xl:text-[68px] font-semibold leading-[1.0] md:leading-[0.98] tracking-[-0.035em]">
           Compliance mechanics that <span className="text-[#3fb950]">map</span> to the
           rules you already file against.
         </h1>
-        <p className="m-0 max-w-[620px] text-[18px] leading-[1.55] text-[#8b949e]">
+        <p className="m-0 max-w-[620px] text-[15px] md:text-[17px] xl:text-[18px] leading-[1.55] text-[#8b949e]">
           Every Token-2022 extension lines up with a mechanism regulators
           require. Below: which frameworks matter, what they demand, and
           which Atlas primitive satisfies each.
@@ -127,15 +127,16 @@ export function RegulationPage() {
       </section>
 
       {/* ─── Frameworks table ─── */}
-      <section className="mx-auto max-w-[1280px] px-8 py-20">
-        <div className="mb-5 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-[#3fb950]">
+      <section className="mx-auto max-w-[1280px] px-5 md:px-8 py-14 md:py-20">
+        <div className="mb-4 md:mb-5 font-mono text-[10px] md:text-[11px] font-medium uppercase tracking-[0.14em] text-[#3fb950]">
           / frameworks
         </div>
-        <h2 className="m-0 mb-10 max-w-[820px] text-[36px] font-semibold leading-[1.1] tracking-[-0.03em]">
+        <h2 className="m-0 mb-8 md:mb-10 max-w-[820px] text-[26px] md:text-[30px] xl:text-[36px] font-semibold leading-[1.1] tracking-[-0.03em]">
           Five jurisdictions. One token program.
         </h2>
 
-        <div className="overflow-hidden rounded-xl border border-[#21262d]">
+        {/* Desktop / tablet: 4-column table */}
+        <div className="hidden md:block overflow-hidden rounded-xl border border-[#21262d]">
           <div className="grid grid-cols-[1.2fr_1fr_1.2fr_2fr] bg-[#0d1117] border-b border-[#21262d] text-[10px] uppercase tracking-[0.12em] font-mono text-[#6e7681]">
             <ThCell>Jurisdiction</ThCell>
             <ThCell>Regulator</ThCell>
@@ -160,18 +161,52 @@ export function RegulationPage() {
             </div>
           ))}
         </div>
+
+        {/* Mobile: cards */}
+        <div className="md:hidden space-y-3">
+          {FRAMEWORKS.map((f) => (
+            <div
+              key={f.jurisdiction}
+              className="rounded-lg border border-[#21262d] bg-[#0d1117] p-4"
+            >
+              <div className="flex items-baseline justify-between mb-2 gap-3">
+                <h3 className="m-0 text-[15px] font-semibold text-[#f0f6fc]">
+                  {f.jurisdiction}
+                </h3>
+                <span className="font-mono text-[11px] text-[#c9d1d9]">
+                  {f.regulator}
+                </span>
+              </div>
+              <div className="mb-3 text-[12px] text-[#c9d1d9]">{f.scope}</div>
+              <div className="font-mono text-[9px] uppercase tracking-[0.1em] text-[#6e7681] mb-1.5">
+                Required mechanisms
+              </div>
+              <ul className="m-0 pl-0 list-none space-y-1">
+                {f.required.map((r) => (
+                  <li
+                    key={r}
+                    className="text-[12px] text-[#8b949e] before:content-['·'] before:mr-2 before:text-[#3fb950]"
+                  >
+                    {r}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* ─── Extension mapping ─── */}
-      <section className="mx-auto max-w-[1280px] px-8 py-20 border-t border-[#21262d]">
-        <div className="mb-5 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-[#3fb950]">
+      <section className="mx-auto max-w-[1280px] px-5 md:px-8 py-14 md:py-20 border-t border-[#21262d]">
+        <div className="mb-4 md:mb-5 font-mono text-[10px] md:text-[11px] font-medium uppercase tracking-[0.14em] text-[#3fb950]">
           / primitive → requirement
         </div>
-        <h2 className="m-0 mb-10 max-w-[820px] text-[36px] font-semibold leading-[1.1] tracking-[-0.03em]">
+        <h2 className="m-0 mb-8 md:mb-10 max-w-[820px] text-[26px] md:text-[30px] xl:text-[36px] font-semibold leading-[1.1] tracking-[-0.03em]">
           Which extension satisfies which rule.
         </h2>
 
-        <div className="overflow-hidden rounded-xl border border-[#21262d]">
+        {/* Desktop / tablet: 3-column table */}
+        <div className="hidden md:block overflow-hidden rounded-xl border border-[#21262d]">
           <div className="grid grid-cols-[1.3fr_1fr_2fr] bg-[#0d1117] border-b border-[#21262d] text-[10px] uppercase tracking-[0.12em] font-mono text-[#6e7681]">
             <ThCell>Extension</ThCell>
             <ThCell>Purpose</ThCell>
@@ -192,18 +227,39 @@ export function RegulationPage() {
             </div>
           ))}
         </div>
+
+        {/* Mobile: cards */}
+        <div className="md:hidden space-y-3">
+          {EXTENSIONS.map((e) => (
+            <div
+              key={e.extension}
+              className="rounded-lg border border-[#21262d] bg-[#0d1117] p-4"
+            >
+              <div className="font-mono text-[12px] text-[#c9d1d9] mb-2 break-all">
+                {e.extension}
+              </div>
+              <div className="text-[14px] font-medium text-[#f0f6fc] mb-2">
+                {e.purpose}
+              </div>
+              <div className="font-mono text-[9px] uppercase tracking-[0.1em] text-[#6e7681] mb-1">
+                Satisfies
+              </div>
+              <div className="text-[12px] text-[#8b949e]">{e.satisfies}</div>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* ─── Audit posture ─── */}
-      <section className="mx-auto max-w-[1280px] px-8 py-20 border-t border-[#21262d] grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-[72px]">
+      <section className="mx-auto max-w-[1280px] px-5 md:px-8 py-14 md:py-20 border-t border-[#21262d] grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-10 md:gap-[72px]">
         <div>
-          <div className="mb-5 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-[#3fb950]">
+          <div className="mb-4 md:mb-5 font-mono text-[10px] md:text-[11px] font-medium uppercase tracking-[0.14em] text-[#3fb950]">
             / audit posture
           </div>
-          <h2 className="m-0 mb-6 text-[36px] font-semibold leading-[1.05] tracking-[-0.03em]">
+          <h2 className="m-0 mb-5 md:mb-6 text-[26px] md:text-[30px] xl:text-[36px] font-semibold leading-[1.05] tracking-[-0.03em]">
             Audited once. Shared by every issuer.
           </h2>
-          <p className="text-[#8b949e] text-[15px] leading-[1.6]">
+          <p className="text-[#8b949e] text-[14px] md:text-[15px] leading-[1.6]">
             Atlas inherits Token-2022&apos;s audit history. The program has
             been reviewed by Neodyme and multiple third parties, secured
             billions on-chain since 2023, and published a public security

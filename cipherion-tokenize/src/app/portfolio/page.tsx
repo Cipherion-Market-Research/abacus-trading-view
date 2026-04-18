@@ -12,6 +12,7 @@ import { TransferForm } from "@/components/transfer/transfer-form";
 import { usePortfolio, type PortfolioToken } from "@/hooks/use-portfolio";
 import { formatTokenAmount } from "@/lib/utils/format";
 import { RequireKyc } from "@/components/auth/require-kyc";
+import { PageHeader } from "@/components/shared/page-header";
 
 function StatusBadge({ frozen }: { frozen: boolean }) {
   if (frozen) {
@@ -93,26 +94,25 @@ function PortfolioContent() {
   );
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-semibold text-[#f0f6fc]">Portfolio</h1>
-          <p className="text-sm text-[#8b949e]">
-            Your RWA token holdings and transfer controls.
-          </p>
-        </div>
-        {connected && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={refetch}
-            className="gap-1.5 border-[#30363d] bg-[#161b22] text-[#8b949e] hover:text-[#f0f6fc] hover:bg-[#21262d]"
-          >
-            <RefreshCw className="size-3" />
-            Refresh
-          </Button>
-        )}
-      </div>
+    <div className="mx-auto max-w-[1280px] px-6 py-8">
+      <PageHeader
+        eyebrow="portfolio"
+        title="Your holdings"
+        subtitle="Your RWA token holdings and transfer controls."
+        actions={
+          connected ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={refetch}
+              className="gap-1.5 border-[#30363d] bg-[#161b22] text-[#8b949e] hover:text-[#f0f6fc] hover:bg-[#21262d]"
+            >
+              <RefreshCw className="size-3" />
+              Refresh
+            </Button>
+          ) : undefined
+        }
+      />
 
       {!connected ? (
         <EmptyState

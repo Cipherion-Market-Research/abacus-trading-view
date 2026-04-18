@@ -18,6 +18,7 @@ import { useTokenInfo } from "@/hooks/use-token-info";
 import { useHolders } from "@/hooks/use-holders";
 import { useHistory } from "@/hooks/use-history";
 import { RequireKyc } from "@/components/auth/require-kyc";
+import { PageHeader } from "@/components/shared/page-header";
 
 function TokenDashboardContent({ mintAddress }: { mintAddress: string }) {
   const mint = mintAddress;
@@ -69,36 +70,36 @@ function TokenDashboardContent({ mintAddress }: { mintAddress: string }) {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-semibold text-[#f0f6fc]">
-              {token.name || "Unnamed Token"}
-            </h1>
-            <span className="rounded-full border border-[#30363d] bg-[#21262d] px-2 py-0.5 font-mono text-xs text-[#8b949e]">
+    <div className="mx-auto max-w-[1280px] px-6 py-8 space-y-6">
+      <PageHeader
+        eyebrow="token dashboard"
+        title={
+          <span className="inline-flex items-center gap-3">
+            {token.name || "Unnamed Token"}
+            <span className="rounded-full border border-[#30363d] bg-[#21262d] px-2.5 py-0.5 font-mono text-[11px] font-medium text-[#8b949e] align-middle">
               {token.symbol}
             </span>
-          </div>
-          <div className="mt-1 flex items-center gap-3">
-            <AddressDisplay
-              address={token.mint.toBase58()}
-              showExplorer
-              className="text-[#8b949e]"
-            />
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={refetchAll}
-          className="gap-1.5 border-[#30363d] bg-[#161b22] text-[#8b949e] hover:text-[#f0f6fc] hover:bg-[#21262d]"
-        >
-          <RefreshCw className="size-3" />
-          Refresh
-        </Button>
-      </div>
+          </span>
+        }
+        subtitle={
+          <AddressDisplay
+            address={token.mint.toBase58()}
+            showExplorer
+            className="text-[#8b949e]"
+          />
+        }
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={refetchAll}
+            className="gap-1.5 border-[#30363d] bg-[#161b22] text-[#8b949e] hover:text-[#f0f6fc] hover:bg-[#21262d]"
+          >
+            <RefreshCw className="size-3" />
+            Refresh
+          </Button>
+        }
+      />
 
       {/* Stats */}
       <TokenStats token={token} holders={holders} />
@@ -111,34 +112,34 @@ function TokenDashboardContent({ mintAddress }: { mintAddress: string }) {
           if (tab === "history" && !historyLoaded) refetchHistory();
         }}
       >
-        <TabsList className="bg-[#161b22] border border-[#30363d]">
+        <TabsList className="bg-[#161b22] border border-[#30363d] w-full justify-start overflow-x-auto snap-x snap-mandatory scrollbar-hide">
           <TabsTrigger
             value="holders"
-            className="text-xs data-[state=active]:bg-[#21262d] data-[state=active]:text-[#f0f6fc]"
+            className="text-xs shrink-0 snap-start data-[state=active]:bg-[#21262d] data-[state=active]:text-[#f0f6fc]"
           >
             Holders ({holders.length})
           </TabsTrigger>
           <TabsTrigger
             value="mint"
-            className="text-xs data-[state=active]:bg-[#21262d] data-[state=active]:text-[#f0f6fc]"
+            className="text-xs shrink-0 snap-start data-[state=active]:bg-[#21262d] data-[state=active]:text-[#f0f6fc]"
           >
             Mint & Distribute
           </TabsTrigger>
           <TabsTrigger
             value="details"
-            className="text-xs data-[state=active]:bg-[#21262d] data-[state=active]:text-[#f0f6fc]"
+            className="text-xs shrink-0 snap-start data-[state=active]:bg-[#21262d] data-[state=active]:text-[#f0f6fc]"
           >
             Token Details
           </TabsTrigger>
           <TabsTrigger
             value="compliance"
-            className="text-xs data-[state=active]:bg-[#21262d] data-[state=active]:text-[#f0f6fc]"
+            className="text-xs shrink-0 snap-start data-[state=active]:bg-[#21262d] data-[state=active]:text-[#f0f6fc]"
           >
             Compliance
           </TabsTrigger>
           <TabsTrigger
             value="history"
-            className="text-xs data-[state=active]:bg-[#21262d] data-[state=active]:text-[#f0f6fc]"
+            className="text-xs shrink-0 snap-start data-[state=active]:bg-[#21262d] data-[state=active]:text-[#f0f6fc]"
           >
             History
           </TabsTrigger>

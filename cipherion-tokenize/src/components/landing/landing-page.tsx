@@ -29,8 +29,8 @@ export function LandingPage() {
       <MarketingNav />
 
       {/* ─── Hero ─── */}
-      <section className="mx-auto max-w-[1280px] px-8 pt-20 pb-16 border-b border-[#21262d]">
-        <div className="inline-flex items-center gap-2 rounded-full border border-[#30363d] px-[14px] py-[6px] mb-8 font-mono text-[11px] font-medium text-[#8b949e]">
+      <section className="mx-auto max-w-[1280px] px-5 md:px-8 pt-12 md:pt-20 pb-12 md:pb-16 border-b border-[#21262d]">
+        <div className="hidden md:inline-flex items-center gap-2 rounded-full border border-[#30363d] px-[14px] py-[6px] mb-6 md:mb-8 font-mono text-[10px] md:text-[11px] font-medium text-[#8b949e]">
           <span
             className="size-1.5 rounded-full bg-[#3fb950]"
             style={{ boxShadow: "0 0 0 4px rgba(63,185,80,0.15)" }}
@@ -38,29 +38,29 @@ export function LandingPage() {
           Live on Solana · Token-2022 natively regulated
         </div>
 
-        <h1 className="m-0 mb-7 max-w-[1100px] text-[80px] font-semibold leading-[0.95] tracking-[-0.04em]">
+        <h1 className="m-0 mb-5 md:mb-7 max-w-[1100px] text-[40px] md:text-[56px] xl:text-[80px] font-semibold leading-[0.98] md:leading-[0.95] tracking-[-0.035em] md:tracking-[-0.04em]">
           The counterparty infrastructure for the{" "}
           <span className="text-[#3fb950]">next decade</span> of tokenized
           real-world assets.
         </h1>
 
-        <p className="m-0 mb-10 max-w-[620px] text-[19px] leading-[1.55] text-[#8b949e]">
+        <p className="m-0 mb-8 md:mb-10 max-w-[620px] text-[15px] md:text-[17px] xl:text-[19px] leading-[1.55] text-[#8b949e]">
           Atlas is a regulated-first issuance, custody, and distribution
           platform. Built on Solana&apos;s Token-2022 program — the same stack
           BlackRock, Franklin Templeton, and Ondo use to move over a billion
           dollars on-chain.
         </p>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
           <button
             onClick={handlePrimaryCta}
-            className="rounded-full bg-[#f0f6fc] hover:bg-white text-[#0a0e13] text-[14px] font-medium px-7 py-[14px] transition-colors"
+            className="rounded-full bg-[#f0f6fc] hover:bg-white text-[#0a0e13] text-[14px] font-medium px-7 py-[14px] transition-colors w-full sm:w-auto"
           >
             {primaryCtaLabel}
           </button>
           <Link
             href="/explorer"
-            className="inline-flex items-center gap-2 text-[#c9d1d9] hover:text-[#f0f6fc] text-[13px] font-medium px-1 py-[14px] border-b border-[#30363d] hover:border-[#f0f6fc] transition-colors"
+            className="inline-flex items-center justify-center sm:justify-start gap-2 text-[#c9d1d9] hover:text-[#f0f6fc] text-[13px] font-medium px-1 py-[14px] border-b border-[#30363d] hover:border-[#f0f6fc] transition-colors"
           >
             Browse the catalog
             <ArrowRight className="size-3.5" />
@@ -68,54 +68,44 @@ export function LandingPage() {
         </div>
 
         {/* Meta stats */}
-        <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 pt-8 border-t border-[#21262d]">
+        <div className="mt-12 md:mt-16 pt-8 border-t border-[#21262d]">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-px md:gap-8 bg-[#21262d] md:bg-transparent rounded-lg md:rounded-none overflow-hidden md:overflow-visible">
           <MetaStat
-            label="Per-transfer cost"
+            label={["PER-TRANSFER", "COST"]}
             value="$0.003"
-            cap="vs. $0.50–$50 on Ethereum L1"
+            sub="vs. $0.50–$50 on L1"
           />
           <MetaStat
-            label="Compliance extensions"
-            value={
-              <>
-                20<span className="text-[14px] text-[#8b949e] font-medium font-sans ml-1.5">natively enforced</span>
-              </>
-            }
-            cap="No 6-contract ERC-3643 stack"
+            label={["COMPLIANCE", "EXTENSIONS"]}
+            value="20"
+            sub="natively enforced"
           />
           <MetaStat
-            label="Regulatory frameworks"
-            value={
-              <>
-                4<span className="text-[14px] text-[#8b949e] font-medium font-sans ml-1.5">jurisdictions</span>
-              </>
-            }
-            cap="SEC · MiCA · MAS · VARA"
+            label={["REGULATORY", "FRAMEWORKS"]}
+            value="4"
+            sub="SEC · MiCA · MAS · VARA"
           />
           <MetaStat
-            label="Audit partners"
-            value={
-              <>
-                Neodyme<span className="text-[14px] text-[#8b949e] font-medium font-sans ml-1.5">+ 3 more</span>
-              </>
-            }
-            cap="In production since 2023"
+            label={["AUDIT", "PARTNERS"]}
+            value="Neodyme"
+            sub="+ 3 more, since 2023"
           />
+          </div>
         </div>
       </section>
 
       {/* ─── Four pillars ─── */}
-      <section className="mx-auto max-w-[1280px] px-8 py-24 grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-18 md:gap-[72px]">
+      <section className="mx-auto max-w-[1280px] px-5 md:px-8 py-16 md:py-24 grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-10 md:gap-[72px]">
         <div>
-          <div className="mb-5 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-[#3fb950]">
+          <div className="mb-4 md:mb-5 font-mono text-[10px] md:text-[11px] font-medium uppercase tracking-[0.14em] text-[#3fb950]">
             / four pillars
           </div>
-          <h2 className="m-0 mb-6 text-[40px] font-semibold leading-[1.05] tracking-[-0.03em]">
+          <h2 className="m-0 mb-5 md:mb-6 text-[28px] md:text-[32px] xl:text-[40px] font-semibold leading-[1.05] tracking-[-0.03em]">
             Issuance that{" "}
             <span className="text-[#3fb950]">passes</span> a counterparty
             review.
           </h2>
-          <p className="text-[#8b949e] text-[15px] leading-[1.6] m-0">
+          <p className="text-[#8b949e] text-[14px] md:text-[15px] leading-[1.6] m-0">
             Regulated securities require mechanisms that meme tokens
             don&apos;t. Atlas makes every one of them a first-class setting at
             token creation — immutable, auditable, and wallet-visible.
@@ -160,22 +150,22 @@ export function LandingPage() {
       </section>
 
       {/* ─── Pull quote ─── */}
-      <section className="mx-auto max-w-[1280px] px-8 py-24 text-center border-t border-b border-[#21262d]">
-        <blockquote className="m-0 mx-auto mb-8 max-w-[860px] text-[32px] font-normal leading-[1.3] tracking-[-0.015em] text-[#f0f6fc]">
+      <section className="mx-auto max-w-[1280px] px-5 md:px-8 py-16 md:py-24 text-center border-t border-b border-[#21262d]">
+        <blockquote className="m-0 mx-auto mb-6 md:mb-8 max-w-[860px] text-[22px] md:text-[26px] xl:text-[32px] font-normal leading-[1.3] tracking-[-0.015em] text-[#f0f6fc]">
           &ldquo;We evaluated six chains and four issuance stacks. Atlas was
           the only one where our compliance team said{" "}
           <span className="text-[#3fb950]">yes</span> on the first
           review.&rdquo;
         </blockquote>
-        <div className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-[#8b949e]">
+        <div className="font-mono text-[10px] md:text-[11px] font-medium uppercase tracking-[0.14em] text-[#8b949e]">
           — <span className="text-[#c9d1d9]">Head of digital assets</span> ·
           top-20 US asset manager
         </div>
       </section>
 
       {/* ─── Market ─── */}
-      <section className="mx-auto max-w-[1280px] px-8 py-24">
-        <h2 className="m-0 mb-12 max-w-[720px] text-[40px] font-semibold leading-[1.1] tracking-[-0.03em]">
+      <section className="mx-auto max-w-[1280px] px-5 md:px-8 py-16 md:py-24">
+        <h2 className="m-0 mb-8 md:mb-12 max-w-[720px] text-[28px] md:text-[32px] xl:text-[40px] font-semibold leading-[1.1] tracking-[-0.03em]">
           The tokenized RWA market is{" "}
           <span className="text-[#3fb950]">already</span> on Solana.
         </h2>
@@ -212,21 +202,30 @@ export function LandingPage() {
 function MetaStat({
   label,
   value,
-  cap,
+  sub,
 }: {
-  label: string;
+  label: [string, string];
   value: React.ReactNode;
-  cap: string;
+  sub: string;
 }) {
   return (
-    <div>
-      <div className="mb-2.5 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-[#6e7681]">
-        {label}
+    <div className="bg-[#0a0e13] p-5 md:p-0 md:bg-transparent text-center md:text-left">
+      {/* Eyebrow — always 2 visible lines on mobile, joined inline on desktop */}
+      <div className="mb-3 md:mb-2.5 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-[#6e7681] leading-[1.5]">
+        {label[0]}
+        <span className="hidden md:inline">{"\u00A0"}</span>
+        <br className="md:hidden" />
+        {label[1]}
       </div>
-      <div className="text-[32px] font-semibold tracking-[-0.025em]">
+      {/* Value — primary visible accent */}
+      <div className="text-[28px] md:text-[32px] xl:text-[36px] font-semibold tracking-[-0.025em] leading-[1.1]">
         {value}
       </div>
-      <div className="mt-1.5 text-[12px] text-[#8b949e]">{cap}</div>
+      {/* One sub-headline — reserves 2 lines worth of space so cells stay
+          row-aligned even when one sub wraps and another doesn't */}
+      <div className="mt-2 md:mt-1.5 min-h-[34px] md:min-h-0 flex items-center justify-center md:justify-start text-[11px] md:text-[12px] text-[#8b949e] text-balance leading-[1.5]">
+        {sub}
+      </div>
     </div>
   );
 }
@@ -243,19 +242,19 @@ function Pillar({
   children: React.ReactNode;
 }) {
   return (
-    <div className="grid grid-cols-[56px_1fr_auto] gap-6 items-start py-7 border-t border-[#21262d]">
-      <div className="text-[28px] font-mono font-semibold text-[#3fb950] leading-none tracking-[-0.02em]">
+    <div className="flex flex-col md:grid md:grid-cols-[56px_1fr_auto] md:gap-6 md:items-start py-6 md:py-7 border-t border-[#21262d]">
+      <div className="mb-3 md:mb-0 text-[24px] md:text-[28px] font-mono font-semibold text-[#3fb950] leading-none tracking-[-0.02em]">
         {num}
       </div>
       <div>
-        <h3 className="m-0 mb-2 text-[20px] font-semibold tracking-[-0.01em] text-[#f0f6fc]">
+        <h3 className="m-0 mb-2 text-[17px] md:text-[20px] font-semibold tracking-[-0.01em] text-[#f0f6fc]">
           {title}
         </h3>
-        <p className="m-0 max-w-[520px] text-[14px] leading-[1.6] text-[#8b949e]">
+        <p className="m-0 max-w-[520px] text-[13px] md:text-[14px] leading-[1.6] text-[#8b949e]">
           {children}
         </p>
       </div>
-      <div className="font-mono text-[10px] font-medium uppercase tracking-[0.1em] text-[#6e7681] whitespace-nowrap">
+      <div className="mt-3 md:mt-0 font-mono text-[10px] font-medium uppercase tracking-[0.1em] text-[#6e7681] md:whitespace-nowrap">
         {tag}
       </div>
     </div>
@@ -276,12 +275,16 @@ function IssuerCell({
   note: string;
 }) {
   return (
-    <div className="bg-[#0a0e13] p-7">
-      <div className="text-[15px] font-medium mb-1 text-[#f0f6fc]">{name}</div>
-      <div className="my-3 text-[32px] font-semibold text-[#3fb950] tracking-[-0.03em]">
+    <div className="bg-[#0a0e13] p-5 md:p-7">
+      <div className="text-[14px] md:text-[15px] font-medium mb-1 text-[#f0f6fc]">
+        {name}
+      </div>
+      <div className="my-2.5 md:my-3 text-[26px] md:text-[32px] font-semibold text-[#3fb950] tracking-[-0.03em]">
         {value}
       </div>
-      <div className="font-mono text-[11px] text-[#8b949e]">{note}</div>
+      <div className="font-mono text-[10px] md:text-[11px] text-[#8b949e]">
+        {note}
+      </div>
     </div>
   );
 }
