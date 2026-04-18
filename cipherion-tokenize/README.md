@@ -36,7 +36,7 @@ Status check at `/api/ipfs/status` reports whether `PINATA_JWT` is set — the `
 
 1. Import the repo in Vercel. Set root directory to `cipherion-tokenize`.
 2. Add the four env vars above in Project Settings → Environment Variables. Apply to Production, Preview, and Development.
-3. In the Helius dashboard → RPCs → your endpoint → Access Control → Allowed Domains, add your Vercel domain(s), `*.vercel.app` for previews, and `localhost:3000` for dev.
+3. In the Helius dashboard → RPCs → your endpoint → Access Control → Allowed Domains, add your Vercel production domain. Helius rejects `localhost` as an allowed domain — leave Allowed Domains empty for local dev, or you'll get `-32401 Unauthorized` on every paid RPC method. Previews: add `*.vercel.app` if Helius accepts wildcards in your plan, or leave rules empty.
 4. Deploy.
 
 Env var changes only take effect on **new** builds — redeploy after editing any var.

@@ -208,7 +208,14 @@ NEXT_PUBLIC_PINATA_GATEWAY=gateway.pinata.cloud  # shared by server route + brow
 ```
 
 ### Critical: Helius RPC is required for production
-The public devnet RPC rate-limits at 100 req/10s. A deployed app serving concurrent users will hit 429s constantly. Helius free tier (1M credits/month) eliminates this entirely. Lock the key to your Vercel domain(s) in the Helius dashboard.
+The public devnet RPC rate-limits at 100 req/10s. A deployed app serving concurrent users will hit 429s constantly. Helius free tier (1M credits/month) eliminates this entirely.
+
+**Helius Access Control gotchas** (learned the hard way on 2026-04-18):
+- Allowed Domains are under **RPCs → your endpoint → Access Control**, not under the API Keys page.
+- Helius **rejects `localhost` as an allowed domain** ("localhost is not a valid domain in this context"). For local dev, Allowed Domains must be **empty**.
+- If any rule (Domains, IPs, or CIDRs) doesn't match the request source, every paid RPC method returns JSON-RPC error `-32401 Unauthorized`. `getHealth` still succeeds, which makes the failure look like a CORS or key issue — it isn't. Wipe all three rule fields to unblock local dev.
+- Production: add only your Vercel production domain. Preview deploys either need `*.vercel.app` (confirm Helius accepts wildcards) or you leave rules empty and rely on the credit ceiling as soft protection.
+- Clean long-term fix for zero key exposure: build `/api/rpc` proxy route with a server-only `HELIUS_RPC_ENDPOINT` var. Mirrors the Pinata server-proxy pattern.
 
 ---
 
