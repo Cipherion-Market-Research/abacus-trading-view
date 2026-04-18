@@ -2,7 +2,17 @@
 
 RWA (Real World Asset) token issuance and management platform built on Solana using Token-2022 (Token Extensions). Issuers create compliance-enabled tokens, onboard investors with KYC gating, distribute tokens, and enforce compliance actions (freeze, thaw, pause, force burn) — all on-chain.
 
-Status: Phase 1A complete, running on Solana Devnet.
+Status: Phases 1A–1E complete (dashboard MVP + env hardening + marketing + KYC gate + design parity + mobile). Running on Solana Devnet, deployed to Vercel. See `../plans/ATLAS_HANDOFF.md` for full current state and `../plans/ROADMAP.md` for what's next.
+
+## Surface map
+
+**Public** (no wallet, no KYC): `/`, `/institutions`, `/regulation`, `/faq`, `/explorer`, `/explorer/[mint]`
+
+**Gate**: `/signup` — 3-step mock KYC (account info → optional docs → wallet bind → 4s pending → approved)
+
+**Gated** (KYC approved required via client guard): `/create`, `/tokens`, `/tokens/[mint]`, `/portfolio`
+
+**API**: `/api/ipfs/upload`, `/api/ipfs/status`, `/api/mints/register`, `/api/mints/list`
 
 ## Getting started
 
@@ -61,8 +71,9 @@ Env var changes only take effect on **new** builds — redeploy after editing an
 
 Planning and research docs live in `../plans/`:
 
-- `ATLAS_HANDOFF.md` — architecture, devnet accommodations, known gaps
-- `RWA_TOKEN_PLATFORM_IMPLEMENTATION_PLAN.md` — milestones and acceptance criteria
-- `RWA_TOKEN_PLATFORM_PROPOSAL.md` — chain selection, architecture rationale
-- `RWA_TOKEN_PLATFORM_ADDENDUM.md` — cost forecasts, competitive landscape
-- `RWA_COUNTERPARTY_FAQ.md` — stakeholder Q&A reference
+- `ATLAS_HANDOFF.md` — **current state**: architecture, surface map, design system, devnet accommodations. Read this first.
+- `ROADMAP.md` — remaining work categorized by priority (P0 blockers → P3 speculative)
+- `RWA_TOKEN_PLATFORM_IMPLEMENTATION_PLAN.md` — milestone source of truth + build completion summary
+- `RWA_TOKEN_PLATFORM_PROPOSAL.md` — original chain selection + architecture rationale (historical)
+- `RWA_TOKEN_PLATFORM_ADDENDUM.md` — cost forecasts, competitive landscape (evergreen research)
+- `RWA_COUNTERPARTY_FAQ.md` — stakeholder Q&A reference (content source for `/faq`)

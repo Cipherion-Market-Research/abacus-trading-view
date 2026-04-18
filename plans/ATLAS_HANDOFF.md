@@ -1,71 +1,132 @@
 # CipheX Atlas — Agent Handoff Document
 
-**Date:** 2026-04-17
+**Last updated:** 2026-04-18
 **Purpose:** Complete context for a new coding agent to continue development. Copy-paste this into a new conversation.
 
 ---
 
 ## Project Summary
 
-CipheX Atlas is an RWA (Real World Asset) token issuance and management platform built on Solana using Token-2022 (Token Extensions). It allows issuers to create compliance-enabled tokens, onboard investors with KYC gating, distribute tokens, and enforce compliance actions (freeze, thaw, pause, force burn) — all on-chain.
+CipheX Atlas is an RWA (Real World Asset) token issuance and management platform built on Solana using Token-2022 (Token Extensions). Issuers create compliance-enabled tokens, onboard investors with KYC gating, distribute tokens, and enforce compliance actions (freeze, thaw, pause, force burn) — all on-chain.
+
+The product is a dashboard for authenticated users, sitting behind a public marketing shell and a mock institutional KYC gate. Visually unified between marketing and dashboard: one type system, one color palette, one logo.
 
 **Live on:** Solana Devnet (tokens are real on-chain, using test SOL)
+**Deployed to:** Vercel (preview + production)
 **First token created:** "Test Fund A" — [VzZngWaHydAtKnXC4bT8b4WpvVJY1oG4VzB3eY97eiu](https://explorer.solana.com/address/VzZngWaHydAtKnXC4bT8b4WpvVJY1oG4VzB3eY97eiu?cluster=devnet)
-**Stress test token created:** "CipheX Gold Reserve" (CXG) with all 5 extensions — verified working
+
+---
+
+## Surface Map
+
+### Public (no wallet, no KYC)
+| Route | Purpose |
+|---|---|
+| `/` | Marketing landing — hero, 4 pillars, pull quote, issuer market grid |
+| `/institutions` | Institutional pitch — differentiators, cost-at-scale table, CTA |
+| `/regulation` | Regulatory mapping — 5-jurisdiction framework table, extension → requirement map, audit posture |
+| `/faq` | Split-persona FAQ — Issuers / Investors / Compliance / Technical, accordion + CTA sidebar |
+| `/explorer` | Public Atlas catalog (all registered tokens, searchable) |
+| `/explorer/[mint]` | Public token detail |
+
+### Gate
+| Route | Purpose |
+|---|---|
+| `/signup` | 3-step mock KYC — account info → docs (optional) → wallet bind → 4s pending → approved → /tokens |
+
+### Gated (KYC approved required)
+| Route | Purpose |
+|---|---|
+| `/create` | Token creation wizard (5 steps) |
+| `/tokens` | Issuer's token list |
+| `/tokens/[mint]` | Token dashboard — Holders, Mint & Distribute, Details, Compliance, History |
+| `/portfolio` | Investor holdings + transfer |
+
+### API
+| Route | Purpose |
+|---|---|
+| `POST /api/ipfs/upload` | Pinata-backed image upload (server-side, JWT never sent to browser) |
+| `GET /api/ipfs/status` | Client-side probe for whether `PINATA_JWT` is configured |
+| `POST /api/mints/register` | Register a newly created mint in the Atlas catalog (verifies on-chain authority match before accepting) |
+| `GET /api/mints/list` | Read all registered mints |
 
 ---
 
 ## Repository Structure
 
 ```
-abacus-trading-view/                    # Parent repo (trading view platform)
-├── ciphex-predictions/                 # Existing trading dashboard (do NOT modify)
-├── cipherion-tokenize/                 # CipheX Atlas app (THIS is our project)
+abacus-trading-view/                           # Parent repo
+├── ciphex-predictions/                        # Sibling product (do NOT modify)
+├── cipherion-tokenize/                        # CipheX Atlas app (this project)
 │   ├── src/
-│   │   ├── app/                        # Next.js App Router pages
-│   │   │   ├── page.tsx                # Landing page
-│   │   │   ├── create/page.tsx         # Token creation wizard
-│   │   │   ├── tokens/page.tsx         # My Tokens list
-│   │   │   ├── tokens/[mint]/page.tsx  # Token dashboard (tabbed)
-│   │   │   ├── portfolio/page.tsx      # Investor portfolio + transfer
-│   │   │   └── explorer/page.tsx       # Public token lookup
+│   │   ├── app/
+│   │   │   ├── icon.svg                       # Polaris favicon (browser tab)
+│   │   │   ├── apple-icon.svg                 # iOS home-screen icon (180×180)
+│   │   │   ├── layout.tsx                     # Geist + Geist_Mono fonts, AppShell
+│   │   │   ├── page.tsx                       # Landing
+│   │   │   ├── globals.css                    # Tailwind base, iOS input-zoom rule
+│   │   │   ├── institutions/page.tsx
+│   │   │   ├── regulation/page.tsx
+│   │   │   ├── faq/page.tsx
+│   │   │   ├── signup/page.tsx
+│   │   │   ├── create/page.tsx
+│   │   │   ├── tokens/page.tsx
+│   │   │   ├── tokens/[mint]/page.tsx
+│   │   │   ├── portfolio/page.tsx
+│   │   │   ├── explorer/page.tsx
+│   │   │   ├── explorer/[mint]/page.tsx
+│   │   │   └── api/
+│   │   │       ├── ipfs/upload/route.ts
+│   │   │       ├── ipfs/status/route.ts
+│   │   │       ├── mints/register/route.ts
+│   │   │       └── mints/list/route.ts
 │   │   ├── components/
-│   │   │   ├── wallet/                 # Wallet provider + connect button
-│   │   │   ├── token/                  # Create wizard, mint form, stats, card
-│   │   │   ├── holders/               # Cap table, onboard form
-│   │   │   ├── transfer/              # Transfer form
-│   │   │   ├── compliance/            # Freeze/thaw/pause/burn panel
-│   │   │   ├── history/               # Transaction list + CSV export
-│   │   │   ├── shared/                # Address display, explorer link, badges, etc.
-│   │   │   └── ui/                    # shadcn/ui components
-│   │   ├── hooks/                     # React hooks (wallet, tokens, transfers, etc.)
+│   │   │   ├── auth/                          # RequireKyc guard, KycPill
+│   │   │   ├── landing/                       # LandingPage, InstitutionsPage,
+│   │   │   │                                  # RegulationPage, MarketingNav/Footer
+│   │   │   ├── faq/                           # FaqPage with persona split
+│   │   │   ├── signup/                        # SignupFlow (3-step wizard)
+│   │   │   ├── wallet/                        # Wallet provider + connect button
+│   │   │   ├── token/                         # Create wizard, mint form, stats, card
+│   │   │   ├── holders/                       # Cap table, onboard form
+│   │   │   ├── transfer/                      # Transfer form + fee preview
+│   │   │   ├── compliance/                    # Freeze/thaw/pause/burn panel
+│   │   │   ├── history/                       # Transaction list + CSV export
+│   │   │   ├── shared/                        # AtlasLogo, AtlasWordmark, PageHeader,
+│   │   │   │                                  # AppShell, AppHeader, AddressDisplay,
+│   │   │   │                                  # ExplorerLink, NetworkBadge, etc.
+│   │   │   └── ui/                            # shadcn/ui primitives
+│   │   ├── hooks/                             # use-kyc-status, use-send-transaction,
+│   │   │                                      # use-token-*, use-transfer-fee, etc.
 │   │   ├── lib/
-│   │   │   ├── solana/                # All Solana RPC + Token-2022 operations
-│   │   │   │   ├── token-service.ts   # Create, mint, transfer, getTokenInfo
-│   │   │   │   ├── account-service.ts # Holders, onboarding, localStorage tracking
-│   │   │   │   ├── compliance-service.ts # Freeze, thaw, pause, resume, burn
-│   │   │   │   ├── metadata-service.ts   # Read on-chain metadata
-│   │   │   │   ├── history-service.ts    # Transaction history
-│   │   │   │   ├── connection.ts      # RPC connection singleton
-│   │   │   │   ├── constants.ts       # Network config, program IDs
-│   │   │   │   └── types.ts           # TokenServiceError, all type definitions
-│   │   │   ├── pinata.ts             # IPFS image upload
-│   │   │   └── utils/                # Format, validation, CSV helpers
+│   │   │   ├── solana/                        # All Solana RPC + Token-2022 operations
+│   │   │   │   ├── token-service.ts
+│   │   │   │   ├── account-service.ts
+│   │   │   │   ├── compliance-service.ts
+│   │   │   │   ├── metadata-service.ts
+│   │   │   │   ├── history-service.ts
+│   │   │   │   ├── connection.ts
+│   │   │   │   ├── constants.ts
+│   │   │   │   └── types.ts
+│   │   │   ├── pinata.ts                      # Client wrapper → /api/ipfs/upload
+│   │   │   ├── registry.ts                    # Upstash Redis client (server-only)
+│   │   │   ├── kyc.ts                         # localStorage KYC state (client-only)
+│   │   │   └── utils/                         # Format, validation, CSV, transfer-fee
 │   │   ├── config/
-│   │   │   └── asset-templates.ts    # 6 RWA asset type templates
+│   │   │   └── asset-templates.ts             # 6 RWA asset type templates
 │   │   └── types/
-│   │       └── token.ts              # Re-exports from lib/solana/types
-│   ├── .env.local                    # Environment variables (DO NOT COMMIT)
-│   ├── .env.local.example            # Template for env vars
-│   ├── next.config.ts                # output: "standalone" for Railway
-│   ├── components.json               # shadcn/ui config (New York style)
-│   └── package.json                  # Package: ciphex-atlas
+│   │       └── token.ts                       # Re-exports from lib/solana/types
+│   ├── .env.local.example                     # Env var template
+│   ├── next.config.ts                         # Bare config (no output: standalone — Vercel)
+│   ├── components.json                        # shadcn config
+│   └── package.json                           # Package: ciphex-atlas
 ├── plans/
-│   ├── RWA_TOKEN_PLATFORM_PROPOSAL.md          # Research + architecture proposal
-│   ├── RWA_TOKEN_PLATFORM_ADDENDUM.md          # Cost analysis, competitor landscape
-│   ├── RWA_TOKEN_PLATFORM_IMPLEMENTATION_PLAN.md # Source of truth — milestones, acceptance criteria
-│   ├── RWA_COUNTERPARTY_FAQ.md                 # 40+ Q&A for content writers/sales
-│   └── ATLAS_HANDOFF.md                        # THIS FILE
+│   ├── ATLAS_HANDOFF.md                       # THIS FILE
+│   ├── ROADMAP.md                             # Remaining work, prioritized
+│   ├── RWA_TOKEN_PLATFORM_PROPOSAL.md         # Original research + chain comparison
+│   ├── RWA_TOKEN_PLATFORM_ADDENDUM.md         # Cost forecasts, competitor landscape
+│   ├── RWA_TOKEN_PLATFORM_IMPLEMENTATION_PLAN.md  # Milestone source of truth
+│   └── RWA_COUNTERPARTY_FAQ.md                # 40+ Q&A for stakeholders/sales
 ```
 
 ---
@@ -73,14 +134,52 @@ abacus-trading-view/                    # Parent repo (trading view platform)
 ## Tech Stack
 
 | Layer | Technology |
-|-------|-----------|
-| Frontend | Next.js 16.2.4, React 19, TypeScript strict |
+|---|---|
+| Framework | Next.js 16.2.4 (App Router, Turbopack), React 19, TypeScript strict |
 | Styling | Tailwind CSS 4, shadcn/ui (New York), Radix UI, Lucide icons |
-| Blockchain | Solana Token-2022 via @solana/web3.js + @solana/spl-token |
-| Wallet | @solana/wallet-adapter-react (Phantom, Solflare, Backpack) |
-| Image upload | Pinata IPFS (pinata-web3 SDK) |
-| Fonts | Geist + Geist Mono (matches ciphex-predictions design) |
-| Theme | Dark-only, GitHub-inspired palette (#0d1117, #161b22, #30363d, etc.) |
+| Fonts | Geist + Geist Mono via `next/font/google` — no serif display face |
+| Blockchain | Solana Token-2022 via `@solana/web3.js` + `@solana/spl-token` |
+| Wallet | `@solana/wallet-adapter-react` (Phantom, Solflare, Backpack) |
+| IPFS | `pinata-web3` SDK (server-side only, via API route proxy) |
+| Registry | Upstash Redis (Vercel Marketplace integration) |
+| Theme | Dark-only. Canvas `#0a0e13`, borders `#30363d`, accents green/blue/yellow/red |
+
+---
+
+## Design System Summary
+
+**Logo:** Polaris Crosshair — concentric circles + 45°-rotated four-pointed star + white center dot. Rendered by `AtlasLogo` / `AtlasWordmark` components. Favicon lives at `src/app/icon.svg` (rounded-square backdrop for tabs) and `apple-icon.svg` (180×180 for iOS installs).
+
+**Wordmark lock:** `Atlas | BY CIPHEX` — "Atlas" in Geist Semibold, "BY CIPHEX" in Geist Mono 9–10px uppercase with `border-l` separator. `compact` prop on `AtlasWordmark` bumps sizing for dense nav rows.
+
+**Typography scale (all Geist Sans + Geist Mono — no serif):**
+
+| Element | Mobile | Tablet | Desktop |
+|---|---|---|---|
+| Marketing hero h1 | 40px | 56px | 80px |
+| Institutions / Regulation hero | 36px | 52px | 68px |
+| FAQ / Signup h1 | 32px | 44px | 60/44px |
+| Marketing section h2 | 26–28px | 30–32px | 36–40px |
+| Dashboard page title (`PageHeader`) | 24px | 28px | 32px |
+| Mono eyebrow | 10px | 11px | 11px |
+| Body lead | 14–15px | 16–17px | 17–19px |
+| Body | 13–14px | 14px | 14–15px |
+| Pull quote | 22px | 26px | 32px (sans, not serif) |
+
+All display type uses `font-semibold` with aggressive tight tracking (`-0.03em` to `-0.04em`). Emphasis is carried by green color accent (`#3fb950`) on pivotal words — no italics.
+
+**Shared primitives:**
+- `PageHeader` — dashboard pages. Eyebrow (`/ section`) + title + optional subtitle + right-action slot.
+- `MarketingNav` / `MarketingFooter` — shared across `/`, `/institutions`, `/regulation`, `/faq`, `/signup`. Includes hamburger + sheet for mobile.
+- `AppHeader` — gated-dashboard chrome. Nav collapses into sheet below `md`. KYC pill + network badge live in the sheet on mobile under "System status".
+- `RequireKyc` — client guard wrapping gated routes. Redirects to `/signup` if `localStorage` state ≠ `approved`.
+
+**Mobile/tablet rules:**
+- Marketing nav + app header both collapse to hamburger-triggered sheets below 768px
+- Data tables (regulation frameworks, institutions cost, extensions map) stack to card-per-row on mobile
+- Token dashboard tabs use `overflow-x-auto snap-x` to swipe through 5 triggers
+- Inputs bump to 16px font below 640px (iOS zoom prevention)
+- Meta stats on landing use `gap-px` + `bg-[#21262d]` backing to create `+` separators between 4 cells on mobile 2×2 grid; eyebrows forced to 2 visible lines via tuple-rendered `[line1, line2]` with `<br className="md:hidden" />`
 
 ---
 
@@ -91,84 +190,82 @@ abacus-trading-view/                    # Parent repo (trading view platform)
 NEXT_PUBLIC_SOLANA_NETWORK=devnet
 
 # RECOMMENDED (eliminates 429 rate limiting on public RPC)
-# Browser-exposed by design (wallet adapter needs a reachable RPC).
-# Lock the Helius key to allowed origins in the Helius dashboard.
+# Browser-exposed — wallet adapter needs a reachable RPC.
+# Lock the Helius key by allowed domains in the Helius dashboard.
 NEXT_PUBLIC_RPC_ENDPOINT=https://devnet.helius-rpc.com/?api-key=YOUR_KEY
 
 # OPTIONAL — enables drag-and-drop image upload
-# PINATA_JWT is SERVER-ONLY (no NEXT_PUBLIC_ prefix). Uploads proxy through
-# /api/ipfs/upload so the JWT never reaches the browser.
+# PINATA_JWT is SERVER-ONLY. Uploads proxy through /api/ipfs/upload.
 PINATA_JWT=your_jwt
-NEXT_PUBLIC_PINATA_GATEWAY=gateway.pinata.cloud  # read by both server route and browser
+NEXT_PUBLIC_PINATA_GATEWAY=gateway.pinata.cloud  # public — browser reads this for ipfs:// URLs
+
+# OPTIONAL — backs the public /explorer catalog
+# Populated automatically by Vercel Marketplace → Upstash for Redis integration.
+# Code accepts UPSTASH_REDIS_REST_URL/_TOKEN as fallback for direct Upstash setups.
+KV_REST_API_URL=
+KV_REST_API_TOKEN=
 ```
 
 Helius free tier: https://helius.dev (1M credits/month)
-Pinata free tier: https://app.pinata.cloud (1GB storage)
+Pinata free tier: https://app.pinata.cloud (1GB)
+Upstash free tier: 10K commands/day (plenty for catalog traffic)
 
 ---
 
 ## Build Status
 
-All 9 milestones complete. `npm run build` and `npx tsc --noEmit` both pass clean.
+All Phase 1A through 1C milestones complete. `npm run build` + `npx tsc --noEmit` both pass clean on every commit.
 
-| Milestone | Status | Tested |
-|-----------|--------|--------|
+| Phase | Scope | Status |
+|---|---|---|
+| **1A** | Dashboard MVP — wallet, token creation, onboarding, distribution, transfers, compliance, history, explorer lookup | Complete, verified on devnet |
+| **1B** | Env hardening + Vercel deploy — Pinata server proxy, Helius origin lock, Upstash registry for /explorer catalog, server-side mint registration w/ on-chain verification | Complete, live on Vercel |
+| **1C** | Marketing + gate — landing, institutions, regulation, FAQ, signup/KYC gate, RequireKyc wrapper, KycPill reset, faucet link refactor (in-app → faucet.solana.com) | Complete |
+| **1D** | Design-system parity — AtlasLogo/Wordmark reusable, Polaris Crosshair favicon, PageHeader, unified canvas color, typography scale (all-Geist), wordmark attribution flip | Complete |
+| **1E** | Mobile/tablet responsive — marketing nav drawer, app header drawer, responsive type sweep, table stacking, tabs overflow scroll, meta stats redesign, iOS zoom prevention, touch targets | Complete |
+| **2** | Transfer Hook (Rust/Anchor), real KYC provider, mainnet, distributions | Not started — see `ROADMAP.md` |
+
+### Phase 1A milestone detail
+
+| Milestone | Status | Verified |
+|---|---|---|
 | 0 — Project Scaffold | Complete | Build clean |
 | 1 — Wallet & Network | Complete | Phantom tested |
 | 2 — Token Creation | Complete | Devnet verified (happy + stress paths) |
 | 3 — Dashboard & Cap Table | Complete | On-chain data loads |
-| 4 — Onboarding & Distribution | Complete | Mint to treasury tested, distribute tested |
-| 5 — P2P Transfer | Complete | Built, needs two-wallet test |
-| 6 — Compliance Actions | Complete | Freeze/thaw built, pause/resume wired |
+| 4 — Onboarding & Distribution | Complete | Mint + distribute tested with real wallet pair |
+| 5 — P2P Transfer | Complete | Two-wallet send verified |
+| 6 — Compliance Actions | Complete | Freeze/thaw/pause/burn all tested |
 | 7 — Transaction History | Complete | Lightweight mode (devnet accommodation) |
-| 8 — Demo Polish | Complete | Explorer page, integrity fixes |
+| 8 — Demo Polish | Complete | Explorer catalog + backfill, integrity fixes |
 
 ---
 
 ## Architecture Decisions & Devnet Accommodations
 
-These are intentional MVP shortcuts with documented production upgrade paths. Each has inline code comments pointing to `plans/RWA_TOKEN_PLATFORM_IMPLEMENTATION_PLAN.md`.
+Intentional MVP shortcuts with documented production upgrade paths. Each has inline comments pointing back here.
 
 | Shortcut | File | Why | Production Fix |
-|----------|------|-----|---------------|
-| **localStorage for mint tracking** | `account-service.ts` | Public RPC blocks `getProgramAccounts` for Token-2022 | Postgres table or Helius DAS API |
-| **`getTokenLargestAccounts` for cap table** | `account-service.ts` | Same RPC limitation. Returns max 20 holders. | `getProgramAccounts` with paid RPC, or Helius DAS |
-| **Lightweight transaction history** | `history-service.ts` | `getParsedTransactions` batch call triggers 429 on public RPC | Uncomment `getParsedTransactions` block with paid RPC, or Helius webhooks |
-| **Pinata for images** | `lib/pinata.ts` + `app/api/ipfs/*` | Free 1GB tier; uploads proxy through server route (JWT stays server-side) | Irys (Arweave) for permanent storage, or Pinata presigned upload JWTs to bypass Vercel 4.5MB body limit |
-| **Simulated KYC** | freeze/thaw model | No real identity verification | Civic Pass or Synaps integration |
-
----
-
-## Known Gaps (Not Blocking Deploy)
-
-### Gap 1: Transfer fee preview on transfer form — RESOLVED (2026-04-18)
-Fee preview now surfaces in two places in `transfer-form.tsx`: a subtle hint under the amount field ("X.XX% transfer fee — recipient receives Y") and a full breakdown in the confirm card. Backed by `useTransferFee(mint)` hook and `calculateTransferFee()` util.
-
-### Gap 2: MemoTransfer — REMOVED (2026-04-18)
-Investigation showed the feature as conceived was architecturally impossible: MemoTransfer is an account-level extension that the **account owner** must sign to enable, so the issuer cannot enable it at onboarding. The toggle, type field, and dead `enableMemo` code path were removed. For mint-level memo enforcement in production, the canonical Solana pattern is a Transfer Hook (Phase 1B) — not this extension. See [Solana docs](https://solana.com/docs/tokens/extensions/memo-transfer).
-
-### Gap 3: Explorer page is address-lookup only — RESOLVED (2026-04-18)
-The `/explorer` page is now a public Atlas catalog: a searchable grid of every token created through the platform, backed by Upstash Redis via the Vercel Marketplace integration.
-
-- **Routes:** `/explorer` (catalog + search), `/explorer/[mint]` (detail — refactored from the previous single-page lookup)
-- **API:** `POST /api/mints/register` (called by the wizard after successful on-chain creation; server verifies mint exists, is Token-2022, and that the claimed creator is the on-chain mint authority before accepting) and `GET /api/mints/list`
-- **Storage:** Upstash Redis ZSET (`atlas:mints:sorted`) scored by `createdAt`, entry JSON blobs at `atlas:mint:<address>`
-- **Env:** `KV_REST_API_URL`, `KV_REST_API_TOKEN` (server-only). The code also accepts `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` as a fallback for direct Upstash setups. Without any of these, token creation still works; the catalog shows a "not configured" banner.
-- **Provisioning:** Vercel dashboard → Marketplace → Upstash for Redis → add integration → connect to project. Vercel auto-populates `KV_*` vars (legacy naming inherited from the old Vercel KV product).
-- **Pre-existing tokens:** Not automatically registered. Would need a small backfill route or manual re-registration. Not blocking.
+|---|---|---|---|
+| **localStorage for mint tracking** | `account-service.ts` | Public RPC blocks `getProgramAccounts` for Token-2022 | Upstash-backed registry is now the canonical path (see `/api/mints/list`). localStorage still used on `/tokens` for the issuer's own list. |
+| **`getTokenLargestAccounts` for cap table** | `account-service.ts` | Same RPC limitation. Returns max 20 holders. | `getProgramAccounts` with paid RPC (Helius DAS API `getTokenAccounts`) for full pagination |
+| **Lightweight transaction history** | `history-service.ts` | `getParsedTransactions` batch triggers 429 on public RPC | Switch to Helius Enhanced Transactions API or Webhook → DB |
+| **Pinata for images** | `lib/pinata.ts` + `app/api/ipfs/*` | Free 1GB tier; server-proxy keeps JWT off the browser | Irys (Arweave) for permanent storage, or Pinata presigned upload JWTs to bypass Vercel's 4.5MB body limit |
+| **Simulated KYC** | `lib/kyc.ts` + `signup-flow.tsx` | No real identity verification — 4s auto-approval | Civic Pass, Synaps, or Persona integration. Keep the 3-step wizard shape; swap step 2 for real doc verification. |
+| **In-app airdrop removed** | `app-header.tsx` | `connection.requestAirdrop` unreliable on public and free-tier paid RPCs | Header link deep-links to `faucet.solana.com?walletAddress=<pk>`. Acceptable indefinitely — no in-app replacement needed. |
 
 ---
 
 ## Key Technical Patterns
 
-### Transaction Signing
+### Transaction signing
 All transactions go through `src/hooks/use-send-transaction.ts`:
 1. Sets blockhash + feePayer
 2. Pre-flight simulates against RPC (logs real Solana error to console)
 3. Sends via wallet adapter with `signers` option for keypairs
 4. Confirms with blockhash-based confirmation
 
-### Token-2022 Mint Creation Flow
+### Token-2022 mint creation flow
 `token-service.ts` → `createRwaToken()`:
 1. Create account with `space = getMintLen(extensions)` only
 2. Initialize extensions (MetadataPointer, DefaultAccountState, TransferFeeConfig, PermanentDelegate, PausableConfig)
@@ -177,92 +274,82 @@ All transactions go through `src/hooks/use-send-transaction.ts`:
 5. Initialize metadata (Token-2022 auto-reallocates using deposited lamports)
 6. Update metadata fields (batched, max 3 per TX to stay under size limit)
 7. Separate TX: create ATA + thaw + mint initial supply
+8. Post-success: client POSTs mint + creator + metadata snapshot to `/api/mints/register` for catalog visibility
 
-### Frozen Account Handling
+### Frozen account handling
 Token-2022 `DefaultAccountState=Frozen` means ALL new token accounts start frozen. This affects:
-- **Minting:** Must thaw ATA before `MintTo` (Token-2022 blocks minting to frozen accounts)
-- **Onboarding:** Create ATA + thaw in one TX
-- **Transfers:** Recipient must be thawed (validated before sending)
+- **Minting:** must thaw ATA before `MintTo` (Token-2022 blocks minting to frozen accounts)
+- **Onboarding:** create ATA + thaw in one transaction
+- **Transfers:** recipient must be thawed (validated client-side before sending)
 
-### Error Handling Contract
+### KYC gate
+`lib/kyc.ts` holds `{ status: 'none' | 'pending' | 'approved', submittedAt, approvedAt, formData }` in `localStorage["ciphex-atlas-kyc"]`. `useKycStatus` subscribes via a custom `ciphex-atlas-kyc-changed` window event so same-tab updates propagate without relying on the browser's cross-tab `storage` event. `RequireKyc` redirects unapproved visitors to `/signup`. Submitting the form flips status to `pending`, a 4-second timer flips it to `approved`. Header `KycPill` shows the green badge with a 2-step "Reset KYC? yes / ×" confirm flow for demo resets.
+
+### Mint registration
+On successful token creation, `use-register-mint.ts` POSTs to `/api/mints/register` with `{ mint, creator, assetType, imageUri, description }`. The server route:
+1. Verifies `PINATA_JWT` / Upstash creds present
+2. Parses PublicKeys, validates
+3. Fetches the mint account via `getMint(…, TOKEN_2022_PROGRAM_ID)`
+4. Rejects with 403 if the claimed creator doesn't match the on-chain mint authority
+5. Pulls `name` + `symbol` from on-chain metadata (not trusting client-supplied values)
+6. Writes entry to Upstash: ZSET `atlas:mints:sorted` scored by `createdAt`, JSON blob at `atlas:mint:<address>`
+Failure is non-fatal — the mint is on-chain regardless; `/explorer` just won't list it. Logs to console.
+
+### Error handling contract
 ```
 1. Works correctly with real data
 2. Falls back visibly — clearly signals degraded mode
 3. Fails with a clear error message
-4. NEVER: Silently degrades to look "fine"
+4. NEVER silently degrades to look "fine"
 ```
 All errors use `TokenServiceError` with typed codes: `INSUFFICIENT_SOL`, `WALLET_REJECTED`, `NETWORK_ERROR`, `ACCOUNT_FROZEN`, `TOKEN_PAUSED`, `UNAUTHORIZED`, `INVALID_INPUT`, `ACCOUNT_NOT_FOUND`, `ALREADY_EXISTS`, `RPC_ERROR`.
 
 ---
 
-## Railway Deployment
+## Vercel Deployment
 
 ### Configuration
-- Deploy target is **Vercel**. `next.config.ts` has no special flags — Vercel handles packaging.
-- Set **root directory** to `cipherion-tokenize` in Vercel project settings.
-- No Dockerfile, no TOML, no Redis, no database needed.
-- For Railway/Docker instead, re-add `output: "standalone"` to `next.config.ts`.
+- `next.config.ts` has no special flags — Vercel handles packaging natively
+- Set **root directory** to `cipherion-tokenize` in Vercel project settings
+- No Dockerfile, no TOML, no external DB — all state is either on-chain or in Upstash (managed by Vercel integration)
 
-### Environment Variables (set in Vercel project settings)
+### Environment variables (set in Vercel project settings, apply to Prod + Preview + Dev)
 ```
 NEXT_PUBLIC_SOLANA_NETWORK=devnet
 NEXT_PUBLIC_RPC_ENDPOINT=https://devnet.helius-rpc.com/?api-key=YOUR_KEY
 PINATA_JWT=your_jwt                              # server-only
-NEXT_PUBLIC_PINATA_GATEWAY=gateway.pinata.cloud  # shared by server route + browser
+NEXT_PUBLIC_PINATA_GATEWAY=gateway.pinata.cloud
+KV_REST_API_URL=<from Vercel Upstash integration>
+KV_REST_API_TOKEN=<from Vercel Upstash integration>
 ```
 
-### Critical: Helius RPC is required for production
-The public devnet RPC rate-limits at 100 req/10s. A deployed app serving concurrent users will hit 429s constantly. Helius free tier (1M credits/month) eliminates this entirely.
-
-**Helius Access Control gotchas** (learned the hard way on 2026-04-18):
-- Allowed Domains are under **RPCs → your endpoint → Access Control**, not under the API Keys page.
-- Helius **rejects `localhost` as an allowed domain** ("localhost is not a valid domain in this context"). For local dev, Allowed Domains must be **empty**.
+### Helius Access Control gotchas
+- Allowed Domains live under **RPCs → your endpoint → Access Control**, not under the API Keys page
+- Helius **rejects `localhost`** as an allowed domain. For local dev, Allowed Domains must be **empty**.
 - If any rule (Domains, IPs, or CIDRs) doesn't match the request source, every paid RPC method returns JSON-RPC error `-32401 Unauthorized`. `getHealth` still succeeds, which makes the failure look like a CORS or key issue — it isn't. Wipe all three rule fields to unblock local dev.
-- Production: add only your Vercel production domain. Preview deploys either need `*.vercel.app` (confirm Helius accepts wildcards) or you leave rules empty and rely on the credit ceiling as soft protection.
-- Clean long-term fix for zero key exposure: build `/api/rpc` proxy route with a server-only `HELIUS_RPC_ENDPOINT` var. Mirrors the Pinata server-proxy pattern.
+- Production: add only your Vercel production domain. Preview deploys need `*.vercel.app` (confirm Helius accepts wildcards on your plan) or leave rules empty.
+- For zero key exposure, add an `/api/rpc` proxy route with a server-only `HELIUS_RPC_ENDPOINT` var. Not done yet — see `ROADMAP.md`.
 
 ---
 
-## Stress Test Results (2026-04-17)
+## User Preferences (from memory)
 
-Token: "CipheX Gold Reserve" (CXG), all 5 extensions enabled.
-- Token creation with all extensions + image + metadata: PASS
-- Initial supply minting (1M CXG with thaw-before-mint): PASS
-- Dashboard loads on-chain data: PASS
-- History tab loads with Helius RPC: PASS (was 429 on public RPC)
-- Explorer page lookup: PASS
-- Investor onboarding: NOT TESTED (needs second wallet)
-- P2P transfer: NOT TESTED (needs second wallet)
-- Compliance freeze/thaw/pause/burn: NOT TESTED (needs holders)
-
----
-
-## Phase 1B (Not Started) — Transfer Hook
-
-Custom Anchor/Rust program for advanced compliance (whitelist enforcement, jurisdiction checks, investor caps). Requires:
-- Anchor framework setup in `programs/transfer-hook/`
-- Rust development + deployment to devnet
-- Frontend integration (whitelist management UI, Transfer Hook toggle in creation wizard)
-- **This is the path to compliant DeFi** — the hook can validate both sides of a DEX swap
+- **No AI attribution in git commits** — never include `Co-Authored-By: Claude` or similar
+- **Error handling: Fail Loud, Never Fake** — never silently swallow errors or substitute mock data
+- **Brand:** CipheX Atlas (not "Cipherion Tokenize" — that's the directory name)
+- **Token-2022 is the production program** — same on devnet and mainnet, not a "test version"
+- **Document all devnet accommodations** — inline code comments + this doc, so an auditor understands every divergence from production patterns
+- **Design:** all-Geist type system, GitHub-dark palette, Polaris Crosshair logo, no serif display
 
 ---
 
 ## Reference Documents
 
 | Document | Purpose |
-|----------|---------|
-| `plans/RWA_TOKEN_PLATFORM_PROPOSAL.md` | Original research, chain comparison, architecture design |
-| `plans/RWA_TOKEN_PLATFORM_ADDENDUM.md` | Cost forecasts, competitive landscape, wallet compatibility |
-| `plans/RWA_TOKEN_PLATFORM_IMPLEMENTATION_PLAN.md` | Source of truth — milestones, acceptance criteria, MVP shortcuts table |
+|---|---|
+| `plans/ATLAS_HANDOFF.md` | This file — current state of the project |
+| `plans/ROADMAP.md` | Remaining work, categorized by priority |
+| `plans/RWA_TOKEN_PLATFORM_PROPOSAL.md` | Original research, chain comparison, architecture |
+| `plans/RWA_TOKEN_PLATFORM_ADDENDUM.md` | Cost forecasts, competitive landscape, wallet compat |
+| `plans/RWA_TOKEN_PLATFORM_IMPLEMENTATION_PLAN.md` | Milestone source of truth, shortcuts table |
 | `plans/RWA_COUNTERPARTY_FAQ.md` | 40+ Q&A for stakeholder conversations, content writers |
-
----
-
-## User Preferences (from memory)
-
-- **No Claude references in git commits** — never include `Co-Authored-By: Claude` or any attribution
-- **Error handling: Fail Loud, Never Fake** — never silently swallow errors or substitute mock data
-- **Brand:** CipheX Atlas (not "Cipherion Tokenize")
-- **Design:** Must match ciphex-predictions look and feel (dark theme, Geist fonts, GitHub palette)
-- **Token-2022 is the production program** — same on devnet and mainnet, not a "test version"
-- **Document all devnet accommodations** — inline code comments + implementation plan table, so an auditor can understand every divergence from production patterns

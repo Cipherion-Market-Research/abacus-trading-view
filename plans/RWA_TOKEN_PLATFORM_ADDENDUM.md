@@ -1,7 +1,7 @@
 # CipheX Atlas — Research Addendum
 
-**Date:** 2026-04-17
-**Status:** Complete — Technical reference for counterparty Q&A and internal decision-making
+**Date:** 2026-04-17 (original) · last audit 2026-04-18
+**Status:** Evergreen research reference — Solana network behavior, cost forecasts, competitive landscape, wallet compatibility. Data here doesn't change with our build status. **For current build state see `ATLAS_HANDOFF.md`.**
 
 ---
 

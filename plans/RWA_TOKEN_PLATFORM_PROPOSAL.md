@@ -1,8 +1,10 @@
 # CipheX Atlas — POC/MVP Proposal
 
-**Date:** 2026-04-17
-**Status:** Complete — MVP built and operational on Solana Devnet
+**Date:** 2026-04-17 (original) · last audit 2026-04-18
+**Status:** Historical — this is the pre-build proposal. The MVP shipped and has since grown beyond the original scope (env hardening, public marketing shell, KYC gate, design-system parity, mobile). **For current state see `ATLAS_HANDOFF.md`. For remaining work see `ROADMAP.md`.**
 **Brand:** CipheX Atlas (package: `ciphex-atlas`, directory: `/cipherion-tokenize/`)
+
+> **Read this for:** the original chain-selection analysis, architectural rationale, token-parameter rationale, and screen-by-screen UX spec as designed at the outset. Every architectural bet in this doc was honored in the implementation, though many features have since been extended. Do not edit this doc to reflect current state — that's what `ATLAS_HANDOFF.md` is for.
 
 ---
 

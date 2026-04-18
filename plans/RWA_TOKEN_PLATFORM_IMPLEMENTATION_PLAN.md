@@ -1,14 +1,18 @@
 # CipheX Atlas — Implementation Plan (Source of Truth)
 
-**Date:** 2026-04-17
-**Status:** Phase 1A Complete — All 9 milestones built and building clean
-**Companion Docs:** `RWA_TOKEN_PLATFORM_PROPOSAL.md`, `RWA_TOKEN_PLATFORM_ADDENDUM.md`, `RWA_COUNTERPARTY_FAQ.md`
+**Date:** 2026-04-18
+**Status:** Phases 1A–1E Complete — dashboard MVP + env hardening + marketing shell + KYC gate + design parity + mobile
+**Companion Docs:** `ATLAS_HANDOFF.md` (current state), `ROADMAP.md` (remaining work), `RWA_TOKEN_PLATFORM_PROPOSAL.md`, `RWA_TOKEN_PLATFORM_ADDENDUM.md`, `RWA_COUNTERPARTY_FAQ.md`
 
 > This document is the guiding truth for all coding agents. Every milestone has acceptance criteria.
 > Every architectural decision is final unless explicitly revised in this document.
-> Reference research docs for context/rationale — reference THIS doc for what to build.
+> Reference research docs for context/rationale — reference THIS doc for what was built in Phase 1A.
+> For post-1A scope (env hardening, marketing, KYC gate, design parity, mobile) see `ATLAS_HANDOFF.md`.
+> For remaining work (Phase 2+) see `ROADMAP.md`.
 
-### Build Completion Summary (2026-04-17)
+### Build Completion Summary (2026-04-18)
+
+**Phase 1A** — Dashboard MVP (9 milestones)
 
 | Milestone | Status | Verified |
 |-----------|--------|----------|
@@ -16,14 +20,56 @@
 | 1 — Wallet & Network | Complete | Phantom connect tested |
 | 2 — Token Creation | Complete | Token created on devnet ([explorer](https://explorer.solana.com/address/VzZngWaHydAtKnXC4bT8b4WpvVJY1oG4VzB3eY97eiu?cluster=devnet)) |
 | 3 — Dashboard & Cap Table | Complete | On-chain data loads correctly |
-| 4 — Onboarding & Distribution | Complete | Mint to treasury tested, thaw-before-mint working |
-| 5 — P2P Transfer | Complete | Built, needs two-wallet test |
-| 6 — Compliance Actions | Complete | Freeze/thaw/pause/burn wired with real SDK instructions |
+| 4 — Onboarding & Distribution | Complete | Mint + distribute tested with real wallet pair |
+| 5 — P2P Transfer | Complete | Two-wallet send verified |
+| 6 — Compliance Actions | Complete | Freeze/thaw/pause/burn all tested |
 | 7 — Transaction History | Complete | Lightweight mode (rate-limit accommodation) |
-| 8 — Demo Polish | Complete | Explorer page, integrity fixes, airdrop fix |
-| Phase 1B — Transfer Hook | Not started | Deferred — requires Anchor/Rust |
+| 8 — Demo Polish | Complete | Explorer page, integrity fixes |
 
-**Devnet accommodations documented:** 5 items in the "Known MVP Shortcuts" table below, each with inline code comments pointing back to this document and specific production upgrade instructions.
+**Phase 1B** — Env hardening + Vercel deploy
+
+- Pinata JWT moved server-side; uploads proxy through `/api/ipfs/upload` (JWT never reaches the browser)
+- Helius RPC key locked to allowed domains in the Helius dashboard (see `ATLAS_HANDOFF.md` for Helius access-control gotchas — `localhost` is NOT a valid allowed domain)
+- `output: "standalone"` dropped from `next.config.ts` — Vercel handles packaging natively
+- `/explorer` upgraded from address-lookup to public Atlas catalog, backed by Upstash Redis via Vercel Marketplace integration. `/api/mints/register` verifies on-chain mint authority before accepting writes; `/api/mints/list` returns all registered mints
+- Live on Vercel
+
+**Phase 1C** — Marketing shell + KYC gate
+
+- `/` — institutional landing (hero, 4 pillars, pull quote, issuer market grid)
+- `/institutions` — differentiators, cost-at-scale table, CTA
+- `/regulation` — 5-jurisdiction framework table, extension → requirement map, audit posture
+- `/faq` — split-persona FAQ (Issuers / Investors / Compliance / Technical) with persona-aware CTA sidebar
+- `/signup` — 3-step mock KYC wizard (account info → optional docs → wallet bind → 4s pending → approved)
+- `RequireKyc` wrapper gates `/create`, `/tokens`, `/tokens/[mint]`, `/portfolio`
+- `KycPill` in app header with 2-step demo reset
+- Public routes: `/`, `/institutions`, `/regulation`, `/faq`, `/signup`, `/explorer`, `/explorer/[mint]`
+
+**Phase 1D** — Design-system parity
+
+- Polaris Crosshair logo (`AtlasLogo` / `AtlasWordmark`) replaces green-A placeholder across app
+- Wordmark attribution flipped: `CPX | Atlas` (prefix) → `Atlas | BY CIPHEX` (suffix)
+- Polaris favicon shipped at `src/app/icon.svg`, iOS app icon at `src/app/apple-icon.svg`
+- Canvas unified to `#0a0e13` across marketing + dashboard (was `#0d1117` in dashboard)
+- Dashboard routes bumped from `max-w-4xl` to `max-w-[1280px]` to match marketing shell
+- `PageHeader` component for consistent dashboard page titles (mono eyebrow + Geist Semibold 32px title + right-action slot)
+- All-Geist display typography — no serif. Emphasis carried by green color accent on pivotal words, not italics.
+
+**Phase 1E** — Mobile / tablet responsive
+
+- Marketing nav hamburger + slide-in sheet (Radix Dialog) below `md`
+- App header nav collapses into sheet; KYC pill + network badge move into sheet under "System status" on mobile
+- Responsive typography sweep across all pages (hero 40→56→80px, body 14→15→19px, etc.)
+- Regulation frameworks table + extension map + institutions cost table stack to card-per-row on mobile
+- Token dashboard tabs use `overflow-x-auto snap-x` for horizontal scroll through 5 triggers
+- Landing meta stats rebuilt: 2-line forced eyebrows, bigger single-token value, one sub-headline, `gap-px` + `bg-[#21262d]` backing creates clean `+` separators between 4 cells in 2×2 mobile grid
+- Landing pillars + institutions rows switched from grid (ambiguous wrap) to flex-col stack on mobile
+- FAQ sidebar Q-list hidden on mobile; persona CTAs remain as funnel
+- iOS input zoom prevention: global rule bumps `input/select/textarea` to 16px below 640px
+
+**Phase 2** (not started) — Transfer Hook (Rust/Anchor), real KYC provider, mainnet, distributions, confidential transfers. See `ROADMAP.md`.
+
+**Devnet accommodations documented:** inline code comments in each affected file point back to this document's "Known MVP Shortcuts" table (below) and to `ATLAS_HANDOFF.md` for production upgrade paths.
 
 ---
 

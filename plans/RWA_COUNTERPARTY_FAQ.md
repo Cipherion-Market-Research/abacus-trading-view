@@ -2,7 +2,11 @@
 
 **Purpose:** Reference document for content writers, sales, and stakeholder Q&A sessions. Written in plain language with technical depth where needed.
 
-**Last Updated:** 2026-04-17
+**Last Updated:** 2026-04-18
+
+> Content here is evergreen business/product Q&A. For current implementation state see `ATLAS_HANDOFF.md`. A public **split-persona FAQ UI** with this content is live at `/faq` in the app — use this document as the source of truth when adding/editing entries there.
+>
+> **Update since 2026-04-17:** `/explorer` is now a public Atlas catalog (registered mints, searchable) in addition to single-address lookup. Token issuers get listed automatically on successful creation.
 
 ---
 
