@@ -153,8 +153,8 @@ The `/explorer` page is now a public Atlas catalog: a searchable grid of every t
 - **Routes:** `/explorer` (catalog + search), `/explorer/[mint]` (detail — refactored from the previous single-page lookup)
 - **API:** `POST /api/mints/register` (called by the wizard after successful on-chain creation; server verifies mint exists, is Token-2022, and that the claimed creator is the on-chain mint authority before accepting) and `GET /api/mints/list`
 - **Storage:** Upstash Redis ZSET (`atlas:mints:sorted`) scored by `createdAt`, entry JSON blobs at `atlas:mint:<address>`
-- **Env:** `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` (both server-only). Without them, token creation still works; the catalog shows a "not configured" banner.
-- **Provisioning:** Vercel dashboard → Marketplace → Upstash → add integration → connect to project. Env vars auto-populate.
+- **Env:** `KV_REST_API_URL`, `KV_REST_API_TOKEN` (server-only). The code also accepts `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` as a fallback for direct Upstash setups. Without any of these, token creation still works; the catalog shows a "not configured" banner.
+- **Provisioning:** Vercel dashboard → Marketplace → Upstash for Redis → add integration → connect to project. Vercel auto-populates `KV_*` vars (legacy naming inherited from the old Vercel KV product).
 - **Pre-existing tokens:** Not automatically registered. Would need a small backfill route or manual re-registration. Not blocking.
 
 ---

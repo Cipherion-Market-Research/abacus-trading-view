@@ -9,7 +9,7 @@ export async function GET() {
       {
         configured: false,
         error:
-          "Registry is not configured. Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN.",
+          "Registry is not configured. Set KV_REST_API_URL and KV_REST_API_TOKEN (or UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN).",
         entries: [],
       },
       { status: 503 }

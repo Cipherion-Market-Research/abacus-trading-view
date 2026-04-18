@@ -152,10 +152,10 @@ export default function ExplorerPage() {
                 Catalog registry is not configured.
               </p>
               <p className="mt-1 text-xs text-[#8b949e]">
-                Set <code className="font-mono">UPSTASH_REDIS_REST_URL</code>{" "}
-                and <code className="font-mono">UPSTASH_REDIS_REST_TOKEN</code>{" "}
-                to enable the public catalog. You can still look up any token
-                by its full mint address above.
+                Set <code className="font-mono">KV_REST_API_URL</code> and{" "}
+                <code className="font-mono">KV_REST_API_TOKEN</code> (Vercel
+                Upstash integration auto-populates these). You can still look
+                up any token by its full mint address above.
               </p>
             </div>
           </div>

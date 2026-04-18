@@ -16,21 +16,29 @@ const entryKey = (mint: string) => `atlas:mint:${mint}`;
 
 let client: Redis | null = null;
 
+function resolveCreds(): { url: string; token: string } | null {
+  const url =
+    process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL ?? "";
+  const token =
+    process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN ?? "";
+  if (!url || !token) return null;
+  return { url, token };
+}
+
 function getClient(): Redis {
   if (client) return client;
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) {
+  const creds = resolveCreds();
+  if (!creds) {
     throw new Error(
-      "Registry is not configured. UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN must be set."
+      "Registry is not configured. Set KV_REST_API_URL and KV_REST_API_TOKEN (Vercel Upstash integration) or UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN (Upstash direct)."
     );
   }
-  client = new Redis({ url, token });
+  client = new Redis(creds);
   return client;
 }
 
 export function isRegistryConfigured(): boolean {
-  return !!process.env.UPSTASH_REDIS_REST_URL && !!process.env.UPSTASH_REDIS_REST_TOKEN;
+  return resolveCreds() !== null;
 }
 
 export async function registerMint(entry: RegistryEntry): Promise<void> {

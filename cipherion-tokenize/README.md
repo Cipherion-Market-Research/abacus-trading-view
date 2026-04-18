@@ -23,8 +23,8 @@ Open http://localhost:3000.
 | `NEXT_PUBLIC_RPC_ENDPOINT` | Public | Recommended | Helius RPC URL. Lock by allowed domains in the Helius dashboard. |
 | `NEXT_PUBLIC_PINATA_GATEWAY` | Public | Optional | Gateway hostname (e.g. `gateway.pinata.cloud`). Read by both the server upload route and the browser. |
 | `PINATA_JWT` | **Server-only** | Optional | Pinata JWT used by `/api/ipfs/upload`. Never prefix with `NEXT_PUBLIC_`. |
-| `UPSTASH_REDIS_REST_URL` | **Server-only** | Optional | Backs the public `/explorer` catalog. Provisioned via Vercel Marketplace → Upstash. |
-| `UPSTASH_REDIS_REST_TOKEN` | **Server-only** | Optional | Pairs with the URL above. |
+| `KV_REST_API_URL` | **Server-only** | Optional | Backs the public `/explorer` catalog. Auto-populated by the Vercel Upstash integration. |
+| `KV_REST_API_TOKEN` | **Server-only** | Optional | Pairs with the URL above. Code also accepts `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` for direct Upstash setups. |
 
 Without `PINATA_JWT`, the image upload falls back to a manual URL input. Without the Upstash vars, token creation still works but `/explorer` shows a "not configured" banner. Without `NEXT_PUBLIC_RPC_ENDPOINT`, the app uses the rate-limited public devnet RPC and the history tab will 429.
 
