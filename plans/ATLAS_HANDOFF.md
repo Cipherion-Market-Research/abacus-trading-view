@@ -147,11 +147,15 @@ Fee preview now surfaces in two places in `transfer-form.tsx`: a subtle hint und
 ### Gap 2: MemoTransfer — REMOVED (2026-04-18)
 Investigation showed the feature as conceived was architecturally impossible: MemoTransfer is an account-level extension that the **account owner** must sign to enable, so the issuer cannot enable it at onboarding. The toggle, type field, and dead `enableMemo` code path were removed. For mint-level memo enforcement in production, the canonical Solana pattern is a Transfer Hook (Phase 1B) — not this extension. See [Solana docs](https://solana.com/docs/tokens/extensions/memo-transfer).
 
-### Gap 3: Explorer page is address-lookup only
-- **What:** Requires full 44-char mint address. No browsable directory of tokens.
-- **Where:** `src/app/explorer/page.tsx`
-- **Fix (production):** Requires backend registry (Postgres or Helius DAS). List all tokens created through Atlas in a searchable catalog.
-- **Effort:** 2-4 hours (with backend)
+### Gap 3: Explorer page is address-lookup only — RESOLVED (2026-04-18)
+The `/explorer` page is now a public Atlas catalog: a searchable grid of every token created through the platform, backed by Upstash Redis via the Vercel Marketplace integration.
+
+- **Routes:** `/explorer` (catalog + search), `/explorer/[mint]` (detail — refactored from the previous single-page lookup)
+- **API:** `POST /api/mints/register` (called by the wizard after successful on-chain creation; server verifies mint exists, is Token-2022, and that the claimed creator is the on-chain mint authority before accepting) and `GET /api/mints/list`
+- **Storage:** Upstash Redis ZSET (`atlas:mints:sorted`) scored by `createdAt`, entry JSON blobs at `atlas:mint:<address>`
+- **Env:** `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` (both server-only). Without them, token creation still works; the catalog shows a "not configured" banner.
+- **Provisioning:** Vercel dashboard → Marketplace → Upstash → add integration → connect to project. Env vars auto-populate.
+- **Pre-existing tokens:** Not automatically registered. Would need a small backfill route or manual re-registration. Not blocking.
 
 ---
 

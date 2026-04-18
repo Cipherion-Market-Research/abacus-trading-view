@@ -1,0 +1,79 @@
+import { Redis } from "@upstash/redis";
+
+export interface RegistryEntry {
+  mint: string;
+  name: string;
+  symbol: string;
+  creator: string;
+  assetType: string;
+  imageUri: string;
+  description: string;
+  createdAt: number;
+}
+
+const INDEX_KEY = "atlas:mints:sorted";
+const entryKey = (mint: string) => `atlas:mint:${mint}`;
+
+let client: Redis | null = null;
+
+function getClient(): Redis {
+  if (client) return client;
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) {
+    throw new Error(
+      "Registry is not configured. UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN must be set."
+    );
+  }
+  client = new Redis({ url, token });
+  return client;
+}
+
+export function isRegistryConfigured(): boolean {
+  return !!process.env.UPSTASH_REDIS_REST_URL && !!process.env.UPSTASH_REDIS_REST_TOKEN;
+}
+
+export async function registerMint(entry: RegistryEntry): Promise<void> {
+  const redis = getClient();
+  const pipeline = redis.pipeline();
+  pipeline.set(entryKey(entry.mint), JSON.stringify(entry));
+  pipeline.zadd(INDEX_KEY, { score: entry.createdAt, member: entry.mint });
+  await pipeline.exec();
+}
+
+export async function listMints(): Promise<RegistryEntry[]> {
+  const redis = getClient();
+  const addresses = await redis.zrange<string[]>(INDEX_KEY, 0, -1, { rev: true });
+  if (!addresses || addresses.length === 0) return [];
+
+  const keys = addresses.map(entryKey);
+  const rawEntries = await redis.mget<(string | RegistryEntry | null)[]>(...keys);
+  const entries: RegistryEntry[] = [];
+  for (const raw of rawEntries) {
+    if (!raw) continue;
+    if (typeof raw === "string") {
+      try {
+        entries.push(JSON.parse(raw));
+      } catch {
+        continue;
+      }
+    } else {
+      entries.push(raw);
+    }
+  }
+  return entries;
+}
+
+export async function getMintEntry(mint: string): Promise<RegistryEntry | null> {
+  const redis = getClient();
+  const raw = await redis.get<string | RegistryEntry | null>(entryKey(mint));
+  if (!raw) return null;
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+  return raw;
+}

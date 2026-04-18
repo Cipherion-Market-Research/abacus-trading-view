@@ -12,6 +12,7 @@ import { SupplyStep, type SupplyData } from "./wizard-steps/supply-step";
 import { MetadataStep, type MetadataData } from "./wizard-steps/metadata-step";
 import { ReviewStep } from "./wizard-steps/review-step";
 import { useTokenCreate } from "@/hooks/use-token-create";
+import { useRegisterMint } from "@/hooks/use-register-mint";
 import type { CreateTokenParams, TokenMetadataField } from "@/types/token";
 
 const STEPS = ["Basic Info", "Compliance", "Supply", "Metadata", "Review"];
@@ -56,6 +57,7 @@ export function CreateWizard() {
   const { publicKey, connected } = useWallet();
   const { setVisible } = useWalletModal();
   const { create, isLoading } = useTokenCreate();
+  const { register } = useRegisterMint();
   const [step, setStep] = useState(0);
   const [state, setState] = useState<WizardState>(DEFAULT_STATE);
 
@@ -129,9 +131,19 @@ export function CreateWizard() {
 
     const result = await create(params);
     if (result) {
+      // Register in the public Atlas catalog. Non-blocking — if the registry
+      // write fails, the token is still created on-chain. The Explorer page
+      // handles missing registrations gracefully.
+      void register({
+        mint: result.mint.toBase58(),
+        creator: publicKey.toBase58(),
+        assetType: basicInfo.assetType,
+        imageUri: basicInfo.imageUri || "",
+        description: basicInfo.description || "",
+      });
       router.push(`/tokens/${result.mint.toBase58()}`);
     }
-  }, [publicKey, state, create, router]);
+  }, [publicKey, state, create, router, register]);
 
   if (!connected) {
     return (

@@ -23,8 +23,16 @@ Open http://localhost:3000.
 | `NEXT_PUBLIC_RPC_ENDPOINT` | Public | Recommended | Helius RPC URL. Lock by allowed domains in the Helius dashboard. |
 | `NEXT_PUBLIC_PINATA_GATEWAY` | Public | Optional | Gateway hostname (e.g. `gateway.pinata.cloud`). Read by both the server upload route and the browser. |
 | `PINATA_JWT` | **Server-only** | Optional | Pinata JWT used by `/api/ipfs/upload`. Never prefix with `NEXT_PUBLIC_`. |
+| `UPSTASH_REDIS_REST_URL` | **Server-only** | Optional | Backs the public `/explorer` catalog. Provisioned via Vercel Marketplace → Upstash. |
+| `UPSTASH_REDIS_REST_TOKEN` | **Server-only** | Optional | Pairs with the URL above. |
 
-Without `PINATA_JWT`, the image upload falls back to a manual URL input. Without `NEXT_PUBLIC_RPC_ENDPOINT`, the app uses the rate-limited public devnet RPC and the history tab will 429.
+Without `PINATA_JWT`, the image upload falls back to a manual URL input. Without the Upstash vars, token creation still works but `/explorer` shows a "not configured" banner. Without `NEXT_PUBLIC_RPC_ENDPOINT`, the app uses the rate-limited public devnet RPC and the history tab will 429.
+
+## Atlas catalog (Explorer)
+
+`/explorer` is a public browsable directory of every token created through Atlas, backed by Upstash Redis (via the Vercel Marketplace integration). On successful token creation the wizard POSTs to `/api/mints/register`; the server verifies the mint exists on-chain, is Token-2022, and that the claimed creator matches the on-chain mint authority before accepting the registration. `/explorer/[mint]` is the detail view.
+
+To enable on Vercel: Marketplace → Upstash → add integration → connect to project. The env vars auto-populate.
 
 ## Pinata upload flow
 
