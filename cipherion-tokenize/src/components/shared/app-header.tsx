@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Droplets, Loader2 } from "lucide-react";
+import { Droplets, ExternalLink } from "lucide-react";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { ConnectButton } from "@/components/wallet/connect-button";
 import { NetworkBadge } from "@/components/shared/network-badge";
-import { Button } from "@/components/ui/button";
-import { useAirdrop } from "@/hooks/use-airdrop";
+import { KycPill } from "@/components/auth/kyc-pill";
+import { AtlasLogo } from "@/components/shared/atlas-logo";
+import { isDevnet } from "@/lib/solana/connection";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -18,17 +20,22 @@ const NAV_ITEMS = [
 
 export function AppHeader() {
   const pathname = usePathname();
-  const { requestAirdrop, isLoading: airdropLoading, available: airdropAvailable } = useAirdrop();
+  const { publicKey } = useWallet();
+  const showFaucet = isDevnet() && !!publicKey;
+  const faucetHref = publicKey
+    ? `https://faucet.solana.com/?walletAddress=${publicKey.toBase58()}`
+    : "https://faucet.solana.com/";
 
   return (
     <header className="flex items-center justify-between border-b border-[#30363d] bg-[#0d1117] px-4 py-2.5">
       <div className="flex items-center gap-6">
         <Link href="/" className="flex items-center gap-2 shrink-0">
-          <div className="h-7 w-7 rounded-md bg-[#238636] flex items-center justify-center">
-            <span className="text-white font-bold text-xs">A</span>
-          </div>
-          <span className="text-sm font-semibold text-[#f0f6fc] hidden sm:inline">
-            CipheX Atlas
+          <AtlasLogo size={24} />
+          <span className="text-sm font-semibold text-[#f0f6fc] hidden sm:inline tracking-tight">
+            <span className="font-mono text-[9px] font-medium tracking-[0.12em] text-[#8b949e] uppercase pr-1.5 mr-1.5 border-r border-[#30363d]">
+              CPX
+            </span>
+            Atlas
           </span>
         </Link>
         <nav className="flex items-center gap-1">
@@ -49,22 +56,20 @@ export function AppHeader() {
         </nav>
       </div>
       <div className="flex items-center gap-3">
+        <KycPill />
         <NetworkBadge />
-        {airdropAvailable && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => requestAirdrop(1)}
-            disabled={airdropLoading}
-            className="gap-1.5 text-[#8b949e] hover:text-[#58a6ff] hover:bg-[rgba(88,166,255,0.1)]"
+        {showFaucet && (
+          <a
+            href={faucetHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Opens the official Solana devnet faucet (faucet.solana.com) in a new tab, prefilled with your wallet address."
+            className="inline-flex items-center gap-1.5 rounded-md border border-[#30363d] bg-[#161b22] px-2.5 py-1.5 text-xs font-medium text-[#8b949e] hover:text-[#58a6ff] hover:border-[#58a6ff]/40 transition-colors"
           >
-            {airdropLoading ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : (
-              <Droplets className="size-3.5" />
-            )}
-            <span className="hidden sm:inline text-xs">Airdrop</span>
-          </Button>
+            <Droplets className="size-3.5" />
+            <span className="hidden sm:inline">Get devnet SOL</span>
+            <ExternalLink className="size-3 opacity-60" />
+          </a>
         )}
         <ConnectButton />
       </div>

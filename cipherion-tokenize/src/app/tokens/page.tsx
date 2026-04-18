@@ -9,8 +9,9 @@ import { TokenCard } from "@/components/token/token-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { useTokenList } from "@/hooks/use-token-list";
+import { RequireKyc } from "@/components/auth/require-kyc";
 
-export default function TokensPage() {
+function TokensContent() {
   const { connected } = useWallet();
   const { setVisible } = useWalletModal();
   const { data: tokens, isLoading, error, refetch } = useTokenList();
@@ -86,5 +87,13 @@ export default function TokensPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function TokensPage() {
+  return (
+    <RequireKyc>
+      <TokensContent />
+    </RequireKyc>
   );
 }

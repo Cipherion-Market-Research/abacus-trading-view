@@ -11,6 +11,7 @@ import { AddressDisplay } from "@/components/shared/address-display";
 import { TransferForm } from "@/components/transfer/transfer-form";
 import { usePortfolio, type PortfolioToken } from "@/hooks/use-portfolio";
 import { formatTokenAmount } from "@/lib/utils/format";
+import { RequireKyc } from "@/components/auth/require-kyc";
 
 function StatusBadge({ frozen }: { frozen: boolean }) {
   if (frozen) {
@@ -37,9 +38,17 @@ function TokenRow({
   onSelect: () => void;
 }) {
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
-      className={`w-full text-left rounded-lg border p-4 transition-colors ${
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
+      className={`w-full text-left rounded-lg border p-4 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#238636]/50 ${
         isSelected
           ? "border-[#238636] bg-[rgba(35,134,54,0.05)]"
           : "border-[#30363d] bg-[#161b22] hover:border-[#484f58]"
@@ -69,11 +78,11 @@ function TokenRow({
           <p className="text-[10px] text-[#8b949e]">{token.symbol}</p>
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 
-export default function PortfolioPage() {
+function PortfolioContent() {
   const { connected } = useWallet();
   const { setVisible } = useWalletModal();
   const { data: tokens, isLoading, error, refetch } = usePortfolio();
@@ -182,5 +191,13 @@ export default function PortfolioPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function PortfolioPage() {
+  return (
+    <RequireKyc>
+      <PortfolioContent />
+    </RequireKyc>
   );
 }

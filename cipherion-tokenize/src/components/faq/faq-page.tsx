@@ -2,9 +2,6 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import {
   ChevronRight,
   Building2,
@@ -12,11 +9,11 @@ import {
   Shield,
   Code2,
   ArrowRight,
-  ArrowLeft,
 } from "lucide-react";
-import { AtlasWordmark } from "@/components/shared/atlas-logo";
-
-const SERIF = "var(--font-caslon), 'Libre Caslon Text', Georgia, serif";
+import {
+  MarketingNav,
+  MarketingFooter,
+} from "@/components/landing/marketing-chrome";
 
 type PersonaKey = "issuer" | "investor" | "compliance" | "technical";
 
@@ -335,19 +332,8 @@ function Money({ children }: { children: React.ReactNode }) {
 }
 
 export function FaqPage() {
-  const router = useRouter();
-  const { connected } = useWallet();
-  const { setVisible } = useWalletModal();
   const [activeKey, setActiveKey] = useState<PersonaKey>("issuer");
   const [openIndex, setOpenIndex] = useState<number>(0);
-
-  const handlePrimaryCta = () => {
-    if (connected) {
-      router.push("/tokens");
-    } else {
-      setVisible(true);
-    }
-  };
 
   const activePersona = useMemo(
     () => PERSONAS.find((p) => p.key === activeKey)!,
@@ -357,58 +343,16 @@ export function FaqPage() {
 
   return (
     <div className="bg-[#0a0e13] text-[#f0f6fc] -mt-px min-h-screen">
-      {/* ─── Nav ─── */}
-      <nav className="mx-auto flex max-w-[1280px] items-center gap-8 px-8 py-7">
-        <Link href="/" className="inline-flex items-center gap-2.5">
-          <ArrowLeft className="size-3.5 text-[#8b949e]" />
-          <AtlasWordmark size={26} />
-        </Link>
-        <div className="hidden md:flex gap-7 text-[13px] font-medium text-[#8b949e]">
-          <Link
-            href="/"
-            className="hover:text-[#f0f6fc] transition-colors cursor-pointer"
-          >
-            Platform
-          </Link>
-          <a className="hover:text-[#f0f6fc] transition-colors cursor-pointer">
-            For institutions
-          </a>
-          <a className="hover:text-[#f0f6fc] transition-colors cursor-pointer">
-            Regulation
-          </a>
-          <span className="text-[#f0f6fc]">FAQ</span>
-        </div>
-        <div className="ml-auto flex items-center gap-3">
-          <button
-            onClick={handlePrimaryCta}
-            className="text-[#c9d1d9] hover:text-[#f0f6fc] text-xs font-medium px-4 py-2 transition-colors"
-          >
-            Sign in
-          </button>
-          <button
-            onClick={handlePrimaryCta}
-            className="rounded-full bg-[#f0f6fc] text-[#0a0e13] hover:bg-white text-xs font-medium px-[18px] py-2 transition-colors"
-          >
-            {connected ? "Go to dashboard" : "Book a walkthrough"}
-          </button>
-        </div>
-      </nav>
+      <MarketingNav />
 
       {/* ─── Page intro ─── */}
       <section className="mx-auto max-w-[1280px] px-8 pt-12 pb-12 border-b border-[#21262d]">
         <div className="mb-5 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-[#3fb950]">
           / questions, by audience
         </div>
-        <h1
-          className="m-0 mb-5 max-w-[860px] text-[64px] font-normal"
-          style={{
-            fontFamily: SERIF,
-            lineHeight: 1.0,
-            letterSpacing: "-0.03em",
-          }}
-        >
+        <h1 className="m-0 mb-5 max-w-[860px] text-[60px] font-semibold leading-[1.0] tracking-[-0.035em]">
           Pick your role. Read what&apos;s{" "}
-          <span style={{ color: "#3fb950" }}>relevant</span>.
+          <span className="text-[#3fb950]">relevant</span>.
         </h1>
         <p className="m-0 max-w-[620px] text-[17px] leading-[1.55] text-[#8b949e]">
           Issuers, investors, compliance officers, and engineers each see a
@@ -554,18 +498,7 @@ export function FaqPage() {
         </div>
       </section>
 
-      {/* ─── Footer ─── */}
-      <footer className="border-t border-[#21262d] py-12">
-        <div className="mx-auto max-w-[1280px] px-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4 text-[12px] text-[#6e7681]">
-          <Link href="/" className="hover:text-[#f0f6fc] transition-colors">
-            <AtlasWordmark size={20} />
-          </Link>
-          <div>
-            © 2026 Cipherion Systems · Token-2022 platform · all amounts
-            verifiable on-chain
-          </div>
-        </div>
-      </footer>
+      <MarketingFooter />
     </div>
   );
 }

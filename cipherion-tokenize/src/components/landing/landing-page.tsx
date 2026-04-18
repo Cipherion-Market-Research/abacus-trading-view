@@ -2,65 +2,31 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { ArrowRight } from "lucide-react";
-import { AtlasLogo, AtlasWordmark } from "@/components/shared/atlas-logo";
-
-const SERIF = "var(--font-caslon), 'Libre Caslon Text', Georgia, serif";
+import {
+  MarketingNav,
+  MarketingFooter,
+} from "@/components/landing/marketing-chrome";
+import { useKycStatus } from "@/hooks/use-kyc-status";
 
 export function LandingPage() {
   const router = useRouter();
-  const { connected } = useWallet();
-  const { setVisible } = useWalletModal();
+  const { status } = useKycStatus();
 
   const handlePrimaryCta = () => {
-    if (connected) {
+    if (status === "approved") {
       router.push("/tokens");
     } else {
-      setVisible(true);
+      router.push("/signup");
     }
   };
 
-  const primaryCtaLabel = connected ? "Go to dashboard" : "Connect wallet";
+  const primaryCtaLabel =
+    status === "approved" ? "Go to dashboard" : "Get started";
 
   return (
     <div className="bg-[#0a0e13] text-[#f0f6fc] -mt-px">
-      {/* ─── Nav ─── */}
-      <nav className="mx-auto flex max-w-[1280px] items-center gap-8 px-8 py-7">
-        <AtlasWordmark size={26} />
-        <div className="hidden md:flex gap-7 text-[13px] font-medium text-[#8b949e]">
-          <a className="hover:text-[#f0f6fc] transition-colors cursor-pointer">
-            Platform
-          </a>
-          <a className="hover:text-[#f0f6fc] transition-colors cursor-pointer">
-            For institutions
-          </a>
-          <a className="hover:text-[#f0f6fc] transition-colors cursor-pointer">
-            Regulation
-          </a>
-          <Link
-            href="/faq"
-            className="hover:text-[#f0f6fc] transition-colors cursor-pointer"
-          >
-            FAQ
-          </Link>
-        </div>
-        <div className="ml-auto flex items-center gap-3">
-          <button
-            onClick={handlePrimaryCta}
-            className="text-[#c9d1d9] hover:text-[#f0f6fc] text-xs font-medium px-4 py-2 transition-colors"
-          >
-            Sign in
-          </button>
-          <button
-            onClick={handlePrimaryCta}
-            className="rounded-full bg-[#f0f6fc] text-[#0a0e13] hover:bg-white text-xs font-medium px-[18px] py-2 transition-colors"
-          >
-            {connected ? "Go to dashboard" : "Book a walkthrough"}
-          </button>
-        </div>
-      </nav>
+      <MarketingNav />
 
       {/* ─── Hero ─── */}
       <section className="mx-auto max-w-[1280px] px-8 pt-20 pb-16 border-b border-[#21262d]">
@@ -72,16 +38,9 @@ export function LandingPage() {
           Live on Solana · Token-2022 natively regulated
         </div>
 
-        <h1
-          className="m-0 mb-7 max-w-[1100px] text-[88px] font-normal"
-          style={{
-            fontFamily: SERIF,
-            lineHeight: 0.98,
-            letterSpacing: "-0.035em",
-          }}
-        >
+        <h1 className="m-0 mb-7 max-w-[1100px] text-[80px] font-semibold leading-[0.95] tracking-[-0.04em]">
           The counterparty infrastructure for the{" "}
-          <span style={{ color: "#3fb950" }}>next decade</span> of tokenized
+          <span className="text-[#3fb950]">next decade</span> of tokenized
           real-world assets.
         </h1>
 
@@ -151,16 +110,9 @@ export function LandingPage() {
           <div className="mb-5 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-[#3fb950]">
             / four pillars
           </div>
-          <h2
-            className="m-0 mb-6 text-[44px] font-normal"
-            style={{
-              fontFamily: SERIF,
-              lineHeight: 1.05,
-              letterSpacing: "-0.025em",
-            }}
-          >
+          <h2 className="m-0 mb-6 text-[40px] font-semibold leading-[1.05] tracking-[-0.03em]">
             Issuance that{" "}
-            <span style={{ color: "#3fb950" }}>passes</span> a counterparty
+            <span className="text-[#3fb950]">passes</span> a counterparty
             review.
           </h2>
           <p className="text-[#8b949e] text-[15px] leading-[1.6] m-0">
@@ -212,7 +164,7 @@ export function LandingPage() {
         <blockquote className="m-0 mx-auto mb-8 max-w-[860px] text-[32px] font-normal leading-[1.3] tracking-[-0.015em] text-[#f0f6fc]">
           &ldquo;We evaluated six chains and four issuance stacks. Atlas was
           the only one where our compliance team said{" "}
-          <span style={{ color: "#3fb950" }}>yes</span> on the first
+          <span className="text-[#3fb950]">yes</span> on the first
           review.&rdquo;
         </blockquote>
         <div className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-[#8b949e]">
@@ -223,16 +175,9 @@ export function LandingPage() {
 
       {/* ─── Market ─── */}
       <section className="mx-auto max-w-[1280px] px-8 py-24">
-        <h2
-          className="m-0 mb-12 max-w-[720px] text-[40px] font-normal"
-          style={{
-            fontFamily: SERIF,
-            letterSpacing: "-0.025em",
-            lineHeight: 1.1,
-          }}
-        >
+        <h2 className="m-0 mb-12 max-w-[720px] text-[40px] font-semibold leading-[1.1] tracking-[-0.03em]">
           The tokenized RWA market is{" "}
-          <span style={{ color: "#3fb950" }}>already</span> on Solana.
+          <span className="text-[#3fb950]">already</span> on Solana.
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-[#21262d] border border-[#21262d] rounded-xl overflow-hidden">
@@ -259,24 +204,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ─── Footer ─── */}
-      <footer className="border-t border-[#21262d] py-12">
-        <div className="mx-auto max-w-[1280px] px-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4 text-[12px] text-[#6e7681]">
-          <div className="flex items-center gap-3">
-            <AtlasLogo size={20} />
-            <span className="text-[#f0f6fc] font-semibold text-[14px] tracking-tight inline-flex items-baseline">
-              <span className="font-mono text-[10px] font-medium tracking-[0.12em] text-[#8b949e] uppercase pr-2 mr-2 border-r border-[#30363d]">
-                CPX
-              </span>
-              Atlas
-            </span>
-          </div>
-          <div>
-            © 2026 Cipherion Systems · Token-2022 platform · all amounts
-            verifiable on-chain
-          </div>
-        </div>
-      </footer>
+      <MarketingFooter />
     </div>
   );
 }
@@ -295,13 +223,7 @@ function MetaStat({
       <div className="mb-2.5 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-[#6e7681]">
         {label}
       </div>
-      <div
-        className="text-[32px] font-medium"
-        style={{
-          fontFamily: SERIF,
-          letterSpacing: "-0.02em",
-        }}
-      >
+      <div className="text-[32px] font-semibold tracking-[-0.025em]">
         {value}
       </div>
       <div className="mt-1.5 text-[12px] text-[#8b949e]">{cap}</div>
@@ -322,10 +244,7 @@ function Pillar({
 }) {
   return (
     <div className="grid grid-cols-[56px_1fr_auto] gap-6 items-start py-7 border-t border-[#21262d]">
-      <div
-        className="text-[32px] font-medium text-[#3fb950] leading-none"
-        style={{ fontFamily: SERIF }}
-      >
+      <div className="text-[28px] font-mono font-semibold text-[#3fb950] leading-none tracking-[-0.02em]">
         {num}
       </div>
       <div>
@@ -358,16 +277,8 @@ function IssuerCell({
 }) {
   return (
     <div className="bg-[#0a0e13] p-7">
-      <div
-        className="text-[18px] font-medium mb-1"
-        style={{ fontFamily: SERIF }}
-      >
-        {name}
-      </div>
-      <div
-        className="my-3 text-[36px] font-medium text-[#3fb950]"
-        style={{ fontFamily: SERIF, letterSpacing: "-0.02em" }}
-      >
+      <div className="text-[15px] font-medium mb-1 text-[#f0f6fc]">{name}</div>
+      <div className="my-3 text-[32px] font-semibold text-[#3fb950] tracking-[-0.03em]">
         {value}
       </div>
       <div className="font-mono text-[11px] text-[#8b949e]">{note}</div>

@@ -17,13 +17,10 @@ import { ExportButton } from "@/components/history/export-button";
 import { useTokenInfo } from "@/hooks/use-token-info";
 import { useHolders } from "@/hooks/use-holders";
 import { useHistory } from "@/hooks/use-history";
+import { RequireKyc } from "@/components/auth/require-kyc";
 
-export default function TokenDashboardPage({
-  params,
-}: {
-  params: Promise<{ mint: string }>;
-}) {
-  const { mint } = use(params);
+function TokenDashboardContent({ mintAddress }: { mintAddress: string }) {
+  const mint = mintAddress;
   const {
     data: token,
     isLoading: tokenLoading,
@@ -295,5 +292,18 @@ export default function TokenDashboardPage({
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+export default function TokenDashboardPage({
+  params,
+}: {
+  params: Promise<{ mint: string }>;
+}) {
+  const { mint } = use(params);
+  return (
+    <RequireKyc>
+      <TokenDashboardContent mintAddress={mint} />
+    </RequireKyc>
   );
 }
