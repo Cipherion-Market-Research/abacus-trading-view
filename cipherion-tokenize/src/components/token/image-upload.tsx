@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Upload, X, Image as ImageIcon, Loader2, AlertCircle } from "lucide-react";
 import { uploadImageToIpfs, isPinataConfigured } from "@/lib/pinata";
 import { TokenServiceError } from "@/lib/solana/types";
@@ -16,7 +16,17 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const pinataReady = isPinataConfigured();
+  const [pinataReady, setPinataReady] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    isPinataConfigured().then((ready) => {
+      if (!cancelled) setPinataReady(ready);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleFile = useCallback(
     async (file: File) => {
@@ -68,6 +78,17 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  if (pinataReady === null) {
+    return (
+      <div>
+        <label className="text-[11px] uppercase tracking-wider text-[#8b949e] mb-1 block">
+          Token Image
+        </label>
+        <div className="h-20 w-full rounded-lg border border-dashed border-[#30363d] bg-[#0d1117] animate-pulse" />
+      </div>
+    );
+  }
+
   // If Pinata isn't configured, show a manual URI input fallback
   if (!pinataReady) {
     return (
@@ -85,7 +106,7 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
           />
         </div>
         <p className="mt-1 text-[10px] text-[#8b949e]">
-          Set NEXT_PUBLIC_PINATA_JWT to enable drag-and-drop image uploads.
+          Set PINATA_JWT on the server to enable drag-and-drop image uploads.
         </p>
       </div>
     );
@@ -156,7 +177,7 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
               : "Drop image here or click to upload"}
           </p>
           <p className="text-[10px] text-[#484f58] mt-1">
-            PNG, JPG, WebP, SVG, GIF — max 5MB
+            PNG, JPG, WebP, SVG, GIF — max 4MB
           </p>
         </div>
       )}

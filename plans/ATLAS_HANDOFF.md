@@ -91,11 +91,15 @@ abacus-trading-view/                    # Parent repo (trading view platform)
 NEXT_PUBLIC_SOLANA_NETWORK=devnet
 
 # RECOMMENDED (eliminates 429 rate limiting on public RPC)
+# Browser-exposed by design (wallet adapter needs a reachable RPC).
+# Lock the Helius key to allowed origins in the Helius dashboard.
 NEXT_PUBLIC_RPC_ENDPOINT=https://devnet.helius-rpc.com/?api-key=YOUR_KEY
 
-# OPTIONAL (enables drag-and-drop image upload)
-NEXT_PUBLIC_PINATA_JWT=your_jwt
-NEXT_PUBLIC_PINATA_GATEWAY=gateway.pinata.cloud
+# OPTIONAL — enables drag-and-drop image upload
+# PINATA_JWT is SERVER-ONLY (no NEXT_PUBLIC_ prefix). Uploads proxy through
+# /api/ipfs/upload so the JWT never reaches the browser.
+PINATA_JWT=your_jwt
+NEXT_PUBLIC_PINATA_GATEWAY=gateway.pinata.cloud  # read by both server route and browser
 ```
 
 Helius free tier: https://helius.dev (1M credits/month)
@@ -130,7 +134,7 @@ These are intentional MVP shortcuts with documented production upgrade paths. Ea
 | **localStorage for mint tracking** | `account-service.ts` | Public RPC blocks `getProgramAccounts` for Token-2022 | Postgres table or Helius DAS API |
 | **`getTokenLargestAccounts` for cap table** | `account-service.ts` | Same RPC limitation. Returns max 20 holders. | `getProgramAccounts` with paid RPC, or Helius DAS |
 | **Lightweight transaction history** | `history-service.ts` | `getParsedTransactions` batch call triggers 429 on public RPC | Uncomment `getParsedTransactions` block with paid RPC, or Helius webhooks |
-| **Pinata for images** | `lib/pinata.ts` | Free 1GB tier, browser-side uploads | Irys (Arweave) for permanent storage |
+| **Pinata for images** | `lib/pinata.ts` + `app/api/ipfs/*` | Free 1GB tier; uploads proxy through server route (JWT stays server-side) | Irys (Arweave) for permanent storage, or Pinata presigned upload JWTs to bypass Vercel 4.5MB body limit |
 | **Simulated KYC** | freeze/thaw model | No real identity verification | Civic Pass or Synaps integration |
 
 ---
@@ -196,21 +200,21 @@ All errors use `TokenServiceError` with typed codes: `INSUFFICIENT_SOL`, `WALLET
 ## Railway Deployment
 
 ### Configuration
-- `next.config.ts` already has `output: "standalone"`
-- Railway auto-detects Next.js from `package.json`
-- Set **root directory** to `cipherion-tokenize` in Railway dashboard
-- No Dockerfile, no TOML, no Redis, no database needed
+- Deploy target is **Vercel**. `next.config.ts` has no special flags — Vercel handles packaging.
+- Set **root directory** to `cipherion-tokenize` in Vercel project settings.
+- No Dockerfile, no TOML, no Redis, no database needed.
+- For Railway/Docker instead, re-add `output: "standalone"` to `next.config.ts`.
 
-### Environment Variables (set in Railway dashboard)
+### Environment Variables (set in Vercel project settings)
 ```
 NEXT_PUBLIC_SOLANA_NETWORK=devnet
 NEXT_PUBLIC_RPC_ENDPOINT=https://devnet.helius-rpc.com/?api-key=YOUR_KEY
-NEXT_PUBLIC_PINATA_JWT=your_jwt (optional)
-NEXT_PUBLIC_PINATA_GATEWAY=gateway.pinata.cloud (optional)
+PINATA_JWT=your_jwt                              # server-only
+NEXT_PUBLIC_PINATA_GATEWAY=gateway.pinata.cloud  # shared by server route + browser
 ```
 
-### Critical: Helius RPC is required for Railway
-The public devnet RPC rate-limits at 100 req/10s. A deployed app serving concurrent users will hit 429s constantly. Helius free tier (1M credits/month) eliminates this entirely.
+### Critical: Helius RPC is required for production
+The public devnet RPC rate-limits at 100 req/10s. A deployed app serving concurrent users will hit 429s constantly. Helius free tier (1M credits/month) eliminates this entirely. Lock the key to your Vercel domain(s) in the Helius dashboard.
 
 ---
 

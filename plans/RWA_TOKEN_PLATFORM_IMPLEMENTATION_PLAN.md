@@ -731,13 +731,14 @@ tokenize.cipherion.com (or similar)
 ```env
 # Required
 NEXT_PUBLIC_SOLANA_NETWORK=devnet          # devnet | mainnet-beta
-NEXT_PUBLIC_RPC_ENDPOINT=                  # Custom RPC URL (optional, falls back to public)
+NEXT_PUBLIC_RPC_ENDPOINT=                  # Custom RPC URL (browser-exposed; lock key by origin in provider dashboard)
+
+# Pinata IPFS uploads proxy through /api/ipfs/upload
+PINATA_JWT=                                # Server-only. No NEXT_PUBLIC_ prefix.
+NEXT_PUBLIC_PINATA_GATEWAY=gateway.pinata.cloud  # Read by both server route and browser
 
 # Optional (Phase 1B)
 NEXT_PUBLIC_TRANSFER_HOOK_PROGRAM_ID=      # Custom program address
-
-# Optional (Phase 2)
-NEXT_PUBLIC_HELIUS_API_KEY=                # For enhanced RPC features
 ```
 
 ### Known MVP Shortcuts → Production Migration Path
@@ -752,7 +753,7 @@ These are intentional simplifications made for the MVP/demo. Each has a clear up
 | **Simulated KYC** (freeze/thaw = "KYC approval") | No real identity verification for demo | Integrate Civic Pass, Synaps, or Persona for real KYC. Transfer Hook validates on-chain KYC credential. | 1-2 weeks |
 | **No persistent audit log** | Transaction history read from Solana RPC on each page load | Helius webhook → append events to Postgres `audit_log` table. Query locally instead of hitting RPC. | 4-8 hours |
 | **`getTokenLargestAccounts` for cap table** | Public devnet RPC blocks `getProgramAccounts` for Token-2022 (`excluded from account secondary indexes`). `getTokenLargestAccounts(mint)` works on all RPCs but returns max 20 holders. | **Option A:** Switch to `getProgramAccounts` with paid RPC (Helius/QuickNode) — returns all holders, no cap. Code is a drop-in replacement (see `account-service.ts` inline comment). **Option B:** Helius DAS API `getTokenAccounts` — paginated, indexed, no holder cap. Best for 100+ holders. | Option A: 15 min (swap one function). Option B: 2 hours. |
-| **Pinata IPFS for token images** | Free 1GB tier, browser-side uploads, no backend | **Production permanence:** Migrate to Irys (Arweave) — user pays ~$0.001 in SOL for truly permanent storage. Or keep Pinata with paid tier ($20/mo for 25GB). | 2-4 hours |
+| **Pinata IPFS for token images** | Free 1GB tier. Uploads proxy through `/api/ipfs/upload` so the JWT stays server-side. 4 MB file cap to fit Vercel's serverless body limit. | **Permanence:** migrate to Irys (Arweave) — user pays ~$0.001 in SOL for truly permanent storage. **Larger files:** Pinata presigned upload JWTs so the browser uploads direct-to-Pinata with a short-lived scoped key, bypassing the Vercel body cap. **Storage:** Pinata paid tier ($20/mo for 25 GB). | Irys: 2-4h. Presigned JWTs: 1-2h. Paid tier: 0h. |
 | **Lightweight transaction history** | `getParsedTransactions` batch call triggers 429 on public devnet RPC. Using `getSignaturesForAddress` only (single call) — shows signatures + timestamps, links to Explorer for details. | **With paid RPC:** Uncomment `getParsedTransactions` in `history-service.ts` for full parsed tx data (types, amounts, addresses). **Best:** Helius Enhanced Transactions API or webhook → DB for instant, pre-parsed history. | 30 min (paid RPC) or 4 hours (webhook). |
 
 ### Deployment Independence
