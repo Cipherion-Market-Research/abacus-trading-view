@@ -14,8 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Abacus",
-  description: "Real-time price predictions overlaid on live market data",
+  title: "Abacus by CipheX",
+  description:
+    "Real-time price predictions overlaid on live market data. A CipheX product.",
 };
 
 export default function RootLayout({

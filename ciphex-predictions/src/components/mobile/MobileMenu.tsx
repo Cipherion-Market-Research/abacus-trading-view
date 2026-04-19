@@ -73,7 +73,7 @@ export function MobileMenu({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] bg-[#0d1117]/95 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[60] bg-[#0a0e13]/95 backdrop-blur-sm">
       <div className="flex flex-col h-full pt-safe pb-safe">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#30363d]">

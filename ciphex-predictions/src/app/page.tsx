@@ -415,7 +415,7 @@ export default function Dashboard() {
   }, [currentPrice, nextPrediction, selectedAsset]);
 
   return (
-    <div className="flex flex-col h-dvh md:h-screen bg-[#0d1117] text-[#c9d1d9]">
+    <div className="flex flex-col h-dvh md:h-screen bg-[#0a0e13] text-[#c9d1d9]">
       {/* Desktop Header */}
       <Header
         selectedAsset={selectedAsset || null}

@@ -148,6 +148,16 @@
   padding-right: env(safe-area-inset-right, 0px);
 }
 
+/* Prevent iOS Safari from auto-zooming on input focus.
+   Any input with computed font-size < 16px triggers zoom on tap. */
+@media (max-width: 639px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 /* Subtle pulse animation for pending horizon markers */
 @keyframes pulse-subtle {
   0%, 100% {

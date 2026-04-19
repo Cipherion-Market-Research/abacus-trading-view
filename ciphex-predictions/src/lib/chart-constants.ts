@@ -7,7 +7,7 @@ export const CHART_COLORS = {
   high: '#2962FF',   // TradingView blue
   mid: '#7434f3',    // Kraken purple
   low: '#2962FF',
-  background: '#0d1117', // Chart background color for masking
+  background: '#0a0e13', // Chart background — matches app canvas (Atlas/Abacus parity)
   candleUp: '#0ECB81',   // TradingView green (vibrant)
   candleDown: '#F6465D', // TradingView red (vibrant)
   // Block colors - muted fills for the prediction band (TradingView/Kraken style)

@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { DataSourceToggle, DataSource } from './DataSourceToggle';
 import { AssetSelector } from './AssetSelector';
+import { AbacusWordmark } from '@/components/shared/abacus-logo';
 import type { MarketStatus } from '@/hooks/useMarketStatus';
 
 interface HeaderProps {
@@ -107,7 +108,9 @@ export function Header({
     <header className={cn("bg-[#161b22] px-5 py-3 items-center justify-between border-b border-[#30363d]", className)}>
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2.5">
-          <h1 className="text-lg font-semibold text-[#f0f6fc]">Abacus AMS</h1>
+          <h1 className="m-0">
+            <AbacusWordmark showLogo={false} />
+          </h1>
           <span
             className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${
               streaming

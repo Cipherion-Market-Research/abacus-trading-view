@@ -223,7 +223,7 @@ export function AssetSelector({ selectedAsset, onAssetChange, marketStatus }: As
             }}
             className={cn(
               'w-full px-2.5 py-1.5 text-xs rounded-md',
-              'bg-[#0d1117] border border-[#30363d] text-[#f0f6fc]',
+              'bg-[#0a0e13] border border-[#30363d] text-[#f0f6fc]',
               'placeholder:text-[#484f58]',
               'focus:outline-none focus:border-[#238636]'
             )}
@@ -295,7 +295,7 @@ export function AssetSelector({ selectedAsset, onAssetChange, marketStatus }: As
 
         {/* Market Status Footer (stocks tab only) */}
         {activeTab === 'stocks' && marketStatus && (
-          <div className="px-3 py-2 border-t border-[#30363d] bg-[#0d1117]">
+          <div className="px-3 py-2 border-t border-[#30363d] bg-[#0a0e13]">
             <div className="flex items-center gap-2">
               <span className={cn('w-2 h-2 rounded-full shrink-0', getMarketDotColor(marketStatus.status))} />
               <span className="text-[11px] text-[#8b949e]">
