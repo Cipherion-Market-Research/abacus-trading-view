@@ -112,6 +112,9 @@ export default function ExplorerPage() {
         eyebrow="public catalog"
         title="Atlas Token Catalog"
         subtitle="Public directory of every RWA token created through CipheX Atlas. No wallet required."
+        actions={
+          <SeedDemoButton onComplete={() => window.location.reload()} />
+        }
       />
 
       <div className="flex gap-2 mb-6">
@@ -185,9 +188,6 @@ export default function ExplorerPage() {
           <p className="text-xs text-[#484f58] mt-1">
             Create a token and it will appear here automatically.
           </p>
-          <div className="mt-5">
-            <SeedDemoButton onComplete={() => window.location.reload()} />
-          </div>
         </div>
       )}
 
