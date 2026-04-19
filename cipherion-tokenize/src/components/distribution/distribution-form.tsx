@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import {
   computeAllocations,
   mintToHolder,
+  type DistributionMode,
 } from "@/lib/solana/distribution-service";
 import {
   newDistributionId,
@@ -47,6 +48,7 @@ export function DistributionForm({
 
   const [amountInput, setAmountInput] = useState("");
   const [memo, setMemo] = useState(defaultMemo());
+  const [mode, setMode] = useState<DistributionMode>("pro_rata");
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<DistributionRecipient[] | null>(null);
 
@@ -62,8 +64,9 @@ export function DistributionForm({
       holders,
       totalAmount: amountRaw,
       treasuryOwner: publicKey,
+      mode,
     });
-  }, [holders, amountRaw, publicKey]);
+  }, [holders, amountRaw, publicKey, mode]);
 
   const canRun = !!result && result.eligibleCount > 0 && amountRaw > 0n;
 
@@ -240,6 +243,25 @@ export function DistributionForm({
           />
         </div>
         <div>
+          <label className="text-[10px] uppercase tracking-wider text-[#8b949e] mb-2 block">
+            Distribution method
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <ModeOption
+              active={mode === "pro_rata"}
+              onClick={() => setMode("pro_rata")}
+              title="Pro-rata"
+              description="By holder balance. For yield, coupons, dividends."
+            />
+            <ModeOption
+              active={mode === "equal"}
+              onClick={() => setMode("equal")}
+              title="Equal share"
+              description="Split evenly across holders. Use for initial allocations."
+            />
+          </div>
+        </div>
+        <div>
           <label className="text-[10px] uppercase tracking-wider text-[#8b949e] mb-1 block">
             Memo (recorded on-chain per recipient)
           </label>
@@ -268,8 +290,9 @@ export function DistributionForm({
             <div className="flex items-start gap-2 text-[12px] text-[#d29922]">
               <AlertTriangle className="size-4 shrink-0 mt-0.5" />
               <span>
-                No eligible holders. All holders are either frozen, the
-                treasury, or have a zero balance.
+                {mode === "pro_rata"
+                  ? "No eligible holders for pro-rata — every holder has 0 balance. Switch to Equal share for an initial allocation, or mint tokens to specific holders first."
+                  : "No eligible holders. All holders are either frozen or the treasury."}
               </span>
             </div>
           ) : (
@@ -337,6 +360,42 @@ export function DistributionForm({
         </Button>
       </div>
     </div>
+  );
+}
+
+function ModeOption({
+  active,
+  onClick,
+  title,
+  description,
+}: {
+  active: boolean;
+  onClick: () => void;
+  title: string;
+  description: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`text-left rounded-md border p-3 transition-colors ${
+        active
+          ? "border-[#238636] bg-[rgba(35,134,54,0.08)]"
+          : "border-[#30363d] bg-[#0d1117] hover:border-[#484f58]"
+      }`}
+    >
+      <div className="flex items-center gap-2 mb-1">
+        <span
+          className={`size-3 rounded-full border ${
+            active
+              ? "border-[#3fb950] bg-[#3fb950]"
+              : "border-[#30363d]"
+          }`}
+        />
+        <span className="text-[13px] font-medium text-[#f0f6fc]">{title}</span>
+      </div>
+      <p className="text-[11px] text-[#8b949e] leading-snug">{description}</p>
+    </button>
   );
 }
 
