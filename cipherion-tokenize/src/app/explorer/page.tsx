@@ -3,11 +3,14 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, Loader2, AlertCircle, ImageOff } from "lucide-react";
+import { Search, Loader2, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { isValidPublicKey } from "@/lib/utils/validation";
 import type { RegistryEntry } from "@/lib/registry";
+import type { AssetType } from "@/types/token";
 import { PageHeader } from "@/components/shared/page-header";
+import { TokenAvatar } from "@/components/shared/token-avatar";
+import { SeedDemoButton } from "@/components/explorer/seed-demo-button";
 
 interface ListResponse {
   configured: boolean;
@@ -15,36 +18,18 @@ interface ListResponse {
   error?: string;
 }
 
-function resolveImageUrl(uri: string): string | null {
-  if (!uri) return null;
-  if (uri.startsWith("ipfs://")) {
-    const gateway =
-      process.env.NEXT_PUBLIC_PINATA_GATEWAY || "gateway.pinata.cloud";
-    return `https://${gateway}/ipfs/${uri.replace("ipfs://", "")}`;
-  }
-  return uri;
-}
-
 function TokenCard({ entry }: { entry: RegistryEntry }) {
-  const imageUrl = resolveImageUrl(entry.imageUri);
   return (
     <Link
       href={`/explorer/${entry.mint}`}
       className="group rounded-lg border border-[#30363d] bg-[#161b22] p-4 transition-colors hover:border-[#484f58] hover:bg-[#1c232c]"
     >
       <div className="flex items-start gap-3">
-        <div className="size-12 shrink-0 rounded-lg border border-[#30363d] bg-[#0d1117] overflow-hidden flex items-center justify-center">
-          {imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={imageUrl}
-              alt={entry.name || entry.symbol}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <ImageOff className="size-5 text-[#484f58]" />
-          )}
-        </div>
+        <TokenAvatar
+          imageUri={entry.imageUri}
+          assetType={entry.assetType as AssetType}
+          size={48}
+        />
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2">
             <h3 className="text-sm font-semibold text-[#f0f6fc] truncate">
@@ -200,6 +185,9 @@ export default function ExplorerPage() {
           <p className="text-xs text-[#484f58] mt-1">
             Create a token and it will appear here automatically.
           </p>
+          <div className="mt-5">
+            <SeedDemoButton onComplete={() => window.location.reload()} />
+          </div>
         </div>
       )}
 

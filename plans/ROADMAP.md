@@ -54,6 +54,26 @@
 
 ---
 
+## 3b. Demo polish (Phase 1F) — shipped 2026-04-18
+
+Research-driven feature set to make a counterparty walkthrough land. Pivoted from "transfer pro-rata from treasury" to "mint-to-holder pro-rata" after research surfaced that BUIDL/BENJI/OUSG all use mint-based distributions.
+
+| Item | Status | Notes |
+|---|---|---|
+| ✅ Yield ticker | shipped | `YieldTicker` component reads `coupon_rate` / `annual_yield` / `apy` from metadata. Live per-second accrual computation, displayed at top of `/tokens/[mint]` and `/explorer/[mint]`. Replicates Franklin BENJI's 2025 differentiator. |
+| ✅ Asset-type icons | shipped | `TokenAvatar` component — uses Pinata image if present, falls back to lucide icon + tinted bg per asset type. Threaded through Explorer catalog, `/tokens` cards, and `/portfolio` rows. `usePortfolio` extended to read `image` and `asset_type` from metadata. |
+| ✅ Sample data seeder | shipped | `SeedDemoButton` on `/explorer` empty state, dialog walks through 5 realistic tokens (Treasury, REIT, private credit, gold, tech index). Real on-chain creation, auto-registered in catalog, ~$0.04 SOL total cost. Eligibility: devnet + connected + KYC approved. |
+| ✅ Distributions tab | shipped | New tab on `/tokens/[mint]`. **Mint-to-holder pro-rata** (BUIDL mechanic). Form: total amount + memo + allocation preview. Sequential signing with per-recipient progress UI. Per-mint history persisted to localStorage. Excludes treasury, frozen, and zero-balance accounts from pro-rata. |
+
+Defer to Phase 1G:
+- 🟨 P2 | Atomic redemption simulator | Research's #2 build. ~1.5h. Needs UX work on mock USDC arrival + receipt format. |
+- 🟨 P2 | Compliance pre-trade simulator | "Paste a wallet, see green/red with rule that fired." Strong demo moment. |
+- 🟨 P2 | NAV oracle display | Surface `nav_per_token` from metadata with "last updated" timestamp. Easy add to TokenStats or new card. |
+- 🟨 P2 | Reconciliation view | Side-by-side on-chain holders vs "official register" snapshot. ~2h. |
+- 🟨 P2 | Regulator-ready blotter export | Augment current CSV with metadata + mint-authority signature. |
+
+---
+
 ## 4. Revenue features (Phase 2)
 
 | Priority | Item | Notes | Est. |

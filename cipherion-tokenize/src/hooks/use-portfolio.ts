@@ -6,6 +6,7 @@ import { PublicKey } from "@solana/web3.js";
 import { TOKEN_2022_PROGRAM_ID, AccountLayout } from "@solana/spl-token";
 import { getTokenMetadata } from "@/lib/solana/metadata-service";
 import { TokenServiceError } from "@/lib/solana/types";
+import type { AssetType } from "@/types/token";
 
 export interface PortfolioToken {
   mint: PublicKey;
@@ -15,6 +16,8 @@ export interface PortfolioToken {
   isFrozen: boolean;
   name: string;
   symbol: string;
+  imageUri?: string;
+  assetType?: AssetType;
 }
 
 export function usePortfolio() {
@@ -55,10 +58,20 @@ export function usePortfolio() {
           let name = "";
           let symbol = "";
           let decimals = 0;
+          let imageUri: string | undefined;
+          let assetType: AssetType | undefined;
           try {
             const metadata = await getTokenMetadata(mint);
             name = metadata.name;
             symbol = metadata.symbol;
+            const imgField = metadata.additionalFields.find(
+              (f) => f.key === "image"
+            );
+            const typeField = metadata.additionalFields.find(
+              (f) => f.key === "asset_type"
+            );
+            imageUri = imgField?.value;
+            assetType = typeField?.value as AssetType | undefined;
           } catch {
             // Token might not have metadata — that's fine
           }
@@ -72,7 +85,17 @@ export function usePortfolio() {
             // Default to 0 if we can't read the mint
           }
 
-          tokens.push({ mint, ata: pubkey, balance, decimals, isFrozen, name, symbol });
+          tokens.push({
+            mint,
+            ata: pubkey,
+            balance,
+            decimals,
+            isFrozen,
+            name,
+            symbol,
+            imageUri,
+            assetType,
+          });
         } catch {
           continue;
         }

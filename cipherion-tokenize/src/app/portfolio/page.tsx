@@ -13,6 +13,7 @@ import { usePortfolio, type PortfolioToken } from "@/hooks/use-portfolio";
 import { formatTokenAmount } from "@/lib/utils/format";
 import { RequireKyc } from "@/components/auth/require-kyc";
 import { PageHeader } from "@/components/shared/page-header";
+import { TokenAvatar } from "@/components/shared/token-avatar";
 
 function StatusBadge({ frozen }: { frozen: boolean }) {
   if (frozen) {
@@ -56,21 +57,28 @@ function TokenRow({
       }`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-baseline gap-2 flex-wrap">
-            <p className="text-sm font-semibold text-[#f0f6fc] break-words">
-              {token.name || "Unknown Token"}
-            </p>
-            <span className="font-mono text-xs text-[#8b949e]">
-              {token.symbol}
-            </span>
-            <StatusBadge frozen={token.isFrozen} />
-          </div>
-          <AddressDisplay
-            address={token.mint.toBase58()}
-            showExplorer
-            className="text-[#8b949e] mt-1"
+        <div className="flex items-start gap-3 min-w-0 flex-1">
+          <TokenAvatar
+            imageUri={token.imageUri}
+            assetType={token.assetType}
+            size={40}
           />
+          <div className="min-w-0">
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <p className="text-sm font-semibold text-[#f0f6fc] break-words">
+                {token.name || "Unknown Token"}
+              </p>
+              <span className="font-mono text-xs text-[#8b949e]">
+                {token.symbol}
+              </span>
+              <StatusBadge frozen={token.isFrozen} />
+            </div>
+            <AddressDisplay
+              address={token.mint.toBase58()}
+              showExplorer
+              className="text-[#8b949e] mt-1"
+            />
+          </div>
         </div>
         <div className="text-right shrink-0">
           <p className="font-mono text-sm font-semibold text-[#f0f6fc]">

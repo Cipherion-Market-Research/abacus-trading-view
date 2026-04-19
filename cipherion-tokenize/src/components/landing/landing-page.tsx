@@ -154,7 +154,7 @@ export function LandingPage() {
         <blockquote className="m-0 mx-auto mb-6 md:mb-8 max-w-[860px] text-[22px] md:text-[26px] xl:text-[32px] font-normal leading-[1.3] tracking-[-0.015em] text-[#f0f6fc]">
           &ldquo;We evaluated six chains and four issuance stacks. Atlas was
           the only one where our compliance team said{" "}
-          <span className="text-[#3fb950]">yes</span> on the first
+          <span className="text-[#3fb950]">yes </span> on the first
           review.&rdquo;
         </blockquote>
         <div className="font-mono text-[10px] md:text-[11px] font-medium uppercase tracking-[0.14em] text-[#8b949e]">

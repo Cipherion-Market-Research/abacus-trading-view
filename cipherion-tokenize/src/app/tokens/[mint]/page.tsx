@@ -19,6 +19,8 @@ import { useHolders } from "@/hooks/use-holders";
 import { useHistory } from "@/hooks/use-history";
 import { RequireKyc } from "@/components/auth/require-kyc";
 import { PageHeader } from "@/components/shared/page-header";
+import { YieldTicker } from "@/components/token/yield-ticker";
+import { DistributionHistory } from "@/components/distribution/distribution-history";
 
 function TokenDashboardContent({ mintAddress }: { mintAddress: string }) {
   const mint = mintAddress;
@@ -101,6 +103,13 @@ function TokenDashboardContent({ mintAddress }: { mintAddress: string }) {
         }
       />
 
+      <YieldTicker
+        supply={token.supply}
+        decimals={token.decimals}
+        symbol={token.symbol}
+        metadata={token.metadata}
+      />
+
       {/* Stats */}
       <TokenStats token={token} holders={holders} />
 
@@ -123,7 +132,13 @@ function TokenDashboardContent({ mintAddress }: { mintAddress: string }) {
             value="mint"
             className="text-xs shrink-0 snap-start data-[state=active]:bg-[#21262d] data-[state=active]:text-[#f0f6fc]"
           >
-            Mint & Distribute
+            Mint
+          </TabsTrigger>
+          <TabsTrigger
+            value="distributions"
+            className="text-xs shrink-0 snap-start data-[state=active]:bg-[#21262d] data-[state=active]:text-[#f0f6fc]"
+          >
+            Distributions
           </TabsTrigger>
           <TabsTrigger
             value="details"
@@ -179,6 +194,14 @@ function TokenDashboardContent({ mintAddress }: { mintAddress: string }) {
               onSuccess={refetchAll}
             />
           </div>
+        </TabsContent>
+
+        <TabsContent value="distributions">
+          <DistributionHistory
+            token={token}
+            holders={holders}
+            onAfterRun={refetchAll}
+          />
         </TabsContent>
 
         <TabsContent value="details">

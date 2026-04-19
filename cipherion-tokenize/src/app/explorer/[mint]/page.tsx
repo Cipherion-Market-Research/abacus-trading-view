@@ -8,6 +8,7 @@ import { ExplorerLink } from "@/components/shared/explorer-link";
 import { ErrorState } from "@/components/shared/error-state";
 import { useTokenInfo } from "@/hooks/use-token-info";
 import { formatTokenAmount } from "@/lib/utils/format";
+import { YieldTicker } from "@/components/token/yield-ticker";
 
 export default function ExplorerDetailPage({
   params,
@@ -69,6 +70,13 @@ export default function ExplorerDetailPage({
               />
             </div>
           </div>
+
+          <YieldTicker
+            supply={token.supply}
+            decimals={token.decimals}
+            symbol={token.symbol}
+            metadata={token.metadata}
+          />
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div className="rounded-lg border border-[#30363d] bg-[#0d1117] p-3">
