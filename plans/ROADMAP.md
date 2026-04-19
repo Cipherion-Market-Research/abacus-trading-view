@@ -71,6 +71,7 @@ Picked up where Phase 1F left off. Same demo-first lens — building features th
 
 | Priority | Item | Notes | Est. |
 |---|---|---|---|
+| 🟧 P1 | **Migrate `/tokens` off localStorage → Upstash KV registry** | Currently `/tokens` reads `getCreatedMints()` from per-origin localStorage. Result: localhost and vercel.app show different "My Tokens" lists for the same wallet. Fix: filter `/api/mints/list` by `creator === connected wallet`. Single source of truth across environments. Side benefit: the catalog data model is already there. | 1 h |
 | 🟧 P1 | **Atomic redemption simulator** | Research's #2 highest-impact build. UI on `/portfolio` token row: "Redeem" button → preview modal showing burn + USDC receipt → execute via Permanent Delegate burn → toast with mock USDC arrival → downloadable signed receipt (JSON/PDF). Completes the "trust the number, get out, prove it" trifecta institutional buyers care about. | 1.5–2 h |
 | 🟧 P1 | **NAV oracle display** | Surface `nav_per_token` from metadata as a prominent card on token detail pages, with "last updated" timestamp + Chainlink-style attestation badge (mock). Pair with the yield ticker as a "Live data" panel. | 30 min |
 | 🟨 P2 | Compliance pre-trade simulator | New section on Compliance tab: paste a wallet address → see green/red with the specific rule that fired (jurisdiction, KYC status, lock-up). Demo of T-REX-style enforceability without needing the actual hook. | 1.5 h |
