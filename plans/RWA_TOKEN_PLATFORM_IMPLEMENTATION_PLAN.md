@@ -1,7 +1,7 @@
 # CipheX Atlas — Implementation Plan (Source of Truth)
 
-**Date:** 2026-04-18
-**Status:** Phases 1A–1E Complete — dashboard MVP + env hardening + marketing shell + KYC gate + design parity + mobile
+**Date:** 2026-04-18 (end of Phase 1F)
+**Status:** Phases 1A–1F Complete — dashboard MVP + env hardening + marketing shell + KYC gate + design parity + mobile + demo polish
 **Companion Docs:** `ATLAS_HANDOFF.md` (current state), `ROADMAP.md` (remaining work), `RWA_TOKEN_PLATFORM_PROPOSAL.md`, `RWA_TOKEN_PLATFORM_ADDENDUM.md`, `RWA_COUNTERPARTY_FAQ.md`
 
 > This document is the guiding truth for all coding agents. Every milestone has acceptance criteria.
@@ -67,7 +67,14 @@
 - FAQ sidebar Q-list hidden on mobile; persona CTAs remain as funnel
 - iOS input zoom prevention: global rule bumps `input/select/textarea` to 16px below 640px
 
-**Phase 2** (not started) — Transfer Hook (Rust/Anchor), real KYC provider, mainnet, distributions, confidential transfers. See `ROADMAP.md`.
+**Phase 1F** — Demo polish (research-driven from BUIDL/BENJI/OUSG mechanics)
+
+- `<YieldTicker>` — live per-second accrual badge at top of token detail pages, reads `coupon_rate`/`annual_yield`/`apy` from metadata. Replicates Franklin BENJI's 2025 differentiator. Pure client-side computation; no on-chain state.
+- `<TokenAvatar>` — asset-type icon fallbacks with tinted backdrops per asset class (treasury, real estate, commodity, equity, debt, fund, other). Pinata image takes priority. Threaded through Explorer catalog, `/tokens` cards, and `/portfolio` rows. `usePortfolio` extended to read `image` and `asset_type` from token metadata.
+- Sample data seeder — `<SeedDemoButton>` on `/explorer` PageHeader actions slot. Eligible on devnet + KYC approved. Creates 5 realistic tokens (Treasury Note, REIT, private credit, gold, tech index) with full metadata including `coupon_rate`. Real on-chain mints, auto-registered in catalog.
+- **Distributions tab** on `/tokens/[mint]` — mint-to-holder pro-rata (BUIDL mechanic) plus equal-share mode for initial allocations. Form: total amount + memo + mode picker + allocation preview. Sequential execution with per-recipient progress. Per-mint history persisted in localStorage. Excludes treasury, frozen, and (for pro-rata) zero-balance accounts.
+
+**Phase 2** (not started) — Phase 1G demo refinements (atomic redemption simulator, NAV oracle display, compliance pre-trade simulator, regulator-ready blotter export, reconciliation view), Transfer Hook (Rust/Anchor), real KYC provider, server-side KYC state, mainnet, multi-chain (Phase 3). See `ROADMAP.md`.
 
 **Devnet accommodations documented:** inline code comments in each affected file point back to this document's "Known MVP Shortcuts" table (below) and to `ATLAS_HANDOFF.md` for production upgrade paths.
 

@@ -6,7 +6,11 @@
 
 > Content here is evergreen business/product Q&A. For current implementation state see `ATLAS_HANDOFF.md`. A public **split-persona FAQ UI** with this content is live at `/faq` in the app — use this document as the source of truth when adding/editing entries there.
 >
-> **Update since 2026-04-17:** `/explorer` is now a public Atlas catalog (registered mints, searchable) in addition to single-address lookup. Token issuers get listed automatically on successful creation.
+> **Updates since 2026-04-17:**
+> - `/explorer` is now a public Atlas catalog (registered mints, searchable) with asset-type visual identity per token
+> - Live yield-accrual ticker on every detail page that has a `coupon_rate` in metadata — replicates the Franklin BENJI 2025 differentiator
+> - Distributions tab on every token dashboard — pro-rata (yield/coupon) or equal-share (initial allocation), executed as on-chain mints to each holder, matching the BUIDL mechanic
+> - New section 12 below covers the distribution and yield model in detail
 
 ---
 
@@ -23,6 +27,7 @@
 9. [Security & Risk](#9-security--risk)
 10. [Technical Architecture](#10-technical-architecture)
 11. [Competitive Positioning](#11-competitive-positioning)
+12. [Distributions & Yield Mechanics](#12-distributions--yield-mechanics)
 
 ---
 
@@ -354,6 +359,55 @@ ERC-3643 requires deploying 6 smart contracts (Token, Identity Registry, Identit
 
 ---
 
+---
+
+## 12. Distributions & Yield Mechanics
+
+**Q: How does Atlas pay yield to holders?**
+
+Atlas uses a **mint-to-holder** model that matches what BlackRock BUIDL and Franklin BENJI do today: instead of transferring existing tokens from a treasury, the issuer mints *new* tokens directly to each holder's wallet, pro-rata to their share of circulating supply. The holder sees their balance grow on the next block; no claim step, no withdrawal flow.
+
+This is distinct from accumulating-NAV models (Ondo OUSG-style) where the per-token value grows but the supply stays constant. We can support that pattern in Phase 2 if an issuer specifically wants it; the mint-to-holder pattern is the default because it's the most common and the most visceral for holders to see.
+
+**Q: How does Atlas distribute the yield in practice?**
+
+The issuer opens the **Distributions** tab on a token's dashboard, picks a distribution method, enters a total amount and a memo, and previews per-holder allocations before confirming. On submit, Atlas executes one on-chain mint per recipient, sequentially, with progress shown in the UI. Each mint instruction carries the memo for audit purposes. Distribution history is persisted per token so the issuer can review past payouts.
+
+Two distribution methods are supported:
+
+| Method | Eligibility | Use case |
+|---|---|---|
+| **Pro-rata** | Holder must have a non-zero balance; treasury and frozen accounts excluded | Ongoing coupon, dividend, or interest payouts. Each holder receives `(holderBalance / circulatingSupply) × totalAmount` |
+| **Equal share** | Any non-frozen, non-treasury holder regardless of current balance | Initial allocations and bootstrap distributions where holders haven't received anything yet. `totalAmount / eligibleCount` per holder |
+
+**Q: Is the yield accrual visible in real time?**
+
+Yes. Every token detail page (issuer dashboard and public Explorer view) renders a **live yield ticker** at the top when the token's metadata includes a `coupon_rate` or `annual_yield` field. The ticker shows the APY plus the amount accrued today across the entire supply, updating every second client-side. This replicates the per-second accrual visualization Franklin Templeton shipped on BENJI in 2025 — a feature institutional buyers consistently single out as a "lean forward" moment in evaluation demos.
+
+The ticker is purely a visualization computed from `supply × rate / (365 × 86400)`. It does not itself trigger any on-chain action. The actual payout happens when the issuer runs a distribution.
+
+**Q: How are distributions paid — in the same token or in cash?**
+
+Today, distributions are paid in *the same RWA token* (mint-to-holder). This matches the BUIDL pattern and is the simplest mechanic to demo end-to-end on devnet. In Phase 2, we plan to add a USDC payout option using a routing program: the issuer specifies a yield amount in USDC, Atlas burns equivalent value from issuer's USDC balance and mints proof tokens to holders, or executes pro-rata USDC transfers — depending on the issuer's preferred custody model.
+
+**Q: How are distribution events recorded for audit?**
+
+Each distribution generates one on-chain mint instruction per recipient, with the memo embedded. The Solana transaction signatures are the canonical proof; they're queryable from any RPC and from Solana Explorer. The Distributions tab persists a structured record per distribution (timestamp, total amount, memo, per-recipient amount + signature + status) for fast retrieval without re-querying the chain. Production deployment would mirror this into a Postgres `distribution_log` table for SOC-2 audit trails and regulator export.
+
+**Q: What happens if a recipient's wallet is frozen mid-distribution?**
+
+Frozen accounts are filtered out of the eligible set before allocation is computed — they receive nothing. The issuer can thaw and run a follow-up distribution to that holder if they want to make them whole.
+
+**Q: What does a coupon distribution actually cost on-chain?**
+
+Per recipient, ~0.000033 SOL (~$0.003). For a 1,000-holder fund running monthly coupons, that's ~$3/month in on-chain costs — roughly four orders of magnitude cheaper than a traditional transfer-agent fee structure for the same operation.
+
+**Q: Can investors trigger their own redemption?**
+
+Phase 2. Today the demo focuses on issuer-initiated payouts. The plan for atomic redemption is: holder selects "Redeem N tokens", Atlas burns those tokens via Permanent Delegate and pays the equivalent USDC from a treasury contract in the same atomic bundle, returning a downloadable signed receipt for the holder's records. This is the second-most-requested feature in current institutional walkthroughs, behind real-time yield visibility.
+
+---
+
 ## Glossary
 
 | Term | Definition |
@@ -368,3 +422,7 @@ ERC-3643 requires deploying 6 smart contracts (Token, Identity Registry, Identit
 | **Token-2022** | Solana's token program with configurable extensions for compliance, fees, metadata, etc. |
 | **Transfer Hook** | A custom on-chain program executed on every token transfer for compliance validation |
 | **Whitelist Model** | Only pre-approved wallets can hold and transfer a token |
+| **Pro-rata distribution** | Allocation method where each holder receives a share proportional to their current balance. Used for ongoing yield/coupon payouts. |
+| **Equal-share distribution** | Allocation method where the total is split evenly across all eligible holders regardless of balance. Used for initial allocations. |
+| **Mint-to-holder** | Distribution mechanic where new tokens are minted directly to holder wallets rather than transferred from a treasury. Same model as BlackRock BUIDL. |
+| **Yield ticker** | Live UI element showing per-second yield accrual on a token, computed from on-chain `coupon_rate` metadata. |

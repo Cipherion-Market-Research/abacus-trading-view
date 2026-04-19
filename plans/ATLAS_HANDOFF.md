@@ -1,6 +1,6 @@
 # CipheX Atlas — Agent Handoff Document
 
-**Last updated:** 2026-04-18
+**Last updated:** 2026-04-18 (end of Phase 1F)
 **Purpose:** Complete context for a new coding agent to continue development. Copy-paste this into a new conversation.
 
 ---
@@ -39,7 +39,7 @@ The product is a dashboard for authenticated users, sitting behind a public mark
 |---|---|
 | `/create` | Token creation wizard (5 steps) |
 | `/tokens` | Issuer's token list |
-| `/tokens/[mint]` | Token dashboard — Holders, Mint & Distribute, Details, Compliance, History |
+| `/tokens/[mint]` | Token dashboard — Holders, Mint, **Distributions**, Details, Compliance, History |
 | `/portfolio` | Investor holdings + transfer |
 
 ### API
@@ -87,22 +87,29 @@ abacus-trading-view/                           # Parent repo
 │   │   │   ├── faq/                           # FaqPage with persona split
 │   │   │   ├── signup/                        # SignupFlow (3-step wizard)
 │   │   │   ├── wallet/                        # Wallet provider + connect button
-│   │   │   ├── token/                         # Create wizard, mint form, stats, card
+│   │   │   ├── token/                         # Create wizard, mint form, stats,
+│   │   │   │                                  # card, YieldTicker
+│   │   │   ├── distribution/                  # DistributionForm, DistributionHistory
+│   │   │   ├── explorer/                      # SeedDemoButton (admin)
 │   │   │   ├── holders/                       # Cap table, onboard form
 │   │   │   ├── transfer/                      # Transfer form + fee preview
 │   │   │   ├── compliance/                    # Freeze/thaw/pause/burn panel
 │   │   │   ├── history/                       # Transaction list + CSV export
 │   │   │   ├── shared/                        # AtlasLogo, AtlasWordmark, PageHeader,
-│   │   │   │                                  # AppShell, AppHeader, AddressDisplay,
-│   │   │   │                                  # ExplorerLink, NetworkBadge, etc.
+│   │   │   │                                  # TokenAvatar, AppShell, AppHeader,
+│   │   │   │                                  # AddressDisplay, ExplorerLink,
+│   │   │   │                                  # NetworkBadge, etc.
 │   │   │   └── ui/                            # shadcn/ui primitives
 │   │   ├── hooks/                             # use-kyc-status, use-send-transaction,
-│   │   │                                      # use-token-*, use-transfer-fee, etc.
+│   │   │                                      # use-token-*, use-transfer-fee,
+│   │   │                                      # use-seed-demo, etc.
 │   │   ├── lib/
 │   │   │   ├── solana/                        # All Solana RPC + Token-2022 operations
 │   │   │   │   ├── token-service.ts
 │   │   │   │   ├── account-service.ts
 │   │   │   │   ├── compliance-service.ts
+│   │   │   │   ├── distribution-service.ts    # Pro-rata + equal-share allocation,
+│   │   │   │   │                              # mint-to-holder execution
 │   │   │   │   ├── metadata-service.ts
 │   │   │   │   ├── history-service.ts
 │   │   │   │   ├── connection.ts
@@ -111,6 +118,8 @@ abacus-trading-view/                           # Parent repo
 │   │   │   ├── pinata.ts                      # Client wrapper → /api/ipfs/upload
 │   │   │   ├── registry.ts                    # Upstash Redis client (server-only)
 │   │   │   ├── kyc.ts                         # localStorage KYC state (client-only)
+│   │   │   ├── distributions.ts               # localStorage distribution history per mint
+│   │   │   ├── demo-seeds.ts                  # 5 sample tokens for /explorer seeder
 │   │   │   └── utils/                         # Format, validation, CSV, transfer-fee
 │   │   ├── config/
 │   │   │   └── asset-templates.ts             # 6 RWA asset type templates
@@ -223,7 +232,8 @@ All Phase 1A through 1C milestones complete. `npm run build` + `npx tsc --noEmit
 | **1C** | Marketing + gate — landing, institutions, regulation, FAQ, signup/KYC gate, RequireKyc wrapper, KycPill reset, faucet link refactor (in-app → faucet.solana.com) | Complete |
 | **1D** | Design-system parity — AtlasLogo/Wordmark reusable, Polaris Crosshair favicon, PageHeader, unified canvas color, typography scale (all-Geist), wordmark attribution flip | Complete |
 | **1E** | Mobile/tablet responsive — marketing nav drawer, app header drawer, responsive type sweep, table stacking, tabs overflow scroll, meta stats redesign, iOS zoom prevention, touch targets | Complete |
-| **2** | Transfer Hook (Rust/Anchor), real KYC provider, mainnet, distributions | Not started — see `ROADMAP.md` |
+| **1F** | Demo polish — yield ticker (per-second accrual, BENJI-style), TokenAvatar (asset-type icons), sample data seeder (5 realistic tokens), Distributions tab (mint-to-holder pro-rata + equal-share, BUIDL mechanic) | Complete |
+| **2** | Phase 1G demo refinements (atomic redemption, NAV display, compliance pre-trade simulator), Transfer Hook (Rust/Anchor), real KYC provider, mainnet | Not started — see `ROADMAP.md` |
 
 ### Phase 1A milestone detail
 
@@ -284,6 +294,22 @@ Token-2022 `DefaultAccountState=Frozen` means ALL new token accounts start froze
 
 ### KYC gate
 `lib/kyc.ts` holds `{ status: 'none' | 'pending' | 'approved', submittedAt, approvedAt, formData }` in `localStorage["ciphex-atlas-kyc"]`. `useKycStatus` subscribes via a custom `ciphex-atlas-kyc-changed` window event so same-tab updates propagate without relying on the browser's cross-tab `storage` event. `RequireKyc` redirects unapproved visitors to `/signup`. Submitting the form flips status to `pending`, a 4-second timer flips it to `approved`. Header `KycPill` shows the green badge with a 2-step "Reset KYC? yes / ×" confirm flow for demo resets.
+
+### Distributions (Phase 1F)
+On the token dashboard, the **Distributions** tab handles all yield/coupon/initial-allocation flows. Two modes:
+
+| Mode | Math | Eligibility | Use case |
+|---|---|---|---|
+| `pro_rata` (default) | `(holderBalance / circulatingSupply) * totalAmount` | non-frozen, non-treasury, balance > 0 | Ongoing yield, coupons, dividends — BUIDL/BENJI mechanic |
+| `equal` | `totalAmount / eligibleCount` | non-frozen, non-treasury (any balance) | Initial allocations and bootstrap distributions |
+
+`distribution-service.ts → computeAllocations()` returns a previewable allocation map. Execution iterates over each holder and calls `mintToHolder()` (issuer's mint authority signs). Sequential, not batched — one wallet sign per recipient. Wallet rejection mid-run cleanly aborts and marks remaining holders as `skipped`. History persisted to `localStorage["ciphex-atlas-distributions-<mint>"]` per token; in production this should mirror to a Postgres `distribution_log` table for audit trails.
+
+### Yield ticker (Phase 1F)
+`<YieldTicker>` renders at the top of `/tokens/[mint]` and `/explorer/[mint]` when the token's metadata has any of: `coupon_rate`, `annual_yield`, `yield`, `apy`. Pure client-side computation: `supply × rate / (365 × 86400)` per second, ticking up. Resets at 00:00 UTC. Replicates Franklin BENJI's 2025 per-second accrual differentiator — research showed this is the single feature institutional buyers most consistently call out as a "lean forward" demo moment.
+
+### Sample data seeder (Phase 1F)
+`<SeedDemoButton>` lives in `/explorer` PageHeader actions slot. Eligible only on devnet + connected + KYC approved. Creates 5 realistic tokens (Treasury Note, REIT, private credit, gold, tech index) defined in `lib/demo-seeds.ts`, each with proper metadata including `coupon_rate` so the yield ticker fires. Real on-chain creation via `createRwaToken`, auto-registered in catalog via `useRegisterMint`. **Not idempotent** — running twice creates duplicates. Acceptable for demo workflow; would need a name-based dedupe check before production use.
 
 ### Mint registration
 On successful token creation, `use-register-mint.ts` POSTs to `/api/mints/register` with `{ mint, creator, assetType, imageUri, description }`. The server route:

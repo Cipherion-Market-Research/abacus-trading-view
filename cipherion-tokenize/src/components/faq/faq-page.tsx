@@ -149,6 +149,19 @@ const FAQS: Record<PersonaKey, FAQItem[]> = {
         </p>
       ),
     },
+    {
+      q: "How do I run a coupon distribution?",
+      a: (
+        <p>
+          Open the <strong>Distributions</strong> tab on a token dashboard,
+          choose a method (pro-rata for ongoing yield, equal-share for
+          initial allocation), enter a total amount and memo, then preview
+          per-holder allocations before confirming. Atlas executes one
+          on-chain mint per recipient — same mint-to-holder mechanic
+          BlackRock BUIDL uses. History is persisted per token.
+        </p>
+      ),
+    },
   ],
   investor: [
     {
@@ -205,6 +218,32 @@ const FAQS: Record<PersonaKey, FAQItem[]> = {
           challenge is liquidation: defaulted collateral can only be sold to
           approved investors, requiring pre-approved liquidators or an issuer
           backstop.
+        </p>
+      ),
+    },
+    {
+      q: "Can I see yield accrue in real time?",
+      a: (
+        <p>
+          Yes. Every yield-bearing token displays a live ticker at the top of
+          its detail page showing the APY and the amount accrued today,
+          updating every second. The ticker reads the <code className="font-mono text-[11px] bg-[#161b22] border border-[#21262d] rounded px-1.5 py-0.5">coupon_rate</code>{" "}
+          from on-chain metadata — same data the issuer publishes when the
+          token is minted. Same mechanic Franklin Templeton shipped on BENJI
+          in 2025.
+        </p>
+      ),
+    },
+    {
+      q: "When and how do I receive yield?",
+      a: (
+        <p>
+          The issuer initiates a distribution from the Distributions tab on
+          the token dashboard. Atlas mints new tokens directly into your
+          wallet, pro-rata to your share of circulating supply — no claim
+          step. Same mechanic BlackRock BUIDL uses for monthly coupons.
+          You&apos;ll see your balance grow on the next block, with the memo
+          (e.g., &quot;Q3-26 coupon distribution&quot;) recorded on-chain.
         </p>
       ),
     },
@@ -319,6 +358,25 @@ const FAQS: Record<PersonaKey, FAQItem[]> = {
           distributions), issuers should have contingency procedures. Uptime
           has improved significantly since 2023; the Alpenglow upgrade (late
           2026) further stabilizes consensus.
+        </p>
+      ),
+    },
+    {
+      q: "How does Atlas distribute yield on-chain?",
+      a: (
+        <p>
+          Mint-to-holder pro-rata, matching the BlackRock BUIDL mechanic.
+          The issuer specifies a total amount; Atlas computes per-holder
+          allocation as <code className="font-mono text-[11px] bg-[#161b22] border border-[#21262d] rounded px-1.5 py-0.5">
+            (holderBalance / circulatingSupply) × totalAmount
+          </code>{" "}
+          (excluding treasury and frozen accounts), then executes one{" "}
+          <code className="font-mono text-[11px] bg-[#161b22] border border-[#21262d] rounded px-1.5 py-0.5">
+            mintTo
+          </code>{" "}
+          instruction per recipient with the memo embedded. Each transaction
+          is signed by the issuer&apos;s mint authority. Per-recipient cost
+          is ~$0.003.
         </p>
       ),
     },

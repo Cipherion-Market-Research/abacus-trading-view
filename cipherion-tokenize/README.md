@@ -2,7 +2,19 @@
 
 RWA (Real World Asset) token issuance and management platform built on Solana using Token-2022 (Token Extensions). Issuers create compliance-enabled tokens, onboard investors with KYC gating, distribute tokens, and enforce compliance actions (freeze, thaw, pause, force burn) — all on-chain.
 
-Status: Phases 1A–1E complete (dashboard MVP + env hardening + marketing + KYC gate + design parity + mobile). Running on Solana Devnet, deployed to Vercel. See `../plans/ATLAS_HANDOFF.md` for full current state and `../plans/ROADMAP.md` for what's next.
+Status: Phases 1A–1F complete (dashboard MVP + env hardening + marketing + KYC gate + design parity + mobile + demo polish). Running on Solana Devnet, deployed to Vercel. See `../plans/ATLAS_HANDOFF.md` for full current state and `../plans/ROADMAP.md` for what's next.
+
+## Demo flow
+
+End-to-end walkthrough on devnet, ~5 minutes:
+
+1. **Land on `/`** → click "Get started" → 4-second mock KYC → arrive in dashboard
+2. **Hit `/explorer`** → if catalog is empty, click "✨ Seed 5 demo tokens" (PageHeader actions slot) → 5 wallet sign prompts → catalog populated with realistic tokens (Treasury Note, REIT, private credit, gold, tech index)
+3. **Click a yield-bearing token** (e.g., CTN-26 Treasury) → see the live yield ticker counting up at the configured APY
+4. **Onboard 2+ investor wallets** via Holders tab
+5. **Distributions tab** → switch to **Equal share** for an initial allocation → run → balances appear in holders' wallets
+6. **Distributions again** → switch to **Pro-rata** → enter a coupon amount → preview shows per-holder shares → run → mint-to-holder executes per recipient with progress UI
+7. **Compliance tab** → freeze a holder → attempt transfer from their wallet → clean rejection
 
 ## Surface map
 

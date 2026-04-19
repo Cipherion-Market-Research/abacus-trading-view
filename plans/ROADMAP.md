@@ -65,12 +65,19 @@ Research-driven feature set to make a counterparty walkthrough land. Pivoted fro
 | ✅ Sample data seeder | shipped | `SeedDemoButton` on `/explorer` empty state, dialog walks through 5 realistic tokens (Treasury, REIT, private credit, gold, tech index). Real on-chain creation, auto-registered in catalog, ~$0.04 SOL total cost. Eligibility: devnet + connected + KYC approved. |
 | ✅ Distributions tab | shipped | New tab on `/tokens/[mint]`. **Mint-to-holder pro-rata** (BUIDL mechanic). Form: total amount + memo + allocation preview. Sequential signing with per-recipient progress UI. Per-mint history persisted to localStorage. Excludes treasury, frozen, and zero-balance accounts from pro-rata. |
 
-Defer to Phase 1G:
-- 🟨 P2 | Atomic redemption simulator | Research's #2 build. ~1.5h. Needs UX work on mock USDC arrival + receipt format. |
-- 🟨 P2 | Compliance pre-trade simulator | "Paste a wallet, see green/red with rule that fired." Strong demo moment. |
-- 🟨 P2 | NAV oracle display | Surface `nav_per_token` from metadata with "last updated" timestamp. Easy add to TokenStats or new card. |
-- 🟨 P2 | Reconciliation view | Side-by-side on-chain holders vs "official register" snapshot. ~2h. |
-- 🟨 P2 | Regulator-ready blotter export | Augment current CSV with metadata + mint-authority signature. |
+## 3c. Phase 1G — Continued demo refinements (next session)
+
+Picked up where Phase 1F left off. Same demo-first lens — building features that wow institutional buyers in a 30-min walkthrough without requiring real production infrastructure.
+
+| Priority | Item | Notes | Est. |
+|---|---|---|---|
+| 🟧 P1 | **Atomic redemption simulator** | Research's #2 highest-impact build. UI on `/portfolio` token row: "Redeem" button → preview modal showing burn + USDC receipt → execute via Permanent Delegate burn → toast with mock USDC arrival → downloadable signed receipt (JSON/PDF). Completes the "trust the number, get out, prove it" trifecta institutional buyers care about. | 1.5–2 h |
+| 🟧 P1 | **NAV oracle display** | Surface `nav_per_token` from metadata as a prominent card on token detail pages, with "last updated" timestamp + Chainlink-style attestation badge (mock). Pair with the yield ticker as a "Live data" panel. | 30 min |
+| 🟨 P2 | Compliance pre-trade simulator | New section on Compliance tab: paste a wallet address → see green/red with the specific rule that fired (jurisdiction, KYC status, lock-up). Demo of T-REX-style enforceability without needing the actual hook. | 1.5 h |
+| 🟨 P2 | Regulator-ready blotter export | Augment current CSV with all metadata + mint-authority signature. Add a one-click "Audit pack" download that bundles holder list + tx blotter + metadata snapshot. | 1 h |
+| 🟨 P2 | Distribution accrual record | When a distribution runs, record it as an "accrual event" tied to the yield ticker so the ticker can show "Last paid: 2 days ago · 1,250 CTF-A to 18 holders" alongside the live counter. | 45 min |
+| 🟨 P2 | Reconciliation view | Side-by-side on-chain holders vs "official register" snapshot (mock). Counterparty's #1 stated pain point per research. | 2 h |
+| 🟨 P2 | Sample-data seeder idempotency | Check the catalog for existing entries with the same name+creator before each token. Skip if present. Currently double-running creates duplicates. | 15 min |
 
 ---
 
@@ -162,10 +169,19 @@ These aren't tasks per se — they're things that work but weren't explicitly ve
 
 ## Priorities for the next session
 
-If I had to pick three things to ship next, in order:
+**Demo-first track** (continuing 1F → 1G):
 
-1. **🟥 Server-side KYC state** (move off localStorage → session + DB). Blocks taking any real user.
-2. **🟧 Real KYC provider integration** (Civic Pass or Synaps). Blocks any regulated issuer actually using Atlas.
-3. **🟧 Transfer Hook program** (Phase 1B Rust/Anchor work). Unlocks compliant DEX listings + mint-level memo enforcement, and is the single biggest product differentiator still unshipped.
+1. **🟧 Atomic redemption simulator** (1.5–2h) — research's #2 most-impactful demo feature. Wallet sees "Redeem 100 CTF-A → Receive 1,000 USDC" → burn via Permanent Delegate → mock USDC arrival → signed receipt download. Completes the institutional-buyer trifecta: trust the number (yield ticker, shipped), prove it works (distributions, shipped), get out cleanly (redemption).
+2. **🟧 NAV oracle display** (30 min) — small, high-impact. Surface `nav_per_token` as a prominent card with "last updated" stamp + Chainlink-style attestation badge.
+3. **🟨 Distribution accrual record** (45 min) — link the most-recent distribution to the yield ticker so it shows "Last paid: 2 days ago · 1,250 to 18 holders" alongside the live counter. Closes the loop between accrual visualization and actual payout.
 
-Everything else in this document is either polish (🟨) or depends on these three being done.
+Recommended start: **#1 (atomic redemption)** as the headline; #2 + #3 as supporting features in the same session if there's time. Total ~3h for all three.
+
+**Production-readiness track** (if/when you switch off demo focus):
+
+4. **🟥 Server-side KYC state** — move off localStorage. Blocks taking any real user.
+5. **🟥 Real KYC provider integration** (Civic Pass / Synaps / Persona). Blocks any regulated issuer.
+6. **🟥 Mainnet deploy** — needs custody plan (Squads / Fireblocks) + legal review.
+7. **🟧 Transfer Hook program** (Rust/Anchor) — unlocks compliant DEX listings; biggest unshipped product differentiator.
+
+The two tracks are independent. Pick one direction at the start of the next session.
