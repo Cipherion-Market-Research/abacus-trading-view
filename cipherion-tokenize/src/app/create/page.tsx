@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/shared/page-header";
 export default function CreateTokenPage() {
   return (
     <RequireKyc>
-      <div className="mx-auto max-w-3xl px-6 py-8">
+      <div className="mx-auto max-w-3xl px-5 md:px-6 py-6 md:py-8">
         <PageHeader
           eyebrow="token creation"
           title="Create a regulated token"

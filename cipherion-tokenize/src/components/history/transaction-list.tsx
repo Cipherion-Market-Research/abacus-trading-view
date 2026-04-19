@@ -46,7 +46,7 @@ export function TransactionList({
       {transactions.map((tx) => (
         <div
           key={tx.signature}
-          className="flex items-center justify-between rounded-lg border border-[#30363d] bg-[#0d1117] px-3 py-2.5"
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-3 rounded-lg border border-[#30363d] bg-[#0d1117] px-3 py-2.5"
         >
           <div className="flex items-center gap-3 min-w-0">
             <span className="font-mono text-xs text-[#8b949e]">
@@ -58,7 +58,7 @@ export function TransactionList({
               </span>
             )}
           </div>
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center justify-between sm:justify-end gap-3 sm:shrink-0">
             <span className="text-[10px] text-[#8b949e]">
               {formatTime(tx.blockTime)}
             </span>

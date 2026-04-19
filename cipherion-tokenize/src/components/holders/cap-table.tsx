@@ -47,55 +47,91 @@ export function CapTable({ holders, decimals, totalSupply }: CapTableProps) {
 
   return (
     <div className="rounded-lg border border-[#30363d] overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow className="border-[#30363d] bg-[#161b22] hover:bg-[#161b22]">
-            <TableHead className="text-[10px] uppercase tracking-wider text-[#8b949e]">
-              Owner
-            </TableHead>
-            <TableHead className="text-[10px] uppercase tracking-wider text-[#8b949e] text-right">
-              Balance
-            </TableHead>
-            <TableHead className="text-[10px] uppercase tracking-wider text-[#8b949e] text-right">
-              % Supply
-            </TableHead>
-            <TableHead className="text-[10px] uppercase tracking-wider text-[#8b949e]">
-              Status
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {holders.map((holder) => {
-            const pct =
-              totalSupply > 0n
-                ? Number((holder.balance * 10000n) / totalSupply) / 100
-                : 0;
-            return (
-              <TableRow
-                key={holder.address.toBase58()}
-                className="border-[#30363d] hover:bg-[#161b22]"
-              >
-                <TableCell>
-                  <AddressDisplay
-                    address={holder.owner.toBase58()}
-                    showExplorer
-                    className="text-[#f0f6fc]"
-                  />
-                </TableCell>
-                <TableCell className="text-right font-mono text-xs text-[#f0f6fc]">
+      {/* Desktop / tablet table */}
+      <div className="hidden sm:block">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-[#30363d] bg-[#161b22] hover:bg-[#161b22]">
+              <TableHead className="text-[10px] uppercase tracking-wider text-[#8b949e]">
+                Owner
+              </TableHead>
+              <TableHead className="text-[10px] uppercase tracking-wider text-[#8b949e] text-right">
+                Balance
+              </TableHead>
+              <TableHead className="text-[10px] uppercase tracking-wider text-[#8b949e] text-right">
+                % Supply
+              </TableHead>
+              <TableHead className="text-[10px] uppercase tracking-wider text-[#8b949e]">
+                Status
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {holders.map((holder) => {
+              const pct =
+                totalSupply > 0n
+                  ? Number((holder.balance * 10000n) / totalSupply) / 100
+                  : 0;
+              return (
+                <TableRow
+                  key={holder.address.toBase58()}
+                  className="border-[#30363d] hover:bg-[#161b22]"
+                >
+                  <TableCell>
+                    <AddressDisplay
+                      address={holder.owner.toBase58()}
+                      showExplorer
+                      className="text-[#f0f6fc]"
+                    />
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-xs text-[#f0f6fc]">
+                    {formatTokenAmount(holder.balance, decimals)}
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-xs text-[#8b949e]">
+                    {pct.toFixed(2)}%
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge frozen={holder.isFrozen} />
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Mobile cards */}
+      <div className="sm:hidden divide-y divide-[#30363d]">
+        {holders.map((holder) => {
+          const pct =
+            totalSupply > 0n
+              ? Number((holder.balance * 10000n) / totalSupply) / 100
+              : 0;
+          return (
+            <div
+              key={holder.address.toBase58()}
+              className="bg-[#0d1117] p-4 space-y-2.5"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <AddressDisplay
+                  address={holder.owner.toBase58()}
+                  showExplorer
+                  className="text-[#f0f6fc] min-w-0"
+                />
+                <StatusBadge frozen={holder.isFrozen} />
+              </div>
+              <div className="flex items-baseline justify-between gap-3 pt-1">
+                <span className="font-mono text-[15px] font-semibold text-[#f0f6fc]">
                   {formatTokenAmount(holder.balance, decimals)}
-                </TableCell>
-                <TableCell className="text-right font-mono text-xs text-[#8b949e]">
-                  {pct.toFixed(2)}%
-                </TableCell>
-                <TableCell>
-                  <StatusBadge frozen={holder.isFrozen} />
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+                </span>
+                <span className="font-mono text-[11px] text-[#8b949e]">
+                  {pct.toFixed(2)}% of supply
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

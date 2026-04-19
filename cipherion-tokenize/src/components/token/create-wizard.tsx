@@ -166,13 +166,13 @@ export function CreateWizard() {
   return (
     <div className="space-y-6">
       {/* Step indicator */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
         {STEPS.map((label, i) => (
-          <div key={label} className="flex items-center gap-2">
+          <div key={label} className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => i < step && setStep(i)}
               disabled={i > step}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                 i === step
                   ? "bg-[#238636] text-white"
                   : i < step
@@ -187,7 +187,7 @@ export function CreateWizard() {
             </button>
             {i < STEPS.length - 1 && (
               <div
-                className={`h-px w-4 sm:w-8 ${
+                className={`h-px w-3 sm:w-8 ${
                   i < step ? "bg-[#3fb950]" : "bg-[#30363d]"
                 }`}
               />
@@ -197,7 +197,7 @@ export function CreateWizard() {
       </div>
 
       {/* Step content */}
-      <div className="rounded-lg border border-[#30363d] bg-[#161b22] p-6">
+      <div className="rounded-lg border border-[#30363d] bg-[#161b22] p-4 sm:p-6">
         {step === 0 && (
           <BasicInfoStep
             data={state.basicInfo}

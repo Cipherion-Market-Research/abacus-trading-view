@@ -19,11 +19,11 @@
 
 | Priority | Item | Notes | Est. |
 |---|---|---|---|
-| 🟨 P2 | Cap table mobile card view | `/tokens/[mint]` Holders tab currently uses horizontal-scroll table. Card-per-holder would read better on phones. | 30 min |
-| 🟨 P2 | Portfolio `TokenRow` mobile balance alignment | Right-aligned balance column can crowd the status badge on iPhone SE (375px). | 15 min |
-| 🟨 P2 | Create wizard mobile polish | Step indicator + 5-step form. Works but could use more breathing room on phones. | 30 min |
-| 🟨 P2 | `/tokens/[mint]` Compliance tab mobile verify | Forms within weren't explicitly audited for mobile. | 15 min |
-| 🟨 P2 | `/tokens/[mint]` History tab mobile verify | Transaction list uses `<Table>` primitive (has horizontal scroll) but could benefit from stacked rows on mobile. | 30 min |
+| ✅ Done | Cap table mobile card view | `<Table>` rendered on `sm:block`, card-per-holder stack on mobile (address + status pill on row 1, balance + % on row 2). | shipped 2026-04-18 |
+| ✅ Done | Portfolio `TokenRow` mobile balance alignment | Title row uses `flex-wrap` so status badge drops below name+symbol when crowded. Right column gets `shrink-0`. | shipped 2026-04-18 |
+| ✅ Done | Create wizard mobile polish | Step indicator gets `overflow-x-auto scrollbar-hide` so 5 pills can swipe on tiny phones. Wizard card padding `p-4 sm:p-6`. Page padding `px-5 md:px-6 py-6 md:py-8`. | shipped 2026-04-18 |
+| ✅ Done | `/tokens/[mint]` Compliance tab mobile | Holder rows stack action buttons below info on mobile via `flex-col sm:flex-row`. Status pill wraps with balance via `flex-wrap`. | shipped 2026-04-18 |
+| ✅ Done | `/tokens/[mint]` History tab mobile | Transaction rows stack signature + memo above time + link via `flex-col sm:flex-row` with `justify-between` only on `sm+`. | shipped 2026-04-18 |
 | 🟨 P2 | Multi-viewport manual QA pass | iPhone SE (375), iPhone 14 (393), iPad Mini (768), iPad Pro (1024), desktop. Human judgment required. | 45 min |
 | 🟨 P2 | Landscape orientation check | `md:` rules apply at 768px regardless of orientation. Phones in landscape at 750×393 may behave unexpectedly. | 15 min |
 
@@ -74,6 +74,22 @@
 | 🟨 P2 | ATS integration | Integration with Securitize Markets, tZERO, or Archax for regulated listing. Each ATS has its own API + KYC portability requirements. | 4–6 weeks per ATS |
 | 🟨 P2 | Compliant AMM pool | Permissioned liquidity pool on Raydium/Orca. Transfer Hook validates that both sides of every swap are approved. Depends on Phase 1B hook. | 2–3 weeks |
 | 🟩 P3 | Lending/borrowing | RWA tokens as collateral. Liquidation logic (auction to pre-approved liquidators) is the hard part. | 4+ weeks |
+
+---
+
+## 5b. Multi-chain expansion (Phase 3)
+
+Detailed research in `plans/MULTICHAIN_RESEARCH_2026-04.md`. Strategic premise (every named institutional issuer is multi-chain) is correct, but **explicitly gated behind the Phase 2 P0 blockers**: real KYC provider, server-side KYC state, mainnet deploy. Don't widen scope until we can serve real users on the chain we already have.
+
+| Priority | Item | Notes | Est. |
+|---|---|---|---|
+| 🟩 P3 | **Add Base + ERC-3643 / T-REX** | Lowest-cost EVM chain, strongest US distribution story via Coinbase. Requires `wagmi`/`viem` wallet adapter, T-REX SDK integration, ONCHAINID per investor (real KYC dependency), chain-aware service layer. **Realistic estimate: 6–10 weeks for one EVM chain done right** — not the "ships fastest" framing in the research doc. | 6–10 weeks |
+| 🟩 P3 | Add Polygon PoS | Same code path as Base. Biggest existing RWA market outside Ethereum (BUIDL, Franklin BENJI). | 1–2 weeks (after Base) |
+| 🟩 P3 | Add Avalanche C-Chain | Subnet upsell motion documented. Smaller current TVL than Polygon but stronger institutional positioning. | 1–2 weeks (after Polygon) |
+| 🟩 P3 | Evaluate XRPL / Stellar | Different programming models, higher engineering lift. Defer until specific issuer asks. | Re-evaluate annually |
+| 🟩 P3 | Re-evaluate Plume | Could subsume Atlas's compliance-wizard layer. Needs a strategic call before committing. | Re-evaluate late 2026 |
+
+**Marketing claim discipline:** do NOT claim multi-chain on the landing until at least one EVM chain ships end-to-end. Current "Built on Solana Token-2022" framing is honest and stays.
 
 ---
 

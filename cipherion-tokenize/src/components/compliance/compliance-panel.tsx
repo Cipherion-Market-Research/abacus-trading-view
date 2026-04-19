@@ -229,15 +229,15 @@ export function CompliancePanel({
             {holders.map((holder) => (
               <div
                 key={holder.address.toBase58()}
-                className="flex items-center justify-between rounded-lg border border-[#30363d] bg-[#0d1117] p-3"
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-[#30363d] bg-[#0d1117] p-3"
               >
-                <div>
+                <div className="min-w-0">
                   <AddressDisplay
                     address={holder.owner.toBase58()}
                     showExplorer
                     className="text-[#f0f6fc]"
                   />
-                  <div className="flex items-center gap-2 mt-0.5">
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
                     <span className="font-mono text-xs text-[#8b949e]">
                       {formatTokenAmount(holder.balance, token.decimals)}{" "}
                       {token.symbol}
@@ -253,7 +253,7 @@ export function CompliancePanel({
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 sm:shrink-0 -ml-1.5 sm:ml-0">
                   {holder.isFrozen ? (
                     <Button
                       variant="ghost"
