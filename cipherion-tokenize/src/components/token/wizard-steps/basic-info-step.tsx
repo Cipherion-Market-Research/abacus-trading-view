@@ -66,15 +66,23 @@ export function BasicInfoStep({ data, onChange }: Props) {
             Asset Type
           </label>
           <Select value={data.assetType} onValueChange={handleAssetTypeChange}>
-            <SelectTrigger className="border-[#30363d] bg-[#0d1117] text-[#f0f6fc]">
-              <SelectValue />
+            <SelectTrigger className="w-full border-[#30363d] bg-[#0d1117] text-[#f0f6fc]">
+              <SelectValue placeholder="Select asset type">
+                {
+                  ASSET_TEMPLATES.find((t) => t.assetType === data.assetType)
+                    ?.label
+                }
+              </SelectValue>
             </SelectTrigger>
-            <SelectContent className="border-[#30363d] bg-[#161b22]">
+            <SelectContent
+              className="border-[#30363d] bg-[#161b22] w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-2rem)]"
+              position="popper"
+            >
               {ASSET_TEMPLATES.map((t) => (
                 <SelectItem key={t.assetType} value={t.assetType}>
-                  <div>
-                    <span className="text-[#f0f6fc]">{t.label}</span>
-                    <span className="ml-2 text-[#8b949e] text-xs">
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    <span className="text-[#f0f6fc] text-sm">{t.label}</span>
+                    <span className="text-[#8b949e] text-[11px] leading-snug whitespace-normal">
                       {t.description}
                     </span>
                   </div>
