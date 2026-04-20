@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldCheck, X } from "lucide-react";
-import { resetKyc } from "@/lib/kyc";
+import { resetAllDemoData } from "@/lib/kyc";
 import { useKycStatus } from "@/hooks/use-kyc-status";
 
 export function KycPill() {
@@ -17,11 +17,11 @@ export function KycPill() {
     return (
       <div className="flex items-center gap-1 rounded-full border border-[#d29922]/40 bg-[rgba(210,153,34,0.1)] px-2.5 py-1">
         <span className="text-[10px] font-mono uppercase tracking-wider text-[#d29922]">
-          Reset KYC?
+          Reset demo?
         </span>
         <button
-          onClick={() => {
-            resetKyc();
+          onClick={async () => {
+            await resetAllDemoData();
             setConfirming(false);
             router.push("/");
           }}
@@ -47,7 +47,7 @@ export function KycPill() {
     <button
       type="button"
       onClick={() => setConfirming(true)}
-      title="Reset KYC (demo only)"
+      title="Reset all demo data (KYC + tokens + distributions)"
       className="flex items-center gap-1.5 rounded-full border border-[#238636]/30 bg-[rgba(63,185,80,0.08)] px-2.5 py-1 hover:bg-[rgba(63,185,80,0.14)] transition-colors"
     >
       <ShieldCheck className="size-3 text-[#3fb950]" />

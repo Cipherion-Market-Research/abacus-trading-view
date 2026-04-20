@@ -2,12 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { TokenMetadataField } from "@/types/token";
+import { loadDistributions } from "@/lib/distributions";
 
 interface YieldTickerProps {
   supply: bigint;
   decimals: number;
   symbol: string;
   metadata: TokenMetadataField[];
+  mintAddress?: string;
 }
 
 const YIELD_KEYS = ["coupon_rate", "annual_yield", "yield", "apy"];
@@ -48,11 +50,23 @@ function formatTokenAccrual(amount: number, decimals: number): string {
   return amount.toLocaleString(undefined, { maximumFractionDigits: 1 });
 }
 
+function formatTimeAgo(timestampMs: number): string {
+  const diff = Date.now() - timestampMs;
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
 export function YieldTicker({
   supply,
   decimals,
   symbol,
   metadata,
+  mintAddress,
 }: YieldTickerProps) {
   const couponRate = useMemo(() => parseRate(metadata), [metadata]);
   const [now, setNow] = useState(() => Date.now());
@@ -63,6 +77,14 @@ export function YieldTicker({
     return () => clearInterval(id);
   }, [couponRate]);
 
+  // Load last distribution for this mint (if available)
+  const lastDistribution = useMemo(() => {
+    if (!mintAddress) return null;
+    const records = loadDistributions(mintAddress);
+    const completed = records.find((r) => r.status === "complete" || r.status === "partial");
+    return completed ?? null;
+  }, [mintAddress]);
+
   if (couponRate === null) return null;
 
   // Compute accrual amounts in token units (not raw lamport-like).
@@ -70,12 +92,18 @@ export function YieldTicker({
   const perSecondPerToken = couponRate / 100 / (365 * 86400);
   const supplyAsTokens = Number(supply) / Math.pow(10, decimals);
 
-  const accrualThisSecond = supplyAsTokens * perSecondPerToken;
-  const accrualToday = accrualThisSecond * secondsSinceMidnightUtc();
+  const accrualToday = supplyAsTokens * perSecondPerToken * secondsSinceMidnightUtc();
 
   // Use `now` to force re-render — the value isn't a function of `now` directly,
   // but secondsSinceMidnightUtc reads the wall clock each render.
   void now;
+
+  const recipientCount = lastDistribution
+    ? lastDistribution.recipients.filter((r) => r.status === "done").length
+    : 0;
+  const lastPaidAmount = lastDistribution
+    ? Number(BigInt(lastDistribution.totalAllocated)) / Math.pow(10, decimals)
+    : 0;
 
   return (
     <div className="rounded-lg border border-[#238636]/30 bg-[rgba(35,134,54,0.05)] p-3 md:p-4">
@@ -96,7 +124,15 @@ export function YieldTicker({
             <span className="text-[#8b949e] font-normal">{symbol}</span>
           </div>
           <div className="font-mono text-[10px] md:text-[11px] text-[#8b949e]">
-            accrued today · resets at 00:00 UTC
+            {lastDistribution ? (
+              <>
+                Last paid {formatTimeAgo(lastDistribution.timestamp)} ·{" "}
+                {formatTokenAccrual(lastPaidAmount, decimals)} to {recipientCount}{" "}
+                {recipientCount === 1 ? "holder" : "holders"}
+              </>
+            ) : (
+              "accrued today · resets at 00:00 UTC"
+            )}
           </div>
         </div>
       </div>

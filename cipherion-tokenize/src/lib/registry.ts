@@ -85,3 +85,24 @@ export async function getMintEntry(mint: string): Promise<RegistryEntry | null> 
   }
   return raw;
 }
+
+/**
+ * Flush the entire catalog. Deletes the sorted-set index and all mint entries.
+ * Used for demo resets — does NOT affect on-chain state.
+ */
+export async function flushRegistry(): Promise<number> {
+  const redis = getClient();
+  const addresses = await redis.zrange<string[]>(INDEX_KEY, 0, -1);
+  if (!addresses || addresses.length === 0) {
+    await redis.del(INDEX_KEY);
+    return 0;
+  }
+  const keys = addresses.map(entryKey);
+  const pipeline = redis.pipeline();
+  for (const key of keys) {
+    pipeline.del(key);
+  }
+  pipeline.del(INDEX_KEY);
+  await pipeline.exec();
+  return addresses.length;
+}

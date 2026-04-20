@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { isRegistryConfigured, listMints } from "@/lib/registry";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   if (!isRegistryConfigured()) {
     return NextResponse.json(
       {
@@ -18,7 +18,14 @@ export async function GET() {
 
   try {
     const entries = await listMints();
-    return NextResponse.json({ configured: true, entries });
+
+    // Optional filter: ?creator=<wallet> returns only mints by that authority
+    const creator = request.nextUrl.searchParams.get("creator");
+    const filtered = creator
+      ? entries.filter((e) => e.creator === creator)
+      : entries;
+
+    return NextResponse.json({ configured: true, entries: filtered });
   } catch (err) {
     return NextResponse.json(
       {

@@ -20,6 +20,7 @@ import { useHistory } from "@/hooks/use-history";
 import { RequireKyc } from "@/components/auth/require-kyc";
 import { PageHeader } from "@/components/shared/page-header";
 import { YieldTicker } from "@/components/token/yield-ticker";
+import { NavDisplay } from "@/components/token/nav-display";
 import { DistributionHistory } from "@/components/distribution/distribution-history";
 
 function TokenDashboardContent({ mintAddress }: { mintAddress: string }) {
@@ -108,6 +109,14 @@ function TokenDashboardContent({ mintAddress }: { mintAddress: string }) {
         decimals={token.decimals}
         symbol={token.symbol}
         metadata={token.metadata}
+        mintAddress={mint}
+      />
+
+      <NavDisplay
+        metadata={token.metadata}
+        symbol={token.symbol}
+        supply={token.supply}
+        decimals={token.decimals}
       />
 
       {/* Stats */}

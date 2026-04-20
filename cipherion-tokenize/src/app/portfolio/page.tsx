@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
-import { Wallet, Loader2, RefreshCw, Send } from "lucide-react";
+import { Wallet, Loader2, RefreshCw, Send, ArrowDownToLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { AddressDisplay } from "@/components/shared/address-display";
 import { TransferForm } from "@/components/transfer/transfer-form";
+import { RedemptionDialog } from "@/components/portfolio/redemption-dialog";
 import { usePortfolio, type PortfolioToken } from "@/hooks/use-portfolio";
 import { formatTokenAmount } from "@/lib/utils/format";
 import { RequireKyc } from "@/components/auth/require-kyc";
@@ -96,6 +97,7 @@ function PortfolioContent() {
   const { setVisible } = useWalletModal();
   const { data: tokens, isLoading, error, refetch } = usePortfolio();
   const [selectedMint, setSelectedMint] = useState<string | null>(null);
+  const [redeemToken, setRedeemToken] = useState<PortfolioToken | null>(null);
 
   const selectedToken = tokens.find(
     (t) => t.mint.toBase58() === selectedMint
@@ -175,27 +177,51 @@ function PortfolioContent() {
             ))}
           </div>
 
-          {/* Transfer panel */}
-          <div className="lg:col-span-2">
+          {/* Action panel */}
+          <div className="lg:col-span-2 space-y-3">
             {selectedToken ? (
-              <div className="rounded-lg border border-[#30363d] bg-[#161b22] p-4 sticky top-20">
-                <div className="flex items-center gap-2 mb-4">
-                  <Send className="size-4 text-[#58a6ff]" />
-                  <h3 className="text-sm font-semibold text-[#f0f6fc]">
-                    Transfer {selectedToken.symbol}
-                  </h3>
+              <>
+                <div className="rounded-lg border border-[#30363d] bg-[#161b22] p-4 sticky top-20">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Send className="size-4 text-[#58a6ff]" />
+                    <h3 className="text-sm font-semibold text-[#f0f6fc]">
+                      Transfer {selectedToken.symbol}
+                    </h3>
+                  </div>
+                  <TransferForm token={selectedToken} onSuccess={refetch} />
+
+                  <div className="mt-4 pt-4 border-t border-[#30363d]">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setRedeemToken(selectedToken)}
+                      className="w-full gap-2 border-[#30363d] bg-[#0d1117] text-[#c9d1d9] hover:text-[#f0f6fc] hover:bg-[#21262d]"
+                    >
+                      <ArrowDownToLine className="size-3.5" />
+                      Redeem at NAV
+                    </Button>
+                  </div>
                 </div>
-                <TransferForm token={selectedToken} onSuccess={refetch} />
-              </div>
+              </>
             ) : (
               <div className="rounded-lg border border-[#30363d] bg-[#161b22] p-8 text-center">
                 <Send className="size-6 text-[#8b949e] mx-auto mb-2" />
                 <p className="text-xs text-[#8b949e]">
-                  Select a token to transfer
+                  Select a token to transfer or redeem
                 </p>
               </div>
             )}
           </div>
+
+          {/* Redemption dialog */}
+          {redeemToken && (
+            <RedemptionDialog
+              token={redeemToken}
+              open={!!redeemToken}
+              onOpenChange={(open) => { if (!open) setRedeemToken(null); }}
+              onSuccess={refetch}
+            />
+          )}
         </div>
       )}
     </div>

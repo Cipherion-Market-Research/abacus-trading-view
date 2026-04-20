@@ -47,4 +47,38 @@ export function resetKyc(): void {
   window.dispatchEvent(new CustomEvent(EVENT_NAME));
 }
 
+/**
+ * Wipe ALL demo data: localStorage + Upstash catalog.
+ * Used for fresh-slate demo resets before a walkthrough.
+ * Does NOT affect on-chain state — tokens remain on devnet.
+ */
+export async function resetAllDemoData(): Promise<void> {
+  if (typeof window === "undefined") return;
+
+  // Clear KYC
+  localStorage.removeItem(STORAGE_KEY);
+
+  // Clear created mints
+  localStorage.removeItem("ciphex-atlas-mints");
+
+  // Clear all distribution records (dynamic keys: ciphex-atlas-distributions-*)
+  const keysToRemove: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key?.startsWith("ciphex-atlas-distributions-")) {
+      keysToRemove.push(key);
+    }
+  }
+  keysToRemove.forEach((k) => localStorage.removeItem(k));
+
+  // Flush Upstash catalog (fire-and-forget — non-fatal if it fails)
+  try {
+    await fetch("/api/mints/flush", { method: "POST" });
+  } catch {
+    // Registry may not be configured locally — that's fine
+  }
+
+  window.dispatchEvent(new CustomEvent(EVENT_NAME));
+}
+
 export { EVENT_NAME as KYC_EVENT };

@@ -1,6 +1,6 @@
 # CipheX Atlas — Agent Handoff Document
 
-**Last updated:** 2026-04-18 (end of Phase 1F)
+**Last updated:** 2026-04-20 (end of Phase 1G)
 **Purpose:** Complete context for a new coding agent to continue development. Copy-paste this into a new conversation.
 
 ---
@@ -48,7 +48,8 @@ The product is a dashboard for authenticated users, sitting behind a public mark
 | `POST /api/ipfs/upload` | Pinata-backed image upload (server-side, JWT never sent to browser) |
 | `GET /api/ipfs/status` | Client-side probe for whether `PINATA_JWT` is configured |
 | `POST /api/mints/register` | Register a newly created mint in the Atlas catalog (verifies on-chain authority match before accepting) |
-| `GET /api/mints/list` | Read all registered mints |
+| `GET /api/mints/list` | Read registered mints. Optional `?creator=<wallet>` filter for "My Tokens" |
+| `POST /api/mints/flush` | Wipe entire Upstash catalog (demo reset). Does not affect on-chain state. |
 
 ---
 
@@ -233,7 +234,8 @@ All Phase 1A through 1C milestones complete. `npm run build` + `npx tsc --noEmit
 | **1D** | Design-system parity — AtlasLogo/Wordmark reusable, Polaris Crosshair favicon, PageHeader, unified canvas color, typography scale (all-Geist), wordmark attribution flip | Complete |
 | **1E** | Mobile/tablet responsive — marketing nav drawer, app header drawer, responsive type sweep, table stacking, tabs overflow scroll, meta stats redesign, iOS zoom prevention, touch targets | Complete |
 | **1F** | Demo polish — yield ticker (per-second accrual, BENJI-style), TokenAvatar (asset-type icons), sample data seeder (5 realistic tokens), Distributions tab (mint-to-holder pro-rata + equal-share, BUIDL mechanic) | Complete |
-| **2** | Phase 1G demo refinements (atomic redemption, NAV display, compliance pre-trade simulator), Transfer Hook (Rust/Anchor), real KYC provider, mainnet | Not started — see `ROADMAP.md` |
+| **1G** | Demo refinements — `/tokens` migrated to Upstash KV, atomic redemption simulator (burn at NAV + receipt), NAV oracle display, distribution accrual record on yield ticker, seeder idempotency, full demo reset (localStorage + Upstash flush) | Complete |
+| **2** | Compliance pre-trade simulator, regulator blotter export, multichain components (Phase B), Transfer Hook (Rust/Anchor), real KYC provider, mainnet | Not started — see `ROADMAP.md` |
 
 ### Phase 1A milestone detail
 

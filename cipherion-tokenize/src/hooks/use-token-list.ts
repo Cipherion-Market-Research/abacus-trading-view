@@ -7,6 +7,15 @@ import { getCreatedMints } from "@/lib/solana/account-service";
 import { getTokenInfo } from "@/lib/solana/token-service";
 import { TokenServiceError, type TokenInfo } from "@/lib/solana/types";
 
+/**
+ * Fetches the connected wallet's token list.
+ *
+ * Primary source: Upstash KV registry via /api/mints/list?creator=<wallet>
+ * Fallback: localStorage (for environments where Upstash is not configured)
+ *
+ * This eliminates the cross-environment inconsistency where localhost and
+ * vercel.app showed different token lists for the same wallet.
+ */
 export function useTokenList() {
   const { publicKey } = useWallet();
   const [data, setData] = useState<TokenInfo[]>([]);
@@ -23,7 +32,7 @@ export function useTokenList() {
     setError(null);
 
     try {
-      const mintAddresses = getCreatedMints();
+      const mintAddresses = await getMintAddresses(publicKey.toBase58());
       if (mintAddresses.length === 0) {
         setData([]);
         return;
@@ -59,4 +68,24 @@ export function useTokenList() {
   }, [refetch]);
 
   return { data, isLoading, error, refetch };
+}
+
+/**
+ * Resolve mint addresses: try Upstash registry first, fall back to localStorage.
+ */
+async function getMintAddresses(creator: string): Promise<string[]> {
+  try {
+    const res = await fetch(`/api/mints/list?creator=${creator}`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.configured && json.entries?.length > 0) {
+        return json.entries.map((e: { mint: string }) => e.mint);
+      }
+    }
+  } catch {
+    // API unreachable — fall through to localStorage
+  }
+
+  // Fallback: localStorage (works without Upstash, per-origin only)
+  return getCreatedMints();
 }

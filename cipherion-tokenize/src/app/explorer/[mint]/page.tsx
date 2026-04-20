@@ -9,6 +9,7 @@ import { ErrorState } from "@/components/shared/error-state";
 import { useTokenInfo } from "@/hooks/use-token-info";
 import { formatTokenAmount } from "@/lib/utils/format";
 import { YieldTicker } from "@/components/token/yield-ticker";
+import { NavDisplay } from "@/components/token/nav-display";
 
 export default function ExplorerDetailPage({
   params,
@@ -76,6 +77,13 @@ export default function ExplorerDetailPage({
             decimals={token.decimals}
             symbol={token.symbol}
             metadata={token.metadata}
+          />
+
+          <NavDisplay
+            metadata={token.metadata}
+            symbol={token.symbol}
+            supply={token.supply}
+            decimals={token.decimals}
           />
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

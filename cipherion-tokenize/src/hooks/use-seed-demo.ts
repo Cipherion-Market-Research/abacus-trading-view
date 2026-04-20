@@ -42,10 +42,39 @@ export function useSeedDemo() {
     }));
     setItems(initial);
 
+    // Fetch existing catalog to dedupe by name+creator
+    let existingNames: Set<string> = new Set();
+    try {
+      const res = await fetch(`/api/mints/list?creator=${publicKey.toBase58()}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.entries) {
+          existingNames = new Set(
+            json.entries.map((e: { name: string }) => e.name)
+          );
+        }
+      }
+    } catch {
+      // If catalog is unreachable, proceed without dedupe
+    }
+
     let createdCount = 0;
+    let skippedCount = 0;
 
     for (let i = 0; i < DEMO_SEEDS.length; i++) {
       const seed = DEMO_SEEDS[i];
+
+      // Skip if a token with this name already exists in the catalog
+      if (existingNames.has(seed.params.name)) {
+        setItems((prev) =>
+          prev.map((item, idx) =>
+            idx === i ? { ...item, status: "skipped" } : item
+          )
+        );
+        skippedCount++;
+        continue;
+      }
+
       setItems((prev) =>
         prev.map((item, idx) =>
           idx === i ? { ...item, status: "in_progress" } : item
@@ -55,7 +84,6 @@ export function useSeedDemo() {
       try {
         const result = await create(seed.params);
         if (!result) {
-          // create() returned null — wallet rejection or other error already toasted
           setItems((prev) =>
             prev.map((item, idx) =>
               idx === i
@@ -63,10 +91,10 @@ export function useSeedDemo() {
                 : item
             )
           );
-          break; // Stop the seed run on first failure (likely wallet cancel)
+          break;
         }
 
-        // Register in catalog (non-blocking)
+        // Register in catalog
         const imageField = seed.params.metadata.find((f) => f.key === "image");
         await register({
           mint: result.mint.toBase58(),
@@ -97,10 +125,19 @@ export function useSeedDemo() {
 
     setIsRunning(false);
 
-    if (createdCount === DEMO_SEEDS.length) {
-      toastSuccess(`Seeded ${createdCount} demo tokens`, {
-        description: "All tokens registered in the Atlas catalog.",
-      });
+    const total = createdCount + skippedCount;
+    if (total === DEMO_SEEDS.length) {
+      if (skippedCount === DEMO_SEEDS.length) {
+        toastSuccess("Demo tokens already seeded", {
+          description: "All 5 tokens exist in the catalog.",
+        });
+      } else {
+        toastSuccess(`Seeded ${createdCount} demo tokens`, {
+          description: skippedCount > 0
+            ? `${skippedCount} already existed — skipped.`
+            : "All tokens registered in the Atlas catalog.",
+        });
+      }
     } else if (createdCount > 0) {
       toastError(`Seeded ${createdCount} of ${DEMO_SEEDS.length}`, {
         description: "Run interrupted — see panel for details.",
