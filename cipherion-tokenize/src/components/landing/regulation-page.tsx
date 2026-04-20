@@ -116,13 +116,14 @@ export function RegulationPage() {
           / regulation
         </div>
         <h1 className="m-0 mb-5 md:mb-6 max-w-[960px] text-[36px] md:text-[52px] xl:text-[68px] font-semibold leading-[1.0] md:leading-[0.98] tracking-[-0.035em]">
-          Compliance mechanics that <span className="text-[#3fb950]">map</span> to the
-          rules you already file against.
+          Two compliance standards. Five jurisdictions. Every requirement{" "}
+          <span className="text-[#3fb950]">mapped</span>.
         </h1>
         <p className="m-0 max-w-[620px] text-[15px] md:text-[17px] xl:text-[18px] leading-[1.55] text-[#8b949e]">
-          Every Token-2022 extension lines up with a mechanism regulators
-          require. Below: which frameworks matter, what they demand, and
-          which Atlas primitive satisfies each.
+          Every compliance primitive lines up with a mechanism regulators
+          require — Token-2022 on Solana, ERC-3643 on EVM. Below: which
+          frameworks matter, what they demand, and which Atlas control
+          satisfies each.
         </p>
       </section>
 
@@ -132,7 +133,7 @@ export function RegulationPage() {
           / frameworks
         </div>
         <h2 className="m-0 mb-8 md:mb-10 max-w-[820px] text-[26px] md:text-[30px] xl:text-[36px] font-semibold leading-[1.1] tracking-[-0.03em]">
-          Five jurisdictions. One token program.
+          Five jurisdictions. Two compliance standards.
         </h2>
 
         {/* Desktop / tablet: 4-column table */}
@@ -199,10 +200,10 @@ export function RegulationPage() {
       {/* ─── Extension mapping ─── */}
       <section className="mx-auto max-w-[1280px] px-5 md:px-8 py-14 md:py-20 border-t border-[#21262d]">
         <div className="mb-4 md:mb-5 font-mono text-[10px] md:text-[11px] font-medium uppercase tracking-[0.14em] text-[#3fb950]">
-          / primitive → requirement
+          / Solana: primitive → requirement
         </div>
         <h2 className="m-0 mb-8 md:mb-10 max-w-[820px] text-[26px] md:text-[30px] xl:text-[36px] font-semibold leading-[1.1] tracking-[-0.03em]">
-          Which extension satisfies which rule.
+          Which Token-2022 extension satisfies which rule.
         </h2>
 
         {/* Desktop / tablet: 3-column table */}

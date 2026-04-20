@@ -33,13 +33,15 @@ export function InstitutionsPage() {
           / for institutions
         </div>
         <h1 className="m-0 mb-5 md:mb-6 max-w-[960px] text-[36px] md:text-[52px] xl:text-[68px] font-semibold leading-[1.0] md:leading-[0.98] tracking-[-0.035em]">
-          Purpose-built for the issuers{" "}
-          <span className="text-[#3fb950]">regulators</span> will ask about.
+          Built to{" "}
+          <span className="text-[#3fb950]">survive </span> your compliance
+          team&apos;s review.
         </h1>
         <p className="m-0 max-w-[620px] text-[15px] md:text-[17px] xl:text-[18px] leading-[1.55] text-[#8b949e]">
-          Atlas is the counterparty-grade issuance and custody layer on
-          Solana. Same Token-2022 stack used by Franklin Templeton, BlackRock,
-          and Ondo — exposed as an institutional operator cockpit.
+          Atlas is the institutional-grade issuance and custody layer for
+          regulated digital assets. The same compliance standards used by
+          Franklin Templeton, BlackRock, and Ondo — built into every token
+          you create.
         </p>
       </section>
 
@@ -67,24 +69,24 @@ export function InstitutionsPage() {
             sub="Reg D / S / A+"
           >
             Freeze, thaw, permanent delegate, transfer hooks —{" "}
-            <Verb>enforced</Verb> by Token-2022 itself, not bolted-on smart
+            <Verb>enforced</Verb> by the protocol itself, not bolted-on smart
             contracts.
           </Row>
           <Row
             icon={KeyRound}
             title="Institutional custody, preserved"
-            sub="Fireblocks · Squads · Anchorage"
+            sub="Fireblocks · Safe · Squads · Anchorage"
           >
-            Multisig and MPC custody <Verb>supported</Verb> out of the box.
+            Multisig and MPC custody <Verb>supported </Verb> out of the box.
             Single-key deployments exist but aren&apos;t recommended for
             production. Authority rotation is a first-class flow.
           </Row>
           <Row
             icon={Building2}
             title="Wallet-visible investor protections"
-            sub="Phantom · Ledger · Solflare"
+            sub="Phantom · MetaMask · Ledger · Solflare"
           >
-            Every powerful authority <Verb>surfaces</Verb> a warning in the
+            Every powerful authority <Verb>surfaces </Verb> a warning in the
             holder&apos;s wallet. No hidden controls — disclosure by default.
           </Row>
           <Row
@@ -113,7 +115,7 @@ export function InstitutionsPage() {
             <ThCell>Scale</ThCell>
             <ThCell>On-chain cost</ThCell>
             <ThCell>RPC infra</ThCell>
-            <ThCell>Total year 1</ThCell>
+            <ThCell>Protocol + RPC year 1</ThCell>
           </div>
           <TrCell a="10 investors · demo" b="~$3" c="Free" d="~$3" dAccent />
           <TrCell
@@ -169,6 +171,10 @@ export function InstitutionsPage() {
         </div>
 
         <p className="mt-4 text-[11px] md:text-[12px] text-[#6e7681]">
+          Protocol and RPC costs shown above. Atlas platform fees are scoped
+          during your walkthrough.
+        </p>
+        <p className="mt-3 text-[11px] md:text-[12px] text-[#6e7681]">
           Traditional transfer-agent and registrar fees for a 10,000-investor
           fund exceed $500,000 per year.
         </p>
@@ -177,7 +183,7 @@ export function InstitutionsPage() {
       {/* ─── CTA ─── */}
       <section className="mx-auto max-w-[1280px] px-5 md:px-8 py-16 md:py-24 border-t border-[#21262d] text-center">
         <h2 className="m-0 mb-4 md:mb-5 text-[28px] md:text-[32px] xl:text-[40px] font-semibold leading-[1.1] tracking-[-0.03em]">
-          Ready for a counterparty review?
+          Ready for an institutional walkthrough?
         </h2>
         <p className="m-0 mb-6 md:mb-8 mx-auto max-w-[560px] text-[#8b949e] text-[14px] md:text-[15px] leading-[1.6]">
           Every Atlas onboarding starts with a 30-minute walkthrough. We
@@ -246,7 +252,7 @@ function CostCard({
       <div className="grid grid-cols-3 gap-2 text-[11px]">
         <Cell label="On-chain" value={onchain} />
         <Cell label="RPC" value={rpc} />
-        <Cell label="Year 1" value={total} accent />
+        <Cell label="Protocol + RPC" value={total} accent />
       </div>
     </div>
   );

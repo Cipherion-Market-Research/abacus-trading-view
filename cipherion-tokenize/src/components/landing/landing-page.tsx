@@ -35,20 +35,21 @@ export function LandingPage() {
             className="size-1.5 rounded-full bg-[#3fb950]"
             style={{ boxShadow: "0 0 0 4px rgba(63,185,80,0.15)" }}
           />
-          Live on Solana · Token-2022 natively regulated
+          Live on Solana · Base · Avalanche · Ethereum
         </div>
 
         <h1 className="m-0 mb-5 md:mb-7 max-w-[1100px] text-[40px] md:text-[56px] xl:text-[80px] font-semibold leading-[0.98] md:leading-[0.95] tracking-[-0.035em] md:tracking-[-0.04em]">
-          The counterparty infrastructure for the{" "}
-          <span className="text-[#3fb950]">next decade</span> of tokenized
-          real-world assets.
+          The regulated issuance layer for{" "}
+          <span className="text-[#3fb950]">onchain capital markets</span> —
+          all institutional chains, one dashboard.
         </h1>
 
         <p className="m-0 mb-8 md:mb-10 max-w-[620px] text-[15px] md:text-[17px] xl:text-[19px] leading-[1.55] text-[#8b949e]">
           Atlas is a regulated-first issuance, custody, and distribution
-          platform. Built on Solana&apos;s Token-2022 program — the same stack
-          BlackRock, Franklin Templeton, and Ondo use to move over a billion
-          dollars on-chain.
+          platform. The same institutional compliance standards BlackRock,
+          Franklin Templeton, and Ondo use across $29B in tokenized assets —
+          available to any fund manager, across four chains, from one operator
+          dashboard.
         </p>
 
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
@@ -71,7 +72,7 @@ export function LandingPage() {
         <div className="mt-12 md:mt-16 pt-8 border-t border-[#21262d]">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-px md:gap-8 bg-[#21262d] md:bg-transparent rounded-lg md:rounded-none overflow-hidden md:overflow-visible">
           <MetaStat
-            label={["PER-TRANSFER", "COST"]}
+            label={["ON-CHAIN COST", "PER TRANSFER"]}
             value="$0.003"
             sub="vs. $0.50–$50 on L1"
           />
@@ -87,8 +88,8 @@ export function LandingPage() {
           />
           <MetaStat
             label={["AUDIT", "PARTNERS"]}
-            value="Neodyme"
-            sub="+ 3 more, since 2023"
+            value="9 audits"
+            sub="Trail of Bits · OtterSec · Neodyme · since 2022"
           />
           </div>
         </div>
@@ -102,7 +103,7 @@ export function LandingPage() {
           </div>
           <h2 className="m-0 mb-5 md:mb-6 text-[28px] md:text-[32px] xl:text-[40px] font-semibold leading-[1.05] tracking-[-0.03em]">
             Issuance that{" "}
-            <span className="text-[#3fb950]">passes</span> a counterparty
+            <span className="text-[#3fb950]">passes</span> a compliance
             review.
           </h2>
           <p className="text-[#8b949e] text-[14px] md:text-[15px] leading-[1.6] m-0">
@@ -124,7 +125,7 @@ export function LandingPage() {
           <Pillar
             num="02"
             title="Institutional custody, preserved"
-            tag="Fireblocks · Squads"
+            tag="Fireblocks · Squads · Safe"
           >
             Multisig and MPC custody <Verb>supported</Verb> out of the box.
             Authority rotation is a first-class flow.
@@ -132,7 +133,7 @@ export function LandingPage() {
           <Pillar
             num="03"
             title="Wallet-visible investor protections"
-            tag="Phantom · Ledger"
+            tag="Phantom · Ledger · MetaMask"
           >
             Every powerful authority surfaces a warning in the holder&apos;s
             wallet. No hidden controls — protection is <Verb>disclosed</Verb>{" "}
@@ -146,50 +147,62 @@ export function LandingPage() {
             Transfer Hooks <Verb>whitelist</Verb> compliant DEX pools.
             Permissionless venues simply reject the token — by design.
           </Pillar>
+          <Pillar
+            num="05"
+            title="Native yield distributions"
+            tag="pro-rata · equal-share"
+          >
+            Coupon payments, NAV distributions, and fund income{" "}
+            <Verb>executed</Verb> on-chain — one confirmation, every holder,
+            every chain. Not a fund admin service call.
+          </Pillar>
         </div>
       </section>
 
-      {/* ─── Pull quote ─── */}
+      {/* ─── Proof point ─── */}
       <section className="mx-auto max-w-[1280px] px-5 md:px-8 py-16 md:py-24 text-center border-t border-b border-[#21262d]">
-        <blockquote className="m-0 mx-auto mb-6 md:mb-8 max-w-[860px] text-[22px] md:text-[26px] xl:text-[32px] font-normal leading-[1.3] tracking-[-0.015em] text-[#f0f6fc]">
-          &ldquo;We evaluated six chains and four issuance stacks. Atlas was
-          the only one where our compliance team said{" "}
-          <span className="text-[#3fb950]">yes </span> on the first
-          review.&rdquo;
-        </blockquote>
-        <div className="font-mono text-[10px] md:text-[11px] font-medium uppercase tracking-[0.14em] text-[#8b949e]">
-          — <span className="text-[#c9d1d9]">Head of digital assets</span> ·
-          top-20 US asset manager
-        </div>
+        <p className="m-0 mx-auto mb-6 md:mb-8 max-w-[860px] text-[22px] md:text-[26px] xl:text-[32px] font-normal leading-[1.3] tracking-[-0.015em] text-[#f0f6fc]">
+          Traditional transfer-agent fees for a 10,000-investor fund exceed{" "}
+          <span className="text-[#f85149]">$500,000 per year</span>.{" "}
+          Atlas:{" "}
+          <span className="text-[#3fb950]">a fraction of that</span>.
+        </p>
+        <Link
+          href="/institutions"
+          className="inline-flex items-center gap-1.5 font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-[#8b949e] hover:text-[#f0f6fc] transition-colors"
+        >
+          See the full breakdown
+          <ArrowRight className="size-3" />
+        </Link>
       </section>
 
       {/* ─── Market ─── */}
       <section className="mx-auto max-w-[1280px] px-5 md:px-8 py-16 md:py-24">
         <h2 className="m-0 mb-8 md:mb-12 max-w-[720px] text-[28px] md:text-[32px] xl:text-[40px] font-semibold leading-[1.1] tracking-[-0.03em]">
-          The tokenized RWA market is{" "}
-          <span className="text-[#3fb950]">already</span> on Solana.
+          <span className="text-[#3fb950]">$29B</span> in tokenized assets.
+          Already live. Already institutional.
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-[#21262d] border border-[#21262d] rounded-xl overflow-hidden">
+          <IssuerCell
+            name="BlackRock"
+            value="$2.8B"
+            note="BUIDL · institutional fund · 6 chains"
+          />
           <IssuerCell
             name="Franklin Templeton"
             value="$594M"
             note="BENJI · on-chain money-market"
           />
           <IssuerCell
-            name="BlackRock"
-            value="$255M"
-            note="BUIDL · institutional liquidity fund"
-          />
-          <IssuerCell
             name="Ondo Finance"
-            value="$176M"
+            value="$1.4B"
             note="OUSG · tokenized treasuries"
           />
           <IssuerCell
-            name="+ 14 more"
-            value="$180M"
-            note="credit, private equity, commodities"
+            name="+ 40 more"
+            value="$25B+"
+            note="credit, real estate, commodities"
           />
         </div>
       </section>

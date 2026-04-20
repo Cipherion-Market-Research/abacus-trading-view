@@ -43,7 +43,7 @@ const PERSONAS: Persona[] = [
     color: "#3fb950",
     tint: "rgba(63,185,80,0.10)",
     asideTitle: "For issuers",
-    asideSub: "Most-asked · counterparty pre-call",
+    asideSub: "Most-asked · before your first walkthrough",
     ctas: [
       { label: "Book a 30-min walkthrough", href: "#" },
       { label: "Launch your first token", href: "/create" },
@@ -80,7 +80,7 @@ const PERSONAS: Persona[] = [
   {
     key: "technical",
     title: "Technical",
-    subtitle: "Architecture, Solana, audits",
+    subtitle: "Architecture, chains, audits",
     icon: Code2,
     color: "#a371f7",
     tint: "rgba(163,113,247,0.10)",
@@ -96,13 +96,15 @@ const PERSONAS: Persona[] = [
 const FAQS: Record<PersonaKey, FAQItem[]> = {
   issuer: [
     {
-      q: "How much does it cost to launch a token?",
+      q: "What are the on-chain costs to launch a token?",
       a: (
         <p>
           Under <Money>$1</Money> in on-chain costs. The mint account with full
           compliance extensions costs about <Money>$0.63</Money> in rent
           deposit (refundable if the token is ever closed). A custom Transfer
-          Hook program is a one-time <Money>$45–$134</Money> deploy.
+          Hook program is a one-time <Money>$45–$134</Money> deploy. These
+          figures cover on-chain infrastructure only — Atlas platform fees are
+          scoped during your walkthrough.
         </p>
       ),
     },
@@ -168,20 +170,24 @@ const FAQS: Record<PersonaKey, FAQItem[]> = {
       q: "How do I receive tokens?",
       a: (
         <p>
-          The issuer onboards you by entering your Solana wallet address. Atlas
+          The issuer onboards you by entering your wallet address. Atlas
           creates a token account and approves (thaws) it. Tokens appear in
-          Phantom or Solflare and on the Atlas portfolio page.
+          your connected wallet and on the Atlas portfolio page.
         </p>
       ),
     },
     {
-      q: "Which wallets support Token-2022?",
+      q: "Which wallets does Atlas support?",
       a: (
         <p>
-          Full support: Phantom, Solflare, Backpack, Ledger (via Phantom or
-          Solflare with blind signing), Fireblocks, Squads Multisig. Trust
-          Wallet support is unconfirmed. Centralized exchange deposits are not
-          broadly supported — don&apos;t send to Coinbase or Binance addresses.
+          <strong>Solana tokens:</strong> Phantom, Solflare, Backpack, and
+          Ledger (via Phantom or Solflare). Fireblocks and Squads Multisig for
+          institutional custody.{" "}
+          <strong>EVM tokens (Base, Avalanche, Ethereum):</strong> MetaMask,
+          Coinbase Wallet, Rainbow, and Ledger. Fireblocks and Safe for
+          institutional custody. Don&apos;t send tokenized securities to
+          centralized exchange deposit addresses — these are not standard wallet
+          addresses and transfers will fail compliance checks.
         </p>
       ),
     },
@@ -197,16 +203,14 @@ const FAQS: Record<PersonaKey, FAQItem[]> = {
       ),
     },
     {
-      q: "Can I trade on Jupiter or Raydium?",
+      q: "Can I trade on permissionless DEXes?",
       a: (
         <p>
-          Not permissionlessly. RWA tokens use{" "}
-          <code className="font-mono text-[11px] bg-[#161b22] border border-[#21262d] rounded px-1.5 py-0.5">
-            DefaultAccountState=Frozen
-          </code>{" "}
-          — a DEX pool account would start frozen and need explicit issuer
-          approval. With a Transfer Hook, the issuer can whitelist specific
-          pools for compliant on-chain trading.
+          Not permissionlessly. Regulated tokens require the recipient to have
+          an approved (whitelisted) account — a permissionless DEX pool will
+          not have this approval and the compliance primitive rejects the
+          transfer. With the appropriate compliance hook or module, the issuer
+          can whitelist specific pools for compliant on-chain trading.
         </p>
       ),
     },
@@ -293,27 +297,29 @@ const FAQS: Record<PersonaKey, FAQItem[]> = {
       ),
     },
     {
-      q: "Can this token end up on pump.fun or meme-coin exchanges?",
+      q: "Can this token end up on meme-coin launchpads or permissionless exchanges?",
       a: (
         <p>
           No. Every transfer requires the recipient to have an approved
-          (thawed) token account, which only the issuer can create.
+          (whitelisted) account, which only the issuer can create.
           Permissionless exchanges can&apos;t create these accounts — the
-          protocol physically prevents it.
+          compliance primitive physically prevents it.
         </p>
       ),
     },
   ],
   technical: [
     {
-      q: "Why Solana over Ethereum?",
+      q: "How does Atlas enforce compliance on each chain?",
       a: (
         <p>
-          Cost (~<Money>$0.003</Money> per transfer vs. <Money>$0.50–$50</Money>{" "}
-          on L1), native compliance (Token-2022 extensions vs. a 6-contract
-          ERC-3643 stack), and institutional adoption — Franklin Templeton
-          ($594M), BlackRock ($255M), and Ondo ($176M) all run on Solana as of
-          2026.
+          On Solana, compliance is enforced by Token-2022 — Solana&apos;s
+          native token program with 20+ configurable extensions. On Base,
+          Avalanche, and Ethereum, compliance is enforced by ERC-3643 — the
+          institutional token standard for regulated securities in the EVM
+          ecosystem. Both provide equivalent guarantees at the protocol level:
+          freeze, KYC gating, transfer restrictions, and forced transfer —
+          enforced by the protocol itself, not bolted-on contracts.
         </p>
       ),
     },
@@ -343,21 +349,22 @@ const FAQS: Record<PersonaKey, FAQItem[]> = {
       q: "Has Token-2022 been audited?",
       a: (
         <p>
-          Yes — audited by multiple firms including Neodyme. Open source,
-          verifiable on-chain, in production since 2023 with billions in value
-          secured.
+          Yes — 9 independent audits since 2022, including Trail of Bits,
+          OtterSec, and Neodyme. Open source, verifiable on-chain, and
+          securing billions in institutional value since 2023.
         </p>
       ),
     },
     {
-      q: "What happens if Solana goes down?",
+      q: "What happens if a chain experiences an outage?",
       a: (
         <p>
-          During an outage no transactions process — state is preserved and
-          resumes on recovery. For time-sensitive operations (redemptions,
-          distributions), issuers should have contingency procedures. Uptime
-          has improved significantly since 2023; the Alpenglow upgrade (late
-          2026) further stabilizes consensus.
+          During a chain outage no transactions process — state is preserved
+          on-chain and resumes on recovery. For time-sensitive operations
+          (redemptions, distributions), issuers should have contingency
+          procedures. Atlas supports four chains; operations can be planned
+          around each chain&apos;s maintenance windows and historical uptime
+          records.
         </p>
       ),
     },
@@ -375,8 +382,8 @@ const FAQS: Record<PersonaKey, FAQItem[]> = {
             mintTo
           </code>{" "}
           instruction per recipient with the memo embedded. Each transaction
-          is signed by the issuer&apos;s mint authority. Per-recipient cost
-          is ~$0.003.
+          is signed by the issuer&apos;s mint authority. Per-recipient
+          on-chain cost is ~$0.003.
         </p>
       ),
     },
@@ -555,7 +562,7 @@ export function FaqPage() {
                 </h4>
               </div>
               <p className="m-0 text-[13px] leading-[1.55] text-[#8b949e]">
-                Jump into the platform or talk to the counterparty desk.
+                Jump into the platform or talk to the compliance team.
               </p>
             </div>
 

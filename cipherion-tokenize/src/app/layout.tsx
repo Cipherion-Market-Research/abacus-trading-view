@@ -14,8 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CipheX Atlas",
-  description: "RWA token issuance and management platform",
+  title: "Atlas by CipheX — Regulated RWA Issuance",
+  description:
+    "The regulated issuance layer for onchain capital markets. Protocol-enforced compliance across Solana, Base, Avalanche, and Ethereum.",
 };
 
 export default function RootLayout({
