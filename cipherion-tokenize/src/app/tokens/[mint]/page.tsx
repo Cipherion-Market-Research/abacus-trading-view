@@ -19,9 +19,11 @@ import { useHolders } from "@/hooks/use-holders";
 import { useHistory } from "@/hooks/use-history";
 import { RequireKyc } from "@/components/auth/require-kyc";
 import { PageHeader } from "@/components/shared/page-header";
+import { AuditPackButton } from "@/components/shared/audit-pack-button";
 import { YieldTicker } from "@/components/token/yield-ticker";
 import { NavDisplay } from "@/components/token/nav-display";
 import { DistributionHistory } from "@/components/distribution/distribution-history";
+import { ReconciliationPanel } from "@/components/reconciliation/reconciliation-panel";
 
 function TokenDashboardContent({ mintAddress }: { mintAddress: string }) {
   const mint = mintAddress;
@@ -92,15 +94,18 @@ function TokenDashboardContent({ mintAddress }: { mintAddress: string }) {
           />
         }
         actions={
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={refetchAll}
-            className="gap-1.5 border-[#30363d] bg-[#161b22] text-[#8b949e] hover:text-[#f0f6fc] hover:bg-[#21262d]"
-          >
-            <RefreshCw className="size-3" />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            <AuditPackButton token={token} holders={holders} />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={refetchAll}
+              className="gap-1.5 border-[#30363d] bg-[#161b22] text-[#8b949e] hover:text-[#f0f6fc] hover:bg-[#21262d]"
+            >
+              <RefreshCw className="size-3" />
+              Refresh
+            </Button>
+          </div>
         }
       />
 
@@ -148,6 +153,12 @@ function TokenDashboardContent({ mintAddress }: { mintAddress: string }) {
             className="text-xs shrink-0 snap-start data-[state=active]:bg-[#21262d] data-[state=active]:text-[#f0f6fc]"
           >
             Distributions
+          </TabsTrigger>
+          <TabsTrigger
+            value="reconciliation"
+            className="text-xs shrink-0 snap-start data-[state=active]:bg-[#21262d] data-[state=active]:text-[#f0f6fc]"
+          >
+            Reconciliation
           </TabsTrigger>
           <TabsTrigger
             value="details"
@@ -210,6 +221,14 @@ function TokenDashboardContent({ mintAddress }: { mintAddress: string }) {
             token={token}
             holders={holders}
             onAfterRun={refetchAll}
+          />
+        </TabsContent>
+
+        <TabsContent value="reconciliation">
+          <ReconciliationPanel
+            token={token}
+            holders={holders}
+            onSuccess={refetchAll}
           />
         </TabsContent>
 

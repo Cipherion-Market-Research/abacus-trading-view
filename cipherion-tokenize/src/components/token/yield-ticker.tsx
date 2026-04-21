@@ -10,6 +10,7 @@ interface YieldTickerProps {
   symbol: string;
   metadata: TokenMetadataField[];
   mintAddress?: string;
+  balanceOverride?: bigint;
 }
 
 const YIELD_KEYS = ["coupon_rate", "annual_yield", "yield", "apy"];
@@ -67,6 +68,7 @@ export function YieldTicker({
   symbol,
   metadata,
   mintAddress,
+  balanceOverride,
 }: YieldTickerProps) {
   const couponRate = useMemo(() => parseRate(metadata), [metadata]);
   const [now, setNow] = useState(() => Date.now());
@@ -90,9 +92,10 @@ export function YieldTicker({
   // Compute accrual amounts in token units (not raw lamport-like).
   // perSecondPerToken = couponRate% / (365 * 86400)
   const perSecondPerToken = couponRate / 100 / (365 * 86400);
-  const supplyAsTokens = Number(supply) / Math.pow(10, decimals);
+  const basis = balanceOverride ?? supply;
+  const basisAsTokens = Number(basis) / Math.pow(10, decimals);
 
-  const accrualToday = supplyAsTokens * perSecondPerToken * secondsSinceMidnightUtc();
+  const accrualToday = basisAsTokens * perSecondPerToken * secondsSinceMidnightUtc();
 
   // Use `now` to force re-render — the value isn't a function of `now` directly,
   // but secondsSinceMidnightUtc reads the wall clock each render.

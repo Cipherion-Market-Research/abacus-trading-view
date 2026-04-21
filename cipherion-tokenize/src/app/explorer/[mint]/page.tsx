@@ -2,11 +2,12 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Loader2, Briefcase } from "lucide-react";
 import { AddressDisplay } from "@/components/shared/address-display";
 import { ExplorerLink } from "@/components/shared/explorer-link";
 import { ErrorState } from "@/components/shared/error-state";
 import { useTokenInfo } from "@/hooks/use-token-info";
+import { usePortfolio } from "@/hooks/use-portfolio";
 import { formatTokenAmount } from "@/lib/utils/format";
 import { YieldTicker } from "@/components/token/yield-ticker";
 import { NavDisplay } from "@/components/token/nav-display";
@@ -18,6 +19,8 @@ export default function ExplorerDetailPage({
 }) {
   const { mint } = use(params);
   const { data: token, isLoading, error, refetch } = useTokenInfo(mint);
+  const { data: portfolioTokens } = usePortfolio();
+  const holdsToken = portfolioTokens.some((t) => t.mint.toBase58() === mint);
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
@@ -71,6 +74,16 @@ export default function ExplorerDetailPage({
               />
             </div>
           </div>
+
+          {holdsToken && (
+            <Link
+              href={`/portfolio/${mint}`}
+              className="inline-flex items-center gap-2 rounded-lg border border-[#238636]/30 bg-[rgba(35,134,54,0.05)] px-4 py-3 text-xs font-medium text-[#3fb950] hover:bg-[rgba(35,134,54,0.1)] transition-colors w-full"
+            >
+              <Briefcase className="size-4" />
+              View my position
+            </Link>
+          )}
 
           <YieldTicker
             supply={token.supply}

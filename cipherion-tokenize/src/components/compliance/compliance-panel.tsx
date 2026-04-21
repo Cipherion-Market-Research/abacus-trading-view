@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AddressDisplay } from "@/components/shared/address-display";
+import { ComplianceSimulator } from "@/components/compliance/compliance-simulator";
 import { freezeAccount, thawAccount, forceBurn, pauseToken, unpauseToken } from "@/lib/solana/compliance-service";
 import { useSendTransaction } from "@/hooks/use-send-transaction";
 import { toastSuccess, toastError } from "@/hooks/use-toast";
@@ -183,6 +184,9 @@ export function CompliancePanel({
 
   return (
     <div className="space-y-4">
+      {/* Pre-trade compliance simulator */}
+      <ComplianceSimulator token={token} holders={holders} />
+
       {/* Token-level controls */}
       <div>
         <p className="text-[11px] uppercase tracking-wider text-[#8b949e] mb-3">

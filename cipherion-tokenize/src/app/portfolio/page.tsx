@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
-import { Wallet, Loader2, RefreshCw, Send, ArrowDownToLine } from "lucide-react";
+import { Wallet, Loader2, RefreshCw, Send, ArrowDownToLine, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
@@ -81,11 +82,21 @@ function TokenRow({
             />
           </div>
         </div>
-        <div className="text-right shrink-0">
-          <p className="font-mono text-sm font-semibold text-[#f0f6fc]">
-            {formatTokenAmount(token.balance, token.decimals)}
-          </p>
-          <p className="text-[10px] text-[#8b949e]">{token.symbol}</p>
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="text-right">
+            <p className="font-mono text-sm font-semibold text-[#f0f6fc]">
+              {formatTokenAmount(token.balance, token.decimals)}
+            </p>
+            <p className="text-[10px] text-[#8b949e]">{token.symbol}</p>
+          </div>
+          <Link
+            href={`/portfolio/${token.mint.toBase58()}`}
+            onClick={(e) => e.stopPropagation()}
+            className="text-[#8b949e] hover:text-[#f0f6fc] transition-colors"
+            title="View position details"
+          >
+            <ChevronRight className="size-4" />
+          </Link>
         </div>
       </div>
     </div>
