@@ -1,16 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
-import { Wallet, Loader2, RefreshCw, Send, ArrowDownToLine, ChevronRight } from "lucide-react";
+import { Wallet, Loader2, RefreshCw, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
-import { AddressDisplay } from "@/components/shared/address-display";
-import { TransferForm } from "@/components/transfer/transfer-form";
-import { RedemptionDialog } from "@/components/portfolio/redemption-dialog";
 import { usePortfolio, type PortfolioToken } from "@/hooks/use-portfolio";
 import { formatTokenAmount } from "@/lib/utils/format";
 import { RequireKyc } from "@/components/auth/require-kyc";
@@ -32,31 +28,12 @@ function StatusBadge({ frozen }: { frozen: boolean }) {
   );
 }
 
-function TokenRow({
-  token,
-  isSelected,
-  onSelect,
-}: {
-  token: PortfolioToken;
-  isSelected: boolean;
-  onSelect: () => void;
-}) {
+function TokenRow({ token }: { token: PortfolioToken }) {
+  const addr = token.mint.toBase58();
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onSelect}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onSelect();
-        }
-      }}
-      className={`w-full text-left rounded-lg border p-4 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#238636]/50 ${
-        isSelected
-          ? "border-[#238636] bg-[rgba(35,134,54,0.05)]"
-          : "border-[#30363d] bg-[#161b22] hover:border-[#484f58]"
-      }`}
+    <Link
+      href={`/portfolio/${addr}`}
+      className="block rounded-lg border border-[#30363d] bg-[#161b22] p-4 transition-colors hover:border-[#484f58] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#238636]/50"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 min-w-0 flex-1">
@@ -75,11 +52,9 @@ function TokenRow({
               </span>
               <StatusBadge frozen={token.isFrozen} />
             </div>
-            <AddressDisplay
-              address={token.mint.toBase58()}
-              showExplorer
-              className="text-[#8b949e] mt-1"
-            />
+            <span className="font-mono text-[10px] text-[#484f58] mt-1 block">
+              {addr.slice(0, 4)}&hellip;{addr.slice(-4)}
+            </span>
           </div>
         </div>
         <div className="flex items-center gap-3 shrink-0">
@@ -89,17 +64,10 @@ function TokenRow({
             </p>
             <p className="text-[10px] text-[#8b949e]">{token.symbol}</p>
           </div>
-          <Link
-            href={`/portfolio/${token.mint.toBase58()}`}
-            onClick={(e) => e.stopPropagation()}
-            className="text-[#8b949e] hover:text-[#f0f6fc] transition-colors"
-            title="View position details"
-          >
-            <ChevronRight className="size-4" />
-          </Link>
+          <ChevronRight className="size-4 text-[#8b949e]" />
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -107,15 +75,9 @@ function PortfolioContent() {
   const { connected } = useWallet();
   const { setVisible } = useWalletModal();
   const { data: tokens, isLoading, error, refetch } = usePortfolio();
-  const [selectedMint, setSelectedMint] = useState<string | null>(null);
-  const [redeemToken, setRedeemToken] = useState<PortfolioToken | null>(null);
-
-  const selectedToken = tokens.find(
-    (t) => t.mint.toBase58() === selectedMint
-  );
 
   return (
-    <div className="mx-auto max-w-[1280px] px-6 py-8">
+    <div className="mx-auto max-w-4xl px-6 py-8">
       <PageHeader
         eyebrow="portfolio"
         title="Your holdings"
@@ -169,70 +131,10 @@ function PortfolioContent() {
           description="Tokens will appear here once an issuer distributes them to you."
         />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-          {/* Token list */}
-          <div className="lg:col-span-3 space-y-2">
-            {tokens.map((token) => (
-              <TokenRow
-                key={token.ata.toBase58()}
-                token={token}
-                isSelected={selectedMint === token.mint.toBase58()}
-                onSelect={() =>
-                  setSelectedMint(
-                    selectedMint === token.mint.toBase58()
-                      ? null
-                      : token.mint.toBase58()
-                  )
-                }
-              />
-            ))}
-          </div>
-
-          {/* Action panel */}
-          <div className="lg:col-span-2 space-y-3">
-            {selectedToken ? (
-              <>
-                <div className="rounded-lg border border-[#30363d] bg-[#161b22] p-4 sticky top-20">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Send className="size-4 text-[#58a6ff]" />
-                    <h3 className="text-sm font-semibold text-[#f0f6fc]">
-                      Transfer {selectedToken.symbol}
-                    </h3>
-                  </div>
-                  <TransferForm token={selectedToken} onSuccess={refetch} />
-
-                  <div className="mt-4 pt-4 border-t border-[#30363d]">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setRedeemToken(selectedToken)}
-                      className="w-full gap-2 border-[#30363d] bg-[#0d1117] text-[#c9d1d9] hover:text-[#f0f6fc] hover:bg-[#21262d]"
-                    >
-                      <ArrowDownToLine className="size-3.5" />
-                      Redeem at NAV
-                    </Button>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="rounded-lg border border-[#30363d] bg-[#161b22] p-8 text-center">
-                <Send className="size-6 text-[#8b949e] mx-auto mb-2" />
-                <p className="text-xs text-[#8b949e]">
-                  Select a token to transfer or redeem
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Redemption dialog */}
-          {redeemToken && (
-            <RedemptionDialog
-              token={redeemToken}
-              open={!!redeemToken}
-              onOpenChange={(open) => { if (!open) setRedeemToken(null); }}
-              onSuccess={refetch}
-            />
-          )}
+        <div className="space-y-2">
+          {tokens.map((token) => (
+            <TokenRow key={token.ata.toBase58()} token={token} />
+          ))}
         </div>
       )}
     </div>
