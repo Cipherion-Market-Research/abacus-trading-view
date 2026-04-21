@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useMemo } from "react";
+import { use, useState, useMemo, useEffect } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import {
   ArrowLeft,
@@ -18,11 +18,13 @@ import { PageHeader } from "@/components/shared/page-header";
 import { YieldTicker } from "@/components/token/yield-ticker";
 import { NavDisplay } from "@/components/token/nav-display";
 import { TransferForm } from "@/components/transfer/transfer-form";
+import { TransactionList } from "@/components/history/transaction-list";
 import { RedemptionDialog } from "@/components/portfolio/redemption-dialog";
 import { MyDistributions } from "@/components/portfolio/my-distributions";
 import { RequireKyc } from "@/components/auth/require-kyc";
 import { useTokenInfo } from "@/hooks/use-token-info";
 import { usePortfolio, type PortfolioToken } from "@/hooks/use-portfolio";
+import { useHistory } from "@/hooks/use-history";
 import { formatTokenAmount } from "@/lib/utils/format";
 
 function HolderDetailContent({ mintAddress }: { mintAddress: string }) {
@@ -39,6 +41,19 @@ function HolderDetailContent({ mintAddress }: { mintAddress: string }) {
     refetch: refetchPortfolio,
   } = usePortfolio();
   const [showRedeem, setShowRedeem] = useState(false);
+  const walletStr = publicKey?.toBase58() ?? null;
+  const {
+    data: transactions,
+    isLoading: historyLoading,
+    hasMore,
+    loadMore,
+    refetch: refetchHistory,
+    loaded: historyLoaded,
+  } = useHistory(mintAddress, walletStr);
+
+  useEffect(() => {
+    if (walletStr && !historyLoaded) refetchHistory();
+  }, [walletStr, historyLoaded, refetchHistory]);
 
   const refetchAll = () => {
     refetchToken();
@@ -288,6 +303,21 @@ function HolderDetailContent({ mintAddress }: { mintAddress: string }) {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* My activity */}
+      <div className="space-y-3">
+        <p className="text-[11px] uppercase tracking-wider text-[#8b949e]">
+          My Activity
+        </p>
+        <TransactionList
+          transactions={transactions}
+          decimals={token.decimals}
+          symbol={token.symbol}
+          isLoading={historyLoading}
+          hasMore={hasMore}
+          onLoadMore={loadMore}
+        />
       </div>
 
       {/* Redemption dialog */}

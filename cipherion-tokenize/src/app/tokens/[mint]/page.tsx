@@ -122,6 +122,9 @@ function TokenDashboardContent({ mintAddress }: { mintAddress: string }) {
         symbol={token.symbol}
         supply={token.supply}
         decimals={token.decimals}
+        mintAddress={mint}
+        isIssuer
+        onNavUpdated={refetchToken}
       />
 
       {/* Stats */}

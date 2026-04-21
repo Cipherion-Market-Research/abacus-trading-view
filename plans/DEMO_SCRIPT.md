@@ -46,13 +46,15 @@
 
 | Element | What it says | What it means |
 |---|---|---|
-| Hero badge | "Live on Solana · EVM chains coming" | Solana is production-ready today; Base + Polygon via ERC-3643 in next phase |
-| MetaStat: `<$0.01` | Per-transfer cost across supported chains | Solana ~$0.003, Base ~$0.001, Polygon ~$0.01 |
-| MetaStat: `2` standards | Token-2022 + ERC-3643 | Protocol-native compliance on Solana; audited ERC standard on EVM |
-| MetaStat: `5` frameworks | SEC · MiCA · MAS · VARA · FINMA | Every extension maps to a regulatory requirement — shown in detail on `/regulation` |
-| MetaStat: `3` chains | Solana live, EVM coming | Not a promise — architectural validation is done, implementation is next |
-| IssuerCell grid | BlackRock $2.8B / 6 chains | Cross-chain totals, not Atlas AUM — these are market reference points |
-| Proof point | "$500K+ traditional vs. Atlas" | Transfer-agent + registrar fees for a 10,000-investor fund |
+| Hero badge | "Live on Solana · Base · Avalanche · Ethereum" | Multichain positioning — Solana production-ready today; EVM chains via ERC-3643 in next phase |
+| MetaStat: `$0.003` | Per-transfer cost | Solana on-chain cost, vs. $0.50–$50 on L1 |
+| MetaStat: `20` extensions | Compliance extensions natively enforced | Token-2022 protocol-level compliance |
+| MetaStat: `4` frameworks | SEC · MiCA · MAS · VARA | Every extension maps to a regulatory requirement — shown on `/regulation` |
+| MetaStat: `9 audits` | Trail of Bits · OtterSec · Neodyme · since 2022 | Token-2022 audit posture |
+| Five pillars | Compliance, Custody, Protections, Secondary-market, Yield | Hover to expand — interactive walkthrough of institutional features |
+| IssuerCell grid | BlackRock $2.8B / 6 chains | Cross-chain totals, not Atlas AUM — market reference points |
+| Proof point | "$500K+ traditional vs. a fraction" | Transfer-agent + registrar fees for a 10,000-investor fund |
+| CTA section | "Ready to tokenize your first asset?" | "Book a walkthrough" + "Learn more for institutions" |
 
 ### Institutions Page (`/institutions`)
 
@@ -212,7 +214,9 @@ Appears below the yield ticker when metadata has `nav_per_token`.
 
 ### Token Dashboard (`/tokens/[mint]`)
 
-Tabs: Holders | Mint | Distributions | Token Details | Compliance | History
+Tabs: Holders | Mint | Distributions | Reconciliation | Token Details | Compliance | History
+
+**Header actions:** Audit Pack (ZIP export) + Refresh
 
 ### Onboarding investors (Holders tab)
 
@@ -261,6 +265,24 @@ Shows all Token-2022 tokens in the connected wallet with:
 - Name, symbol, balance, frozen/active status
 - Asset-type icon (if metadata has `asset_type`)
 - Click to select → Transfer panel and Redeem button appear
+- Chevron (→) on each row links to `/portfolio/[mint]` for detailed position view
+
+### Holder Detail View (`/portfolio/[mint]`)
+
+**This is the investor's personal dashboard — the complement to the issuer's `/tokens/[mint]`.**
+
+| Section | What it shows |
+|---|---|
+| Position summary | Balance, % of total supply, Active/Frozen status |
+| Yield ticker | Accrual on *my* balance (not total supply) — per-second counter |
+| NAV display | Per-token NAV, total position value |
+| My Distributions | Only distributions where this wallet received tokens — date, memo, amount, tx link |
+| Transfer + Redeem | Send to another approved wallet, or redeem at NAV |
+| Token info | Issuer, total supply, decimals, metadata fields |
+
+**Demo flow:** After distributing tokens as the issuer, switch to an investor wallet → `/portfolio` → click into a token → show personal yield, distribution receipts, and redemption button.
+
+**Key talking point:** "The issuer sees the full cap table and compliance tools. The investor sees only their own position. Same token, same chain — different views based on role."
 
 ### Transfers
 
@@ -288,6 +310,22 @@ Shows all Token-2022 tokens in the connected wallet with:
 ---
 
 ## 8. Compliance Enforcement
+
+### Pre-Trade Compliance Simulator (Compliance tab)
+
+At the top of the Compliance tab — paste any wallet address to get an instant green/red verdict:
+
+| Rule | Check | Verdict |
+|---|---|---|
+| Token paused | `token.extensions.pausable` | BLOCKED — all transfers halted |
+| Account frozen | holder exists + `isFrozen` | BLOCKED — account frozen |
+| Investor not onboarded | no ATA for this wallet | BLOCKED — must be onboarded first |
+| Investor cap reached | `holders.length >= max_holders` metadata | BLOCKED — cap reached |
+| Distribution eligibility | active + non-zero balance | PASS or WARNING |
+
+**Demo flow:** Paste an unapproved wallet → show BLOCKED verdict → onboard them on Holders tab → re-paste → show APPROVED.
+
+**Key talking point:** "This is a simulation of what the Transfer Hook enforces at the protocol level. Even without the hook deployed, we can pre-validate every compliance rule before a transfer is attempted."
 
 ### Compliance tab on token dashboard
 
@@ -385,7 +423,39 @@ On `/portfolio` → select token → "Redeem at NAV":
 
 ---
 
-## 11. Audit Trail & Export
+## 11. Audit Trail, Reconciliation & Export
+
+### Reconciliation Tab (Reconciliation tab on token dashboard)
+
+**This is the #1 feature counterparties care about for fund admin operations.**
+
+1. Upload a CSV of your official investor register (`wallet_address, balance, status`)
+   - Or paste from clipboard (supports tab-separated values)
+2. Instant side-by-side diff against live on-chain state:
+   - Green rows: match
+   - Yellow rows: balance or status mismatch (shows delta)
+   - Red rows: missing on-chain or not in register
+3. Summary bar: "12 matched · 2 balance mismatches · 1 missing on-chain · 1 unregistered"
+4. **Direct action:** "Onboard" button on missing-on-chain rows creates the ATA + thaws in one click
+5. Export diff as CSV for fund admin records
+6. Register persists across page reloads (localStorage per mint)
+
+**Demo flow:** Prepare a sample CSV with 3-5 addresses. Include one that's not yet onboarded. Upload → show the diff → click "Onboard" on the missing row → refresh → show it's now matched.
+
+**Key talking point:** "Fund admins reconcile monthly. This replaces a spreadsheet cross-reference with live on-chain validation. The register is your internal book of record; the blockchain is your public audit trail."
+
+### Audit Pack (ZIP export)
+
+Click the "Audit Pack" button in the token dashboard header:
+- Downloads `Atlas_Audit_Pack_{SYMBOL}_{DATE}.zip`
+- Contents:
+  - `holders.csv` — owner, ATA, balance, % supply, frozen status
+  - `transactions.csv` — up to 500 on-chain transactions with signature, timestamp, type, memo
+  - `distributions.csv` — all distribution records with per-recipient breakdown
+  - `token_metadata.json` — full token configuration snapshot
+  - `README.txt` — token name, mint address, network, export timestamp, disclaimer
+
+**Key talking point:** "One click gives your compliance officer everything they need. On-chain state is the source of truth — this export is a point-in-time snapshot for your files."
 
 ### History tab
 
@@ -494,13 +564,16 @@ One-click download with columns:
 
 ## Quick Reference: Demo Click Path (Abridged 20-min version)
 
-1. **Reset** → KYC pill → "yes"
-2. **Onboard** → "Get started" → fill form → connect wallet → auto-approve
-3. **Seed** → `/explorer` → "Seed 5 demo tokens" → approve 5 times
-4. **Explore** → click CTN-26 → show yield ticker + NAV + metadata
-5. **Manage** → `/tokens` → CTN-26 dashboard → onboard a holder → mint supply
-6. **Distribute** → Distributions tab → pro-rata → 500 tokens → run
-7. **Compliance** → freeze a holder → show rejection → thaw
-8. **Redeem** → `/portfolio` → select token → "Redeem at NAV" → burn → download receipt
-9. **Audit** → History tab → show tx list → export CSV
-10. **Wrap** → cost slide, roadmap, "questions?"
+1. **Reset** → KYC pill → "Reset demo? yes"
+2. **Marketing** → walk five pillars (hover-expand), scroll to proof point + CTA
+3. **Onboard** → "Get started" → fill form → connect wallet → auto-approve
+4. **Seed** → `/explorer` → "Seed 5 demo tokens" → approve 5 times
+5. **Explore** → click CTN-26 → show yield ticker + NAV + metadata
+6. **Manage** → `/tokens` → CTN-26 dashboard → onboard a holder → mint supply
+7. **Distribute** → Distributions tab → pro-rata → 500 tokens → run
+8. **Compliance** → paste wallet in simulator → show BLOCKED → freeze a holder → show rejection → thaw
+9. **Reconcile** → Reconciliation tab → upload sample CSV → show diff → onboard missing → export diff
+10. **Holder view** → `/portfolio/[mint]` → show personal yield + my distributions
+11. **Redeem** → "Redeem at NAV" → burn → download receipt
+12. **Audit** → "Audit Pack" button → download ZIP → show contents
+13. **Wrap** → cost slide, roadmap, "questions?"

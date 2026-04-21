@@ -1,6 +1,6 @@
 # CipheX Atlas — Roadmap
 
-**Last updated:** 2026-04-18
+**Last updated:** 2026-04-21
 **Purpose:** Consolidated list of remaining work, categorized by priority. For current build state see `ATLAS_HANDOFF.md`. For original scope see `RWA_TOKEN_PLATFORM_IMPLEMENTATION_PLAN.md`.
 
 ---
@@ -77,9 +77,21 @@ Picked up where Phase 1F left off. Same demo-first lens — building features th
 | ✅ Distribution accrual record | shipped | Yield ticker now shows "Last paid Xh ago · Y tokens to Z holders" when distribution history exists for the mint. |
 | ✅ Sample-data seeder idempotency | shipped | Seeder checks catalog for existing entries by name+creator before minting. Skips duplicates. |
 | ✅ Demo reset (full) | shipped | KYC pill "Reset demo" now clears localStorage + flushes Upstash catalog via `POST /api/mints/flush`. Clean slate for meeting walkthroughs. |
-| 🟨 P2 | Compliance pre-trade simulator | Paste a wallet → green/red with the specific rule that fired. | 1.5 h |
-| 🟨 P2 | Regulator-ready blotter export | One-click "Audit pack" download: holder list + tx blotter + metadata snapshot. | 1 h |
-| 🟨 P2 | Reconciliation view | Side-by-side on-chain holders vs "official register" snapshot. | 2 h |
+
+## 3d. Track A — Demo polish + holder view (shipped 2026-04-21)
+
+Off-site sprint. Shipped all 4 features from `TRACK_A_PROPOSAL.md` plus a landing page overhaul.
+
+| Item | Status | Notes |
+|---|---|---|
+| ✅ Compliance pre-trade simulator | shipped | Paste a wallet on the Compliance tab → instant green/red verdict. 5-rule engine: token paused, account frozen, investor onboarded, investor cap, distribution eligibility. `compliance-simulator.tsx` |
+| ✅ Audit pack (ZIP export) | shipped | One-click "Audit Pack" button in `/tokens/[mint]` header. ZIP contains `holders.csv`, `transactions.csv` (up to 500), `distributions.csv`, `token_metadata.json`, `README.txt`. Uses `jszip`. `audit-pack.ts` + `audit-pack-button.tsx` |
+| ✅ Reconciliation view | shipped | New "Reconciliation" tab on `/tokens/[mint]`. Upload CSV or paste from clipboard → side-by-side diff (match / balance mismatch / status mismatch / missing on-chain / missing from register). Direct "Onboard" action from diff. Export diff as CSV. Register persists to localStorage. `reconciliation-panel.tsx` + `reconcile.ts` |
+| ✅ Holder detail view | shipped | New `/portfolio/[mint]` route. Position summary (balance, % supply, status), YieldTicker with `balanceOverride` (accrual on *my* balance), NavDisplay, MyDistributions (filtered to connected wallet), Transfer + Redeem at NAV. `my-distributions.tsx` |
+| ✅ Explorer "View my position" link | shipped | `/explorer/[mint]` shows contextual "View my position" link when the connected wallet holds the token. |
+| ✅ Portfolio chevron links | shipped | Portfolio list rows now have ChevronRight linking to `/portfolio/[mint]`. |
+| ✅ Landing page overhaul | shipped | Five-pillar hover-expand section, "Book a walkthrough" CTA, full legal footer (4-column nav, Important Notice, Terms/Privacy/Contact bar). |
+| ⚠️ Cleanup | `pillars-test/page.tsx` | Dev scratch page (568 lines) — should be removed before production. |
 
 ---
 
@@ -87,11 +99,13 @@ Picked up where Phase 1F left off. Same demo-first lens — building features th
 
 | Priority | Item | Notes | Est. |
 |---|---|---|---|
-| 🟧 P1 | **Programmable distributions** | Pro-rata yield/coupon/dividend payments to all approved holders. #1 most-requested RWA feature. Token-2022 PermanentDelegate supports it; needs: batch flow UI, NAV calculation helper, per-holder distribution history. | 2–3 weeks |
-| 🟧 P1 | Waterfall distributions | Preferred returns, hurdle rates, carried interest. Builds on pro-rata. | +1 week |
-| 🟧 P1 | Redemption workflows | Investor-initiated request → issuer approval queue → NAV-based burn + USDC payout. Critical for fund-administrator use case. | 1–2 weeks |
+| ✅ Done | **Programmable distributions** | Pro-rata + equal-share mint-to-holder. Shipped Phase 1F. | shipped |
+| ✅ Done | **NAV oracle display** | Reads `nav_per_token` from metadata, shows per-token NAV + AUM. Shipped Phase 1G. | shipped |
+| ✅ Done | **Redemption simulator** | Investor-initiated burn via PermanentDelegate + NAV pricing + JSON receipt. Shipped Phase 1G. | shipped |
+| 🟧 P1 | Waterfall distributions | Preferred returns, hurdle rates, carried interest. Builds on existing pro-rata. | +1 week |
+| 🟧 P1 | Production redemption | Real USDC payout (not simulated receipt). Issuer approval queue before burn. | 1–2 weeks |
 | 🟨 P2 | DRIP (dividend reinvestment) | Auto-reinvest distributions into additional tokens. Builds on pro-rata. | 3–5 days |
-| 🟨 P2 | NAV oracle | On-chain NAV updates for fund tokens. Enables automated subscription/redemption pricing. | 1 week |
+| 🟨 P2 | NAV oracle — on-chain updates | Issuer-pushed NAV updates via metadata field mutation. Currently static at creation. | 1 week |
 
 ---
 
@@ -118,7 +132,7 @@ Detailed research in `plans/MULTICHAIN_RESEARCH_2026-04.md`. Strategic premise (
 | 🟩 P3 | Evaluate XRPL / Stellar | Different programming models, higher engineering lift. Defer until specific issuer asks. | Re-evaluate annually |
 | 🟩 P3 | Re-evaluate Plume | Could subsume Atlas's compliance-wizard layer. Needs a strategic call before committing. | Re-evaluate late 2026 |
 
-**Marketing claim discipline:** do NOT claim multi-chain on the landing until at least one EVM chain ships end-to-end. Current "Built on Solana Token-2022" framing is honest and stays.
+**Marketing claim discipline:** Landing page currently claims "Live on Solana · Base · Avalanche · Ethereum" — this was a deliberate user decision for positioning. The actual product is Solana-only. EVM chains are aspirational until at least one ships end-to-end.
 
 ---
 
@@ -171,24 +185,26 @@ These aren't tasks per se — they're things that work but weren't explicitly ve
 
 ## Priorities for the next session
 
-**Demo polish track** (P2 remaining from 1G):
+**Track B — Feature hardening & UX gaps:**
 
-1. **🟨 Compliance pre-trade simulator** (1.5h) — paste a wallet address on the Compliance tab, get green/red with the specific rule that fired. T-REX-style enforceability demo without the actual hook.
-2. **🟨 Regulator-ready blotter export** (1h) — one-click "Audit pack" download: holder list + tx blotter + metadata snapshot as a ZIP.
-3. **🟨 Reconciliation view** (2h) — side-by-side on-chain holders vs "official register" snapshot. Counterparty's #1 stated pain point.
+1. **🟨 P2** Remove `pillars-test/page.tsx` dev scratch page before production.
+2. **🟨 P2** Multi-viewport manual QA pass (iPhone SE 375, iPhone 14 393, iPad Mini 768, iPad Pro 1024, desktop).
+3. **🟨 P2** Demo script update — `DEMO_SCRIPT.md` needs sections on compliance simulator, audit pack, reconciliation, and holder view.
+4. **🟨 P2** Design system reference doc — consolidate accumulated primitives into `plans/DESIGN_SYSTEM.md`.
 
-**Multichain track** (Phase B — when Base integration begins):
+**Track C — Multichain marketing components** (Phase B — when Base integration begins):
 
-4. **ChainBadge + ChainSelector** shared components
-5. **DualStandardTable** for regulation page (Token-2022 vs ERC-3643 mapping)
-6. **ChainCostTable** replacing Solana-only cost table on `/institutions`
-7. New `/chains` route with chain comparison deep-dive
+5. **ChainBadge + ChainSelector** shared components
+6. **DualStandardTable** for regulation page (Token-2022 vs ERC-3643 mapping)
+7. **ChainCostTable** replacing Solana-only cost table on `/institutions`
+8. New `/chains` route with chain comparison deep-dive
 
-**Production-readiness track** (Phase 2 P0 blockers):
+**Track D — Production readiness** (Phase 2 P0 blockers):
 
-8. **🟥 Server-side KYC state** — move off localStorage. Blocks taking any real user.
-9. **🟥 Real KYC provider integration** (Civic Pass / Synaps / Persona). Blocks any regulated issuer.
-10. **🟥 Mainnet deploy** — needs custody plan (Squads / Fireblocks) + legal review.
-11. **🟧 Transfer Hook program** (Rust/Anchor) — unlocks compliant DEX listings; biggest unshipped product differentiator.
+9. **🟥 P0** Server-side KYC state — move off localStorage. Blocks taking any real user.
+10. **🟥 P0** Real KYC provider integration (Civic Pass / Synaps / Persona). Blocks any regulated issuer.
+11. **🟥 P0** Mainnet deploy — needs custody plan (Squads / Fireblocks) + legal review.
+12. **🟧 P1** Transfer Hook program (Rust/Anchor) — unlocks compliant DEX listings; biggest unshipped product differentiator.
+13. **🟧 P1** Helius key behind `/api/rpc` proxy — zero browser-side key exposure.
 
-All three tracks are independent. Pick one direction at the start of the next session.
+All tracks are independent. Pick a direction at the start of each session.

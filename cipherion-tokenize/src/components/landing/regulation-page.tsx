@@ -105,6 +105,39 @@ const EXTENSIONS: ExtensionMap[] = [
   },
 ];
 
+const EVM_EXTENSIONS: ExtensionMap[] = [
+  {
+    extension: "ONCHAINID",
+    purpose: "On-chain identity claims",
+    satisfies: "Reg D/S/A+ · MiCA · MAS — verifiable KYC credentials per wallet",
+  },
+  {
+    extension: "Identity Registry",
+    purpose: "Investor whitelist",
+    satisfies: "Holder eligibility · jurisdiction mapping · accreditation verification",
+  },
+  {
+    extension: "Compliance Contract",
+    purpose: "Transfer rules engine",
+    satisfies: "Country restrictions · investor caps · max balance enforcement",
+  },
+  {
+    extension: "Freeze / Pause",
+    purpose: "Account + token-level holds",
+    satisfies: "Court orders · regulatory holds · sanctions enforcement · VARA directives",
+  },
+  {
+    extension: "Recovery (Agent)",
+    purpose: "Forced transfer / seizure",
+    satisfies: "Estate settlement · sanctions recovery · court-ordered transfer",
+  },
+  {
+    extension: "Claim Topics",
+    purpose: "Structured identity data",
+    satisfies: "Accredited investor status · jurisdiction · KYC expiry · regulatory framework",
+  },
+];
+
 export function RegulationPage() {
   return (
     <div className="bg-[#0a0e13] text-[#f0f6fc] -mt-px min-h-screen">
@@ -200,10 +233,10 @@ export function RegulationPage() {
       {/* ─── Extension mapping ─── */}
       <section className="mx-auto max-w-[1280px] px-5 md:px-8 py-14 md:py-20 border-t border-[#21262d]">
         <div className="mb-4 md:mb-5 font-mono text-[10px] md:text-[11px] font-medium uppercase tracking-[0.14em] text-[#3fb950]">
-          / Solana: primitive → requirement
+          / Solana · Token-2022
         </div>
         <h2 className="m-0 mb-8 md:mb-10 max-w-[820px] text-[26px] md:text-[30px] xl:text-[36px] font-semibold leading-[1.1] tracking-[-0.03em]">
-          Which Token-2022 extension satisfies which rule.
+          Which protocol primitive satisfies which rule.
         </h2>
 
         {/* Desktop / tablet: 3-column table */}
@@ -232,6 +265,58 @@ export function RegulationPage() {
         {/* Mobile: cards */}
         <div className="md:hidden space-y-3">
           {EXTENSIONS.map((e) => (
+            <div
+              key={e.extension}
+              className="rounded-lg border border-[#21262d] bg-[#0d1117] p-4"
+            >
+              <div className="font-mono text-[12px] text-[#c9d1d9] mb-2 break-all">
+                {e.extension}
+              </div>
+              <div className="text-[14px] font-medium text-[#f0f6fc] mb-2">
+                {e.purpose}
+              </div>
+              <div className="font-mono text-[9px] uppercase tracking-[0.1em] text-[#6e7681] mb-1">
+                Satisfies
+              </div>
+              <div className="text-[12px] text-[#8b949e]">{e.satisfies}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ─── EVM mapping ─── */}
+      <section className="mx-auto max-w-[1280px] px-5 md:px-8 py-14 md:py-20 border-t border-[#21262d]">
+        <div className="mb-4 md:mb-5 font-mono text-[10px] md:text-[11px] font-medium uppercase tracking-[0.14em] text-[#58a6ff]">
+          / EVM · ERC-3643 (T-REX)
+        </div>
+        <h2 className="m-0 mb-8 md:mb-10 max-w-[820px] text-[26px] md:text-[30px] xl:text-[36px] font-semibold leading-[1.1] tracking-[-0.03em]">
+          The same rules, enforced on Base, Ethereum & Polygon.
+        </h2>
+
+        <div className="hidden md:block overflow-hidden rounded-xl border border-[#21262d]">
+          <div className="grid grid-cols-[1.3fr_1fr_2fr] bg-[#0d1117] border-b border-[#21262d] text-[10px] uppercase tracking-[0.12em] font-mono text-[#6e7681]">
+            <ThCell>ERC-3643 Mechanism</ThCell>
+            <ThCell>Purpose</ThCell>
+            <ThCell>Satisfies</ThCell>
+          </div>
+          {EVM_EXTENSIONS.map((e, i) => (
+            <div
+              key={e.extension}
+              className={`grid grid-cols-[1.3fr_1fr_2fr] bg-[#0a0e13] text-[13px] ${i < EVM_EXTENSIONS.length - 1 ? "border-b border-[#21262d]" : ""}`}
+            >
+              <div className="px-5 py-4 font-mono text-[#c9d1d9]">
+                {e.extension}
+              </div>
+              <div className="px-5 py-4 text-[#f0f6fc]">{e.purpose}</div>
+              <div className="px-5 py-4 text-[#8b949e] text-[12px]">
+                {e.satisfies}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="md:hidden space-y-3">
+          {EVM_EXTENSIONS.map((e) => (
             <div
               key={e.extension}
               className="rounded-lg border border-[#21262d] bg-[#0d1117] p-4"

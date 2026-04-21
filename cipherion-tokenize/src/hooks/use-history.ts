@@ -15,7 +15,7 @@ import { TokenServiceError, type TransactionInfo } from "@/lib/solana/types";
  * MAINNET UPGRADE: With a paid RPC (Helius $49/mo), auto-fetch on mount is fine.
  * Or use Helius webhooks to persist events to a DB and query locally.
  */
-export function useHistory(mintAddress: string | null) {
+export function useHistory(mintAddress: string | null, walletAddress?: string | null) {
   const [data, setData] = useState<TransactionInfo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<TokenServiceError | null>(null);
@@ -33,8 +33,8 @@ export function useHistory(mintAddress: string | null) {
 
     try {
       const mint = new PublicKey(mintAddress);
-      // Fetch fewer transactions to reduce RPC pressure
-      const txs = await getTokenTransactions(mint, { limit: 10 });
+      const ownerWallet = walletAddress ? new PublicKey(walletAddress) : undefined;
+      const txs = await getTokenTransactions(mint, { limit: 10, ownerWallet });
       setData(txs);
       setHasMore(txs.length === 10);
       setLoaded(true);
@@ -52,7 +52,7 @@ export function useHistory(mintAddress: string | null) {
     } finally {
       setIsLoading(false);
     }
-  }, [mintAddress]);
+  }, [mintAddress, walletAddress]);
 
   const loadMore = useCallback(async () => {
     if (!mintAddress || data.length === 0 || !hasMore) return;
@@ -61,9 +61,11 @@ export function useHistory(mintAddress: string | null) {
     try {
       const mint = new PublicKey(mintAddress);
       const lastSig = data[data.length - 1].signature;
+      const ownerWallet = walletAddress ? new PublicKey(walletAddress) : undefined;
       const txs = await getTokenTransactions(mint, {
         before: lastSig,
         limit: 10,
+        ownerWallet,
       });
       setData((prev) => [...prev, ...txs]);
       setHasMore(txs.length === 10);
@@ -72,7 +74,7 @@ export function useHistory(mintAddress: string | null) {
     } finally {
       setIsLoading(false);
     }
-  }, [mintAddress, data, hasMore]);
+  }, [mintAddress, walletAddress, data, hasMore]);
 
   return { data, isLoading, error, hasMore, loadMore, refetch, loaded };
 }

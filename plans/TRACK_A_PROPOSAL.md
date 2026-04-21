@@ -1,7 +1,8 @@
-# Track A — Demo Polish + Holder View
+# Track A — Demo Polish + Holder View ✅ SHIPPED 2026-04-21
 
 **Scope:** 4 features that strengthen both sides of a 30-minute institutional walkthrough.  
 **Estimated total:** ~8 hours  
+**Status:** All 4 features shipped in off-site overnight sprint (commits `8d4c0b7` + `232c5a7`). +2,908 lines across 20 files.  
 **Depends on:** Nothing — all features build on the current shipped state (Phase 1G).
 
 ---

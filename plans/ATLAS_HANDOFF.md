@@ -1,6 +1,6 @@
 # CipheX Atlas — Agent Handoff Document
 
-**Last updated:** 2026-04-20 (end of Phase 1G)
+**Last updated:** 2026-04-21 (end of Track A)
 **Purpose:** Complete context for a new coding agent to continue development. Copy-paste this into a new conversation.
 
 ---
@@ -22,7 +22,7 @@ The product is a dashboard for authenticated users, sitting behind a public mark
 ### Public (no wallet, no KYC)
 | Route | Purpose |
 |---|---|
-| `/` | Marketing landing — hero, 4 pillars, pull quote, issuer market grid |
+| `/` | Marketing landing — hero, five-pillar spotlight, proof-point quote, issuer market grid, "Book a walkthrough" CTA, full legal footer |
 | `/institutions` | Institutional pitch — differentiators, cost-at-scale table, CTA |
 | `/regulation` | Regulatory mapping — 5-jurisdiction framework table, extension → requirement map, audit posture |
 | `/faq` | Split-persona FAQ — Issuers / Investors / Compliance / Technical, accordion + CTA sidebar |
@@ -39,8 +39,9 @@ The product is a dashboard for authenticated users, sitting behind a public mark
 |---|---|
 | `/create` | Token creation wizard (5 steps) |
 | `/tokens` | Issuer's token list |
-| `/tokens/[mint]` | Token dashboard — Holders, Mint, **Distributions**, Details, Compliance, History |
-| `/portfolio` | Investor holdings + transfer |
+| `/tokens/[mint]` | Token dashboard — Holders, Mint, **Distributions**, **Reconciliation**, Details, Compliance, History. Audit Pack export button in header. |
+| `/portfolio` | Investor holdings + transfer + redemption |
+| `/portfolio/[mint]` | Holder detail view — position summary, yield on *my* balance, NAV, my distributions, transfer + redeem |
 
 ### API
 | Route | Purpose |
@@ -74,13 +75,15 @@ abacus-trading-view/                           # Parent repo
 │   │   │   ├── tokens/page.tsx
 │   │   │   ├── tokens/[mint]/page.tsx
 │   │   │   ├── portfolio/page.tsx
+│   │   │   ├── portfolio/[mint]/page.tsx
 │   │   │   ├── explorer/page.tsx
 │   │   │   ├── explorer/[mint]/page.tsx
 │   │   │   └── api/
 │   │   │       ├── ipfs/upload/route.ts
 │   │   │       ├── ipfs/status/route.ts
 │   │   │       ├── mints/register/route.ts
-│   │   │       └── mints/list/route.ts
+│   │   │       ├── mints/list/route.ts
+│   │   │       └── mints/flush/route.ts
 │   │   ├── components/
 │   │   │   ├── auth/                          # RequireKyc guard, KycPill
 │   │   │   ├── landing/                       # LandingPage, InstitutionsPage,
@@ -89,17 +92,20 @@ abacus-trading-view/                           # Parent repo
 │   │   │   ├── signup/                        # SignupFlow (3-step wizard)
 │   │   │   ├── wallet/                        # Wallet provider + connect button
 │   │   │   ├── token/                         # Create wizard, mint form, stats,
-│   │   │   │                                  # card, YieldTicker
+│   │   │   │                                  # card, YieldTicker, NavDisplay
 │   │   │   ├── distribution/                  # DistributionForm, DistributionHistory
 │   │   │   ├── explorer/                      # SeedDemoButton (admin)
 │   │   │   ├── holders/                       # Cap table, onboard form
 │   │   │   ├── transfer/                      # Transfer form + fee preview
-│   │   │   ├── compliance/                    # Freeze/thaw/pause/burn panel
+│   │   │   ├── compliance/                    # Freeze/thaw/pause/burn panel,
+│   │   │   │                                  # ComplianceSimulator
+│   │   │   ├── reconciliation/                # ReconciliationPanel (CSV diff)
+│   │   │   ├── portfolio/                     # RedemptionDialog, MyDistributions
 │   │   │   ├── history/                       # Transaction list + CSV export
 │   │   │   ├── shared/                        # AtlasLogo, AtlasWordmark, PageHeader,
 │   │   │   │                                  # TokenAvatar, AppShell, AppHeader,
-│   │   │   │                                  # AddressDisplay, ExplorerLink,
-│   │   │   │                                  # NetworkBadge, etc.
+│   │   │   │                                  # AuditPackButton, AddressDisplay,
+│   │   │   │                                  # ExplorerLink, NetworkBadge, etc.
 │   │   │   └── ui/                            # shadcn/ui primitives
 │   │   ├── hooks/                             # use-kyc-status, use-send-transaction,
 │   │   │                                      # use-token-*, use-transfer-fee,
@@ -121,7 +127,8 @@ abacus-trading-view/                           # Parent repo
 │   │   │   ├── kyc.ts                         # localStorage KYC state (client-only)
 │   │   │   ├── distributions.ts               # localStorage distribution history per mint
 │   │   │   ├── demo-seeds.ts                  # 5 sample tokens for /explorer seeder
-│   │   │   └── utils/                         # Format, validation, CSV, transfer-fee
+│   │   │   └── utils/                         # Format, validation, CSV, transfer-fee,
+│   │   │                                      # audit-pack (ZIP), reconcile (diff engine)
 │   │   ├── config/
 │   │   │   └── asset-templates.ts             # 6 RWA asset type templates
 │   │   └── types/
@@ -235,7 +242,8 @@ All Phase 1A through 1C milestones complete. `npm run build` + `npx tsc --noEmit
 | **1E** | Mobile/tablet responsive — marketing nav drawer, app header drawer, responsive type sweep, table stacking, tabs overflow scroll, meta stats redesign, iOS zoom prevention, touch targets | Complete |
 | **1F** | Demo polish — yield ticker (per-second accrual, BENJI-style), TokenAvatar (asset-type icons), sample data seeder (5 realistic tokens), Distributions tab (mint-to-holder pro-rata + equal-share, BUIDL mechanic) | Complete |
 | **1G** | Demo refinements — `/tokens` migrated to Upstash KV, atomic redemption simulator (burn at NAV + receipt), NAV oracle display, distribution accrual record on yield ticker, seeder idempotency, full demo reset (localStorage + Upstash flush) | Complete |
-| **2** | Compliance pre-trade simulator, regulator blotter export, multichain components (Phase B), Transfer Hook (Rust/Anchor), real KYC provider, mainnet | Not started — see `ROADMAP.md` |
+| **Track A** | Demo polish + holder view — compliance pre-trade simulator (5-rule engine), audit pack ZIP export (jszip), reconciliation panel (CSV diff + onboard from diff), holder detail `/portfolio/[mint]` (personal yield, my distributions, transfer/redeem), landing page overhaul (five pillars, CTA, legal footer) | Complete |
+| **2** | Multichain components (Phase B), Transfer Hook (Rust/Anchor), real KYC provider, server-side KYC, mainnet | Not started — see `ROADMAP.md` |
 
 ### Phase 1A milestone detail
 
@@ -311,7 +319,7 @@ On the token dashboard, the **Distributions** tab handles all yield/coupon/initi
 `<YieldTicker>` renders at the top of `/tokens/[mint]` and `/explorer/[mint]` when the token's metadata has any of: `coupon_rate`, `annual_yield`, `yield`, `apy`. Pure client-side computation: `supply × rate / (365 × 86400)` per second, ticking up. Resets at 00:00 UTC. Replicates Franklin BENJI's 2025 per-second accrual differentiator — research showed this is the single feature institutional buyers most consistently call out as a "lean forward" demo moment.
 
 ### Sample data seeder (Phase 1F)
-`<SeedDemoButton>` lives in `/explorer` PageHeader actions slot. Eligible only on devnet + connected + KYC approved. Creates 5 realistic tokens (Treasury Note, REIT, private credit, gold, tech index) defined in `lib/demo-seeds.ts`, each with proper metadata including `coupon_rate` so the yield ticker fires. Real on-chain creation via `createRwaToken`, auto-registered in catalog via `useRegisterMint`. **Not idempotent** — running twice creates duplicates. Acceptable for demo workflow; would need a name-based dedupe check before production use.
+`<SeedDemoButton>` lives in `/explorer` PageHeader actions slot. Eligible only on devnet + connected + KYC approved. Creates 5 realistic tokens (Treasury Note, REIT, private credit, gold, tech index) defined in `lib/demo-seeds.ts`, each with proper metadata including `coupon_rate` so the yield ticker fires. Real on-chain creation via `createRwaToken`, auto-registered in catalog via `useRegisterMint`. **Idempotent** — checks existing catalog entries by name+creator before minting, skips duplicates.
 
 ### Mint registration
 On successful token creation, `use-register-mint.ts` POSTs to `/api/mints/register` with `{ mint, creator, assetType, imageUri, description }`. The server route:
@@ -322,6 +330,18 @@ On successful token creation, `use-register-mint.ts` POSTs to `/api/mints/regist
 5. Pulls `name` + `symbol` from on-chain metadata (not trusting client-supplied values)
 6. Writes entry to Upstash: ZSET `atlas:mints:sorted` scored by `createdAt`, JSON blob at `atlas:mint:<address>`
 Failure is non-fatal — the mint is on-chain regardless; `/explorer` just won't list it. Logs to console.
+
+### Compliance pre-trade simulator (Track A)
+`<ComplianceSimulator>` renders at the top of the Compliance tab. Input: wallet address. Output: green/red verdict banner + per-rule breakdown. Rules: token paused, account frozen, investor onboarded (has ATA), investor cap (reads `max_holders`/`investor_cap` from metadata), distribution eligibility. Pure client-side — no RPC calls, just reads holder + token state already fetched.
+
+### Audit pack (Track A)
+`<AuditPackButton>` in the `/tokens/[mint]` header. Downloads `Atlas_Audit_Pack_{SYMBOL}_{DATE}.zip` via `jszip`. Contents: `holders.csv`, `transactions.csv` (paginated up to 500 via `fetchAllTransactions`), `distributions.csv` (per-recipient detail from localStorage), `token_metadata.json` (full snapshot), `README.txt` (with disclaimer). Transactions cap: `TX_CAP = 500`, `MAX_TX_PAGES = 50`.
+
+### Reconciliation (Track A)
+`<ReconciliationPanel>` as a tab on `/tokens/[mint]`. Upload a CSV (`wallet_address, balance, status`) or paste from clipboard. `reconcile()` in `lib/utils/reconcile.ts` is a pure function: takes on-chain `HolderInfo[]` + `RegisterEntry[]`, returns `DiffRow[]` with types: match, balance_mismatch, status_mismatch, both_mismatch, missing_onchain, missing_register. Register persists to `localStorage["ciphex-atlas-register-<mint>"]`. Missing-on-chain rows have an "Onboard" action that creates ATA + thaws. Export diff as CSV.
+
+### Holder detail view (Track A)
+`/portfolio/[mint]` — investor-facing position detail. Key differences from `/tokens/[mint]`: no cap table, no compliance actions, no reconciliation. Shows personal yield via `YieldTicker` with `balanceOverride={holding.balance}` (accrual on holder's balance, not total supply). `<MyDistributions>` filters `loadDistributions(mint)` to show only records where the connected wallet was a recipient.
 
 ### Error handling contract
 ```
@@ -381,3 +401,6 @@ KV_REST_API_TOKEN=<from Vercel Upstash integration>
 | `plans/RWA_TOKEN_PLATFORM_ADDENDUM.md` | Cost forecasts, competitive landscape, wallet compat |
 | `plans/RWA_TOKEN_PLATFORM_IMPLEMENTATION_PLAN.md` | Milestone source of truth, shortcuts table |
 | `plans/RWA_COUNTERPARTY_FAQ.md` | 40+ Q&A for stakeholder conversations, content writers |
+| `plans/TRACK_A_PROPOSAL.md` | Track A spec — compliance simulator, audit pack, reconciliation, holder view |
+| `plans/DEMO_SCRIPT.md` | Comprehensive 30-45 minute meeting guide with 14 sections |
+| `plans/MULTICHAIN_RESEARCH_2026-04.md` | Multi-chain expansion research (Base, Polygon, Avalanche, ERC-3643) |

@@ -13,7 +13,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     "/institutions",
     "/regulation",
     "/signup",
-    "/pillars-test",
   ]);
   const hideAppChrome = MARKETING_ROUTES.has(pathname);
 

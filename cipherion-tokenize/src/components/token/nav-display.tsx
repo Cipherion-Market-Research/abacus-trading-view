@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { ShieldCheck } from "lucide-react";
+import { NavUpdateForm } from "@/components/token/nav-update-form";
 import type { TokenMetadataField } from "@/types/token";
 
 interface NavDisplayProps {
@@ -9,6 +10,9 @@ interface NavDisplayProps {
   symbol: string;
   supply: bigint;
   decimals: number;
+  mintAddress?: string;
+  isIssuer?: boolean;
+  onNavUpdated?: () => void;
 }
 
 const NAV_KEYS = ["nav_per_token", "nav", "net_asset_value", "nav_per_share"];
@@ -36,7 +40,7 @@ function parseNavDate(metadata: TokenMetadataField[]): string | null {
   return null;
 }
 
-export function NavDisplay({ metadata, symbol, supply, decimals }: NavDisplayProps) {
+export function NavDisplay({ metadata, symbol, supply, decimals, mintAddress, isIssuer, onNavUpdated }: NavDisplayProps) {
   const nav = useMemo(() => parseNav(metadata), [metadata]);
   const navDate = useMemo(() => parseNavDate(metadata), [metadata]);
 
@@ -77,11 +81,21 @@ export function NavDisplay({ metadata, symbol, supply, decimals }: NavDisplayPro
               }
             </span>
           </div>
-          <div className="inline-flex items-center gap-1.5">
-            <span className="size-1.5 rounded-full bg-[#58a6ff]" />
-            <span className="font-mono text-[10px] text-[#8b949e]">
-              {navDate ? `Updated ${navDate}` : "Issuer-attested"}
-            </span>
+          <div className="flex items-center gap-2">
+            <div className="inline-flex items-center gap-1.5">
+              <span className="size-1.5 rounded-full bg-[#58a6ff]" />
+              <span className="font-mono text-[10px] text-[#8b949e]">
+                {navDate ? `Updated ${navDate}` : "Issuer-attested"}
+              </span>
+            </div>
+            {isIssuer && mintAddress && onNavUpdated && (
+              <NavUpdateForm
+                mintAddress={mintAddress}
+                currentNav={nav.value}
+                navKey={nav.key}
+                onSuccess={onNavUpdated}
+              />
+            )}
           </div>
         </div>
       </div>

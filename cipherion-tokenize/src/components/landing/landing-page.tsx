@@ -120,9 +120,9 @@ export function LandingPage() {
       <section className="mx-auto max-w-[1280px] px-5 md:px-8 py-16 md:py-24 text-center border-t border-b border-[#21262d]">
         <p className="m-0 mx-auto mb-6 md:mb-8 max-w-[860px] text-[22px] md:text-[26px] xl:text-[32px] font-normal leading-[1.3] tracking-[-0.015em] text-[#f0f6fc]">
           Traditional transfer-agent fees for a 10,000-investor fund exceed{" "}
-          <span className="text-[#f85149]">$500,000 per year</span>.{" "} 
+          <span className="text-[#f85149]">$500,000 per year.</span>{" "} 
           Atlas:{" "}
-          <span className="text-[#3fb950]">a fraction of that</span>.
+          <span className="text-[#3fb950]">a fraction of that.</span>
         </p>
         <Link
           href="/institutions"

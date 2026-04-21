@@ -1,4 +1,5 @@
 import { PublicKey } from "@solana/web3.js";
+import { TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { getConnection } from "./connection";
 import { TokenServiceError, type TransactionInfo } from "./types";
 
@@ -20,14 +21,18 @@ import { TokenServiceError, type TransactionInfo } from "./types";
  */
 export async function getTokenTransactions(
   mint: PublicKey,
-  options?: { before?: string; limit?: number }
+  options?: { before?: string; limit?: number; ownerWallet?: PublicKey }
 ): Promise<TransactionInfo[]> {
   const connection = getConnection();
   const limit = options?.limit ?? 20;
 
+  const queryAddress = options?.ownerWallet
+    ? getAssociatedTokenAddressSync(mint, options.ownerWallet, false, TOKEN_2022_PROGRAM_ID)
+    : mint;
+
   try {
     const signatures = await connection.getSignaturesForAddress(
-      mint,
+      queryAddress,
       { before: options?.before, limit },
       "confirmed"
     );
