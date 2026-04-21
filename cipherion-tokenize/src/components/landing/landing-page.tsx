@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
@@ -94,11 +95,11 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ─── Four pillars ─── */}
+      {/* ─── Five pillars ─── */}
       <section className="mx-auto max-w-[1280px] px-5 md:px-8 py-16 md:py-24 grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-10 md:gap-[72px]">
         <div>
           <div className="mb-4 md:mb-5 font-mono text-[10px] md:text-[11px] font-medium uppercase tracking-[0.14em] text-[#3fb950]">
-            / four pillars
+            / five pillars
           </div>
           <h2 className="m-0 mb-5 md:mb-6 text-[28px] md:text-[32px] xl:text-[40px] font-semibold leading-[1.05] tracking-[-0.03em]">
             Issuance that{" "}
@@ -112,50 +113,7 @@ export function LandingPage() {
           </p>
         </div>
 
-        <div className="border-b border-[#21262d]">
-          <Pillar
-            num="01"
-            title="Compliance as a token primitive"
-            tag="Reg D / S / A+"
-          >
-            Freeze, thaw, delegate, and transfer hooks — <Verb>enforced</Verb>{" "}
-            by the protocol, not bolted-on contracts.
-          </Pillar>
-          <Pillar
-            num="02"
-            title="Institutional custody, preserved"
-            tag="Fireblocks · Squads · Safe"
-          >
-            Multisig and MPC custody <Verb>supported</Verb> out of the box.
-            Authority rotation is a first-class flow.
-          </Pillar>
-          <Pillar
-            num="03"
-            title="Wallet-visible investor protections"
-            tag="Phantom · Ledger · MetaMask"
-          >
-            Every powerful authority surfaces a warning in the holder&apos;s
-            wallet. No hidden controls — protection is <Verb>disclosed</Verb>{" "}
-            by default.
-          </Pillar>
-          <Pillar
-            num="04"
-            title="Secondary-market ready"
-            tag="Securitize · tZERO"
-          >
-            Transfer Hooks <Verb>whitelist</Verb> compliant DEX pools.
-            Permissionless venues simply reject the token — by design.
-          </Pillar>
-          <Pillar
-            num="05"
-            title="Native yield distributions"
-            tag="pro-rata · equal-share"
-          >
-            Coupon payments, NAV distributions, and fund income{" "}
-            <Verb>executed</Verb> on-chain — one confirmation, every holder,
-            every chain. Not a fund admin service call.
-          </Pillar>
-        </div>
+        <SpotlightPillars />
       </section>
 
       {/* ─── Proof point ─── */}
@@ -206,6 +164,41 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* ─── CTA — Book a walkthrough ─── */}
+      <section className="border-t border-[#21262d]">
+        <div className="mx-auto max-w-[1280px] px-5 md:px-8 py-20 md:py-28">
+          <div className="mx-auto max-w-[760px] text-center">
+            <div className="mb-5 md:mb-6 font-mono text-[10px] md:text-[11px] font-medium uppercase tracking-[0.14em] text-[#3fb950]">
+              / get started
+            </div>
+            <h2 className="m-0 mb-5 md:mb-6 text-[28px] md:text-[36px] xl:text-[48px] font-semibold leading-[1.05] tracking-[-0.03em]">
+              Ready to tokenize your{" "}
+              <span className="text-[#3fb950]">first asset</span>?
+            </h2>
+            <p className="m-0 mb-8 md:mb-10 mx-auto max-w-[540px] text-[15px] md:text-[17px] leading-[1.55] text-[#8b949e]">
+              Book a 30-minute walkthrough with our team. We&apos;ll map your
+              fund structure to the protocol and show you a live issuance
+              on testnet.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+              <button
+                onClick={handlePrimaryCta}
+                className="rounded-full bg-[#f0f6fc] hover:bg-white text-[#0a0e13] text-[14px] font-medium px-8 py-[14px] transition-colors w-full sm:w-auto"
+              >
+                {primaryCtaLabel}
+              </button>
+              <Link
+                href="/institutions"
+                className="inline-flex items-center justify-center gap-2 text-[#c9d1d9] hover:text-[#f0f6fc] text-[13px] font-medium px-1 py-[14px] border-b border-[#30363d] hover:border-[#f0f6fc] transition-colors"
+              >
+                Learn more for institutions
+                <ArrowRight className="size-3.5" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <MarketingFooter />
     </div>
   );
@@ -242,33 +235,103 @@ function MetaStat({
   );
 }
 
-function Pillar({
-  num,
-  title,
-  tag,
-  children,
-}: {
-  num: string;
-  title: string;
-  tag: string;
-  children: React.ReactNode;
-}) {
+const PILLAR_DATA = [
+  {
+    num: "01",
+    title: "Compliance as a token primitive",
+    tag: "Reg D / S / A+",
+    body: "Freeze, thaw, delegate, and transfer hooks — ",
+    verb: "enforced",
+    tail: " by the protocol, not bolted-on contracts.",
+  },
+  {
+    num: "02",
+    title: "Institutional custody, preserved",
+    tag: "Fireblocks · Squads · Safe",
+    body: "Multisig and MPC custody ",
+    verb: "supported",
+    tail: " out of the box. Authority rotation is a first-class flow.",
+  },
+  {
+    num: "03",
+    title: "Wallet-visible investor protections",
+    tag: "Phantom · Ledger · MetaMask",
+    body: "Every powerful authority surfaces a warning in the holder’s wallet. No hidden controls — protection is ",
+    verb: "disclosed",
+    tail: " by default.",
+  },
+  {
+    num: "04",
+    title: "Secondary-market ready",
+    tag: "Securitize · tZERO",
+    body: "Transfer Hooks ",
+    verb: "whitelist",
+    tail: " compliant DEX pools. Permissionless venues simply reject the token — by design.",
+  },
+  {
+    num: "05",
+    title: "Native yield distributions",
+    tag: "pro-rata · equal-share",
+    body: "Coupon payments, NAV distributions, and fund income ",
+    verb: "executed",
+    tail: " on-chain — one confirmation, every holder, every chain. Not a fund admin service call.",
+  },
+] as const;
+
+function SpotlightPillars() {
+  const [hovered, setHovered] = useState<number | null>(null);
+
   return (
-    <div className="flex flex-col md:grid md:grid-cols-[56px_1fr_auto] md:gap-6 md:items-start py-6 md:py-7 border-t border-[#21262d]">
-      <div className="mb-3 md:mb-0 text-[24px] md:text-[28px] font-mono font-semibold text-[#3fb950] leading-none tracking-[-0.02em]">
-        {num}
-      </div>
-      <div>
-        <h3 className="m-0 mb-2 text-[17px] md:text-[20px] font-semibold tracking-[-0.01em] text-[#f0f6fc]">
-          {title}
-        </h3>
-        <p className="m-0 max-w-[520px] text-[13px] md:text-[14px] leading-[1.6] text-[#8b949e]">
-          {children}
-        </p>
-      </div>
-      <div className="mt-3 md:mt-0 font-mono text-[10px] font-medium uppercase tracking-[0.1em] text-[#6e7681] md:whitespace-nowrap">
-        {tag}
-      </div>
+    <div className="border-b border-[#21262d]">
+      {PILLAR_DATA.map((p, i) => {
+        const isActive = hovered === i;
+        const isDimmed = hovered !== null && hovered !== i;
+
+        return (
+          <div
+            key={p.num}
+            onMouseEnter={() => setHovered(i)}
+            onMouseLeave={() => setHovered(null)}
+            className="border-t border-[#21262d] cursor-default transition-all duration-300"
+            style={{
+              opacity: isDimmed ? 0.35 : 1,
+              transform: isActive ? "scale(1.015)" : "scale(1)",
+              transformOrigin: "left center",
+            }}
+          >
+            <div className="flex items-start gap-4 md:gap-6 py-4 md:py-5">
+              <div className="text-[24px] md:text-[28px] font-mono font-semibold text-[#3fb950] leading-none tracking-[-0.02em] w-[56px] shrink-0 pt-0.5">
+                {p.num}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="m-0 text-[17px] md:text-[20px] font-semibold tracking-[-0.01em] text-[#f0f6fc]">
+                  {p.title}
+                </h3>
+                <div
+                  className="overflow-hidden transition-all duration-300 ease-out"
+                  style={{
+                    maxHeight: isActive ? "80px" : "0px",
+                    opacity: isActive ? 1 : 0,
+                    marginTop: isActive ? "8px" : "0px",
+                  }}
+                >
+                  <p className="m-0 max-w-[520px] text-[13px] md:text-[14px] leading-[1.6] text-[#8b949e]">
+                    {p.body}
+                    <Verb>{p.verb}</Verb>
+                    {p.tail}
+                  </p>
+                </div>
+              </div>
+              <div
+                className="font-mono text-[10px] font-medium uppercase tracking-[0.1em] whitespace-nowrap hidden md:block pt-1.5 transition-colors duration-300"
+                style={{ color: isActive ? "#3fb950" : "#6e7681" }}
+              >
+                {p.tag}
+              </div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

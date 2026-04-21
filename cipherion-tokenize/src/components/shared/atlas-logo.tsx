@@ -8,8 +8,7 @@ interface AtlasLogoProps {
 export function AtlasLogo({ size = 24, className }: AtlasLogoProps) {
   return (
     <svg
-      width={size}
-      height={size}
+      {...(className ? {} : { width: size, height: size })}
       viewBox="4 4 48 48"
       fill="none"
       className={className}
