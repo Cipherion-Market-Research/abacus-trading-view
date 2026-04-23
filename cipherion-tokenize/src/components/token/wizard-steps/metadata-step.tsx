@@ -68,7 +68,10 @@ export function MetadataStep({ data, assetType, onChange }: Props) {
     onChange({ ...data, fields: newFields });
   };
 
+  const MAX_FIELDS = 20;
+
   const addField = () => {
+    if (data.fields.length >= MAX_FIELDS) return;
     onChange({ ...data, fields: [...data.fields, { key: "", value: "" }] });
   };
 
@@ -101,6 +104,7 @@ export function MetadataStep({ data, assetType, onChange }: Props) {
               onChange({ ...data, jurisdiction: e.target.value })
             }
             placeholder="e.g. US, CA, EU"
+            maxLength={32}
             className="border-[#30363d] bg-[#0d1117] text-[#f0f6fc] placeholder:text-[#484f58]"
           />
         </div>
@@ -138,6 +142,7 @@ export function MetadataStep({ data, assetType, onChange }: Props) {
               onChange({ ...data, externalUri: e.target.value })
             }
             placeholder="https:// or ipfs:// — link to prospectus or legal docs"
+            maxLength={200}
             className="border-[#30363d] bg-[#0d1117] text-[#f0f6fc] placeholder:text-[#484f58]"
           />
         </div>
@@ -152,10 +157,11 @@ export function MetadataStep({ data, assetType, onChange }: Props) {
             variant="ghost"
             size="sm"
             onClick={addField}
-            className="gap-1 text-xs text-[#58a6ff] hover:text-[#58a6ff] hover:bg-[rgba(88,166,255,0.1)]"
+            disabled={data.fields.length >= MAX_FIELDS}
+            className="gap-1 text-xs text-[#58a6ff] hover:text-[#58a6ff] hover:bg-[rgba(88,166,255,0.1)] disabled:opacity-40"
           >
             <Plus className="size-3" />
-            Add Field
+            Add Field ({data.fields.length}/{MAX_FIELDS})
           </Button>
         </div>
         <div className="space-y-2">
@@ -165,12 +171,14 @@ export function MetadataStep({ data, assetType, onChange }: Props) {
                 value={field.key}
                 onChange={(e) => updateFieldKey(i, e.target.value)}
                 placeholder="Key"
+                maxLength={32}
                 className="flex-1 border-[#30363d] bg-[#0d1117] text-[#f0f6fc] font-mono text-xs placeholder:text-[#484f58]"
               />
               <Input
                 value={field.value}
                 onChange={(e) => updateFieldValue(i, e.target.value)}
                 placeholder="Value"
+                maxLength={128}
                 className="flex-1 border-[#30363d] bg-[#0d1117] text-[#f0f6fc] text-xs placeholder:text-[#484f58]"
               />
               <Button

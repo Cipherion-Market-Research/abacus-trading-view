@@ -100,8 +100,12 @@ export function BasicInfoStep({ data, onChange }: Props) {
             value={data.name}
             onChange={(e) => update("name", e.target.value)}
             placeholder="e.g. CipheX Treasury Fund A"
+            maxLength={32}
             className="border-[#30363d] bg-[#0d1117] text-[#f0f6fc] placeholder:text-[#484f58]"
           />
+          <p className="mt-1 text-[10px] text-[#8b949e]">
+            {data.name.length}/32
+          </p>
         </div>
 
         <div>
@@ -157,8 +161,12 @@ export function BasicInfoStep({ data, onChange }: Props) {
             onChange={(e) => update("description", e.target.value)}
             placeholder="Brief description of the underlying asset"
             rows={3}
+            maxLength={200}
             className="w-full rounded-md border border-[#30363d] bg-[#0d1117] px-3 py-2 text-sm text-[#f0f6fc] placeholder:text-[#484f58] focus:outline-none focus:ring-2 focus:ring-[#238636]/50 focus:border-[#238636]"
           />
+          <p className="mt-1 text-[10px] text-[#8b949e]">
+            {data.description.length}/200
+          </p>
         </div>
       </div>
     </div>

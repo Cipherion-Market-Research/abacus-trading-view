@@ -227,23 +227,10 @@ export async function createRwaToken(
     })
   );
 
-  // 6. Add metadata fields — keep within this tx if possible
+  // 6. Metadata fields are added in separate TXs (TX2+) to keep TX1
+  //    under the 1232-byte Solana packet limit when multiple extensions are enabled.
   const metadataFields = params.metadata.filter((f) => f.key && f.value);
   const FIELDS_PER_TX = 3;
-  const firstBatch = metadataFields.slice(0, FIELDS_PER_TX);
-  const remainingFields = metadataFields.slice(FIELDS_PER_TX);
-
-  for (const field of firstBatch) {
-    instructions.push(
-      createUpdateFieldInstruction({
-        programId: TOKEN_2022_PROGRAM_ID,
-        metadata: mint,
-        updateAuthority: payer,
-        field: field.key,
-        value: field.value,
-      })
-    );
-  }
 
   // Build TX1
   // Note: simulation is handled by the signAndSend helper (use-send-transaction.ts)
@@ -263,9 +250,9 @@ export async function createRwaToken(
     throw new TokenServiceError(`Token creation failed: ${message}`, "RPC_ERROR", err);
   }
 
-  // === TX2+: Remaining metadata fields ===
-  for (let i = 0; i < remainingFields.length; i += FIELDS_PER_TX) {
-    const batch = remainingFields.slice(i, i + FIELDS_PER_TX);
+  // === TX2+: All metadata fields ===
+  for (let i = 0; i < metadataFields.length; i += FIELDS_PER_TX) {
+    const batch = metadataFields.slice(i, i + FIELDS_PER_TX);
     const metaTx = new Transaction();
     for (const field of batch) {
       metaTx.add(
