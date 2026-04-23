@@ -107,6 +107,11 @@ export function MetadataStep({ data, assetType, onChange }: Props) {
             maxLength={32}
             className="border-[#30363d] bg-[#0d1117] text-[#f0f6fc] placeholder:text-[#484f58]"
           />
+          {data.jurisdiction.length >= 26 && (
+            <p className={`mt-1 text-[10px] ${data.jurisdiction.length >= 32 ? "text-[#f85149]" : "text-[#d29922]"}`}>
+              {data.jurisdiction.length}/32
+            </p>
+          )}
         </div>
 
         <div>
@@ -145,6 +150,11 @@ export function MetadataStep({ data, assetType, onChange }: Props) {
             maxLength={200}
             className="border-[#30363d] bg-[#0d1117] text-[#f0f6fc] placeholder:text-[#484f58]"
           />
+          {data.externalUri.length >= 170 && (
+            <p className={`mt-1 text-[10px] ${data.externalUri.length >= 200 ? "text-[#f85149]" : "text-[#d29922]"}`}>
+              {data.externalUri.length}/200
+            </p>
+          )}
         </div>
       </div>
 
@@ -193,7 +203,14 @@ export function MetadataStep({ data, assetType, onChange }: Props) {
           ))}
           {data.fields.length === 0 && (
             <p className="text-xs text-[#484f58] text-center py-3">
-              No additional metadata fields. Click "Add Field" to add key-value pairs.
+              No additional metadata fields. Click &ldquo;Add Field&rdquo; to add key-value pairs.
+            </p>
+          )}
+          {data.fields.length > 0 && data.fields.some(
+            (f) => f.key.length >= 26 || f.value.length >= 110
+          ) && (
+            <p className="text-[10px] text-[#d29922] mt-1">
+              Keys max 32 chars, values max 128 chars
             </p>
           )}
         </div>
