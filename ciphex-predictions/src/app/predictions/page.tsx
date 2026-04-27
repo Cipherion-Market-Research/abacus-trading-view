@@ -1,29 +1,27 @@
 "use client";
 
-import { useMemo } from "react";
 import { Calendar, FileText } from "lucide-react";
 import { C } from "./colors";
-import { PRED_DATA, generateTape } from "./data";
 import {
   Eyebrow,
   Mono,
   Pill,
   Dot,
-  CXMark,
   Spark,
   MiniBar,
   BigNum,
   SharedStyles,
 } from "./primitives";
 import { DashboardPreview } from "./dashboard-preview";
+import { AbacusWordmark } from "@/components/shared/abacus-logo";
+import { usePredStats } from "./use-pred-stats";
 
 const A = C.blue;
 const ABg = "rgba(88,166,255,0.10)";
 const ROW_PAD = "7px 14px";
 
-export default function MarketingPage() {
-  const D = PRED_DATA;
-  const tape = useMemo(() => generateTape(), []);
+export default function PredictionsPage() {
+  const { mode, staleSince, D, tape, dashboard, wrSeries } = usePredStats();
 
   return (
     <div
@@ -38,53 +36,40 @@ export default function MarketingPage() {
     >
       <SharedStyles />
 
-      {/* ─── HEADER ─── */}
-      <header
-        style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 5,
-          background: C.bg,
-          borderBottom: `1px solid ${C.border}`,
-          padding: "12px 32px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <CXMark accent={A} />
-          <div style={{ width: 1, height: 16, background: C.border }} />
-          <Eyebrow style={{ letterSpacing: "0.12em" }}>Predictions Stack</Eyebrow>
-          <Pill tone="blue">
-            <Dot color={A} pulse /> Live · Apr 27 2026
-          </Pill>
+      {mode !== "live" && (
+        <div
+          className="text-xs font-mono px-5 py-2 border-b border-[#30363d]"
+          style={{
+            background: mode === "stale" ? "rgba(210,153,34,0.15)" : "rgba(88,166,255,0.10)",
+            color: mode === "stale" ? C.yellow : C.blue,
+          }}
+        >
+          {mode === "stale"
+            ? `Data stale since ${staleSince ?? "unknown"} — live feed interrupted`
+            : "Displaying cached metrics — live feed not connected"}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <a className="pred-link" style={{ color: C.muted, fontSize: 12 }}>
-            Data feeds
-          </a>
-          <a className="pred-link" style={{ color: C.muted, fontSize: 12 }}>
-            Architecture
-          </a>
-          <a className="pred-link" style={{ color: C.muted, fontSize: 12 }}>
-            Dataset
-          </a>
-          <button
-            style={{
-              border: `1px solid ${C.border}`,
-              background: C.s1,
-              color: C.fg,
-              fontSize: 12,
-              padding: "6px 12px",
-              borderRadius: 6,
-              fontFamily: "inherit",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              cursor: "pointer",
-            }}
-          >
+      )}
+
+      {/* ─── HEADER — mirrors Abacus AMS main repo: bg #161b22, px-5 py-3 ─── */}
+      <header className="sticky top-0 z-10 flex items-center justify-between bg-[#161b22] px-5 py-3 border-b border-[#30363d]">
+        <div className="flex items-center gap-2.5">
+          <h1 className="m-0">
+            <AbacusWordmark showLogo={false} text="Abacus Predictions" showCipheX />
+          </h1>
+          <span className="flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold uppercase bg-linear-to-br from-[#238636] to-[#2ea043] text-white">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
+            </span>
+            Live
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          <a href="#signal" className="text-[#8b949e] hover:text-[#c9d1d9] text-xs transition-colors">Signal</a>
+          <a href="#execution" className="text-[#8b949e] hover:text-[#c9d1d9] text-xs transition-colors">Execution</a>
+          <a href="#dataset" className="text-[#8b949e] hover:text-[#c9d1d9] text-xs transition-colors">Dataset</a>
+          <a href="#expansion" className="text-[#8b949e] hover:text-[#c9d1d9] text-xs transition-colors">Expansion</a>
+          <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-[#238636] hover:bg-[#2ea043] text-white border border-[#238636] transition-colors cursor-pointer">
             <Calendar size={12} /> Schedule a Call
           </button>
         </div>
@@ -135,7 +120,7 @@ export default function MarketingPage() {
       {/* ─── HERO: 96.3% extreme conviction ─── */}
       <section style={{ padding: "56px 32px 40px", maxWidth: 1280, margin: "0 auto" }}>
         <Eyebrow style={{ marginBottom: 24 }}>
-          CipheX Predictions · Engine Performance Brief
+          Abacus Predictions · Engine Performance Brief
         </Eyebrow>
         <div
           style={{
@@ -193,11 +178,10 @@ export default function MarketingPage() {
             <Eyebrow style={{ marginBottom: 12 }}>Run summary</Eyebrow>
             {(
               [
-                ["Positions", "11,191"],
-                ["Days continuous", "64"],
-                ["Signals / day", "187"],
-                ["Deployments", "56"],
-                ["Risk gates", "15"],
+                ["Positions", D.hero.positions.toLocaleString()],
+                ["Days continuous", String(D.hero.days)],
+                ["Signals / day", String(D.hero.signalsPerDay)],
+                ["Risk gates", String(D.hero.gates)],
                 ["Uptime", "99.5%"],
               ] as const
             ).map(([k, v]) => (
@@ -222,6 +206,7 @@ export default function MarketingPage() {
 
       {/* ─── §01 ACCURACY MATRIX ─── */}
       <section
+        id="signal"
         style={{
           borderTop: `1px solid ${C.border}`,
           padding: "48px 32px",
@@ -436,6 +421,7 @@ export default function MarketingPage() {
 
       {/* ─── §03 TRANCHES + GATES ─── */}
       <section
+        id="execution"
         style={{
           borderTop: `1px solid ${C.border}`,
           padding: "48px 32px",
@@ -761,12 +747,13 @@ export default function MarketingPage() {
               bucket and surfaces gate fires, T3 entries, and PnL — all auditable.
             </p>
           </div>
-          <DashboardPreview accent={A} accentBg={ABg} tape={tape} />
+          <DashboardPreview accent={A} accentBg={ABg} tape={tape} stats={dashboard} />
         </div>
       </section>
 
       {/* ─── §06 + §07 DATASET + FEEDS ─── */}
       <section
+        id="dataset"
         style={{
           borderTop: `1px solid ${C.border}`,
           padding: "48px 32px",
@@ -856,6 +843,7 @@ export default function MarketingPage() {
 
       {/* ─── §08 EXPANSION ─── */}
       <section
+        id="expansion"
         style={{
           borderTop: `1px solid ${C.border}`,
           padding: "48px 32px",
@@ -1006,41 +994,11 @@ export default function MarketingPage() {
               dataset. 30 minutes, no slides.
             </p>
           </div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <button
-              style={{
-                background: A,
-                color: "#fff",
-                border: "none",
-                borderRadius: 6,
-                padding: "10px 18px",
-                fontSize: 13,
-                fontWeight: 500,
-                fontFamily: "inherit",
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-              }}
-            >
+          <div className="flex items-center gap-2">
+            <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium bg-[#238636] hover:bg-[#2ea043] text-white border border-[#238636] transition-colors cursor-pointer">
               <Calendar size={14} /> Schedule a Call
             </button>
-            <button
-              style={{
-                background: "transparent",
-                color: C.fg,
-                border: `1px solid ${C.border}`,
-                borderRadius: 6,
-                padding: "10px 18px",
-                fontSize: 13,
-                fontWeight: 500,
-                fontFamily: "inherit",
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-              }}
-            >
+            <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] border border-[#30363d] transition-colors cursor-pointer">
               <FileText size={14} /> Data Room
             </button>
           </div>
@@ -1048,22 +1006,9 @@ export default function MarketingPage() {
       </section>
 
       {/* ─── FOOTER ─── */}
-      <footer
-        style={{
-          borderTop: `1px solid ${C.border}`,
-          padding: "20px 32px",
-          maxWidth: 1280,
-          margin: "0 auto",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <CXMark accent={A} size={18} />
-          <Mono size={11} color={C.subtle}>
-            predictions.ciphex.io
-          </Mono>
+      <footer className="border-t border-[#30363d] px-5 py-4 max-w-[1280px] mx-auto flex justify-between items-center">
+        <div className="flex items-center gap-3">
+          <AbacusWordmark size={18} text="Abacus Predictions" showCipheX compact />
         </div>
         <Mono size={11} color={C.subtle}>
           v30 · build 2026.04.27 · eu-west-1

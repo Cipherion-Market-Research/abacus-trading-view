@@ -4,15 +4,18 @@ import { useState, useEffect } from "react";
 import { C } from "./colors";
 import { Eyebrow, Mono, Pill, Dot, BigNum, Spark } from "./primitives";
 import type { TapeRow } from "./data";
+import type { PredDashboard } from "./stats-schema";
 
 export function DashboardPreview({
   accent,
   accentBg,
   tape,
+  stats,
 }: {
   accent: string;
   accentBg: string;
   tape: TapeRow[];
+  stats: PredDashboard;
 }) {
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -64,9 +67,9 @@ export function DashboardPreview({
               marginBottom: 14,
             }}
           >
-            <BigNum value="88.4" suffix="%" size={32} color={accent} />
+            <BigNum value={stats.wr24h.toFixed(1)} suffix="%" size={32} color={accent} />
             <Mono size={11} color={C.muted}>
-              176 / 199 · +0.2 vs prior 24h
+              {stats.wins24h} / {stats.total24h} · {stats.wrDelta >= 0 ? "+" : ""}{stats.wrDelta.toFixed(1)} vs prior 24h
             </Mono>
           </div>
           <Spark
@@ -80,9 +83,9 @@ export function DashboardPreview({
         <div style={{ padding: 16 }}>
           <Eyebrow style={{ marginBottom: 10 }}>T3 streak</Eyebrow>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <BigNum value="14" size={32} color={C.fg} />
+            <BigNum value={String(stats.streak)} size={32} color={C.fg} />
             <Mono size={12} color={C.muted}>
-              wins · 4d 8h since last loss
+              wins · {stats.streakDuration} since last loss
             </Mono>
           </div>
           <div style={{ display: "flex", gap: 3, marginTop: 14 }}>
