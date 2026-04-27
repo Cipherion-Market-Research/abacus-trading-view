@@ -108,7 +108,7 @@ export default function PredictionsPage() {
               <span style={{ color: r.tier === "T3" ? A : C.muted }}>{r.tier}</span>
               <span style={{ color: r.dir === "UP" ? C.greenF : C.amber }}>{r.dir}</span>
               <span>m={r.margin}</span>
-              <span>${r.btc}</span>
+              {r.btc && r.btc !== "—" && <span>${r.btc}</span>}
               <span style={{ color: r.result === "WIN" ? C.greenF : C.red }}>
                 {r.result === "WIN" ? "✓" : "✗"}
               </span>

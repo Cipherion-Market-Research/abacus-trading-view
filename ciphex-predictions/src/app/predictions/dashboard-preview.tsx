@@ -116,7 +116,7 @@ export function DashboardPreview({
             borderBottom: `1px solid ${C.border}`,
           }}
         >
-          {["Time", "Tier", "Dir", "Margin", "Entry", "BTC", "Result"].map((h) => (
+          {["Time", "Tier", "Dir", "Margin", "Entry", "Conf", "Result"].map((h) => (
             <Eyebrow key={h} style={{ fontSize: 9 }}>
               {h}
             </Eyebrow>
@@ -150,7 +150,7 @@ export function DashboardPreview({
               {r.px}
             </Mono>
             <Mono size={11} color={C.fgEmph}>
-              ${r.btc}
+              {r.conf}
             </Mono>
             <Mono size={11} color={r.result === "WIN" ? C.greenF : C.red} weight={500}>
               {r.result}
