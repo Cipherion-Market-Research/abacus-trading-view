@@ -20,6 +20,13 @@ const A = C.blue;
 const ABg = "rgba(88,166,255,0.10)";
 const ROW_PAD = "7px 14px";
 
+const GATE_LAYERS = [
+  { cat: "Signal", tone: "blue" as const, title: "Signal Quality", gateNums: [1, 2, 3, 5, 9, 11], pitch: "Validates directional confidence, conviction levels, and historical signal integrity before position initiation." },
+  { cat: "Microstructure", tone: "amber" as const, title: "Market Microstructure", gateNums: [6, 7, 13], pitch: "The highest-volume layer — filters adverse market structure, thin liquidity, and order book concentration risk." },
+  { cat: "Execution", tone: "neutral" as const, title: "Execution Quality", gateNums: [4, 8, 12, 14], pitch: "Enforces operational entry quality: price levels, timing windows, momentum integrity, and directional ceiling." },
+  { cat: "Regime", tone: "cyan" as const, title: "Market Regime", gateNums: [10, 15], pitch: "Market environment validation — cross-venue flow consistency and activity regime before directional commitment." },
+];
+
 export default function PredictionsPage() {
   const { mode, staleSince, D, tape, dashboard, wrSeries } = usePredStats();
 
@@ -29,6 +36,12 @@ export default function PredictionsPage() {
     10: "Regime", 11: "Signal", 12: "Execution", 13: "Microstructure",
     14: "Execution", 15: "Regime",
   };
+
+  const layerCards = GATE_LAYERS.map(l => ({
+    ...l,
+    gates: D.gates.filter(g => l.gateNums.includes(g.n)),
+    total: D.gates.filter(g => l.gateNums.includes(g.n)).reduce((s, g) => s + g.fired, 0),
+  }));
 
   return (
     <div
@@ -536,73 +549,32 @@ export default function PredictionsPage() {
               ))}
             </div>
 
-            {/* Gates table */}
-            <div
-              style={{
-                border: `1px solid ${C.border}`,
-                borderRadius: 8,
-                overflow: "hidden",
-                background: C.s1,
-              }}
-            >
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "28px minmax(0, 1fr) 130px",
-                  padding: ROW_PAD,
-                  background: C.s2,
-                  borderBottom: `1px solid ${C.border}`,
-                }}
-              >
-                {["#", "Gate", "Fired"].map((h) => (
-                  <Eyebrow key={h} style={{ fontSize: 9, color: C.muted }}>
-                    {h}
-                  </Eyebrow>
-                ))}
-              </div>
-              {D.gates.map((g) => (
-                <div
-                  key={g.n}
-                  className="pred-tape-row"
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "28px minmax(0, 1fr) 130px",
-                    padding: ROW_PAD,
-                    borderBottom: `1px solid ${C.border}`,
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
-                  <Mono size={11} color={C.subtle}>
-                    {String(g.n).padStart(2, "0")}
-                  </Mono>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", minWidth: 0 }}>
-                    <span style={{ color: C.fg, fontSize: 12.5, fontWeight: 500 }}>{g.name}</span>
-                    <Pill tone="neutral">{GATE_CATS[g.n] ?? "Signal"}</Pill>
+            {/* ─── §03 Gate architecture ─── */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {layerCards.map(layer => (
+                <div key={layer.cat} className="pred-card" style={{ padding: 18 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                    <div>
+                      <Pill tone={layer.tone}>{layer.cat}</Pill>
+                      <div style={{ marginTop: 8, fontSize: 13.5, fontWeight: 600, color: C.fg, letterSpacing: "-0.01em" }}>{layer.title}</div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <Eyebrow style={{ fontSize: 9, marginBottom: 3 }}>{layer.gates.length} gates</Eyebrow>
+                      <Mono size={11} color={C.subtle}>{layer.total.toLocaleString()} total fires</Mono>
+                    </div>
                   </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      justifyContent: "flex-end",
-                    }}
-                  >
-                    <MiniBar
-                      pct={Math.min(100, Math.log10(g.fired + 1) * 25)}
-                      color={C.fgEmph}
-                      w={56}
-                    />
-                    <Mono
-                      size={11}
-                      color={C.muted}
-                      style={{ minWidth: 44, textAlign: "right" }}
-                    >
-                      {g.fired.toLocaleString()}
-                    </Mono>
+                  <div style={{ color: C.muted, fontSize: 12, lineHeight: 1.55, marginBottom: 12 }}>{layer.pitch}</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {layer.gates.map(g => (
+                      <Pill key={g.n} tone="neutral">{g.name}</Pill>
+                    ))}
                   </div>
                 </div>
               ))}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 14px", background: C.s2, border: `1px solid ${C.border}`, borderRadius: 8 }}>
+                <Mono size={11} color={C.muted}>15 independent conditions · sequential validation</Mono>
+                <Mono size={11} color={C.subtle}>All must pass before capital deploys</Mono>
+              </div>
             </div>
           </div>
         </div>
