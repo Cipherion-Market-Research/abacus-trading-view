@@ -61,7 +61,7 @@ export function usePredStats(): PredStats {
     mode: "fallback",
     loading: true,
     D: PRED_DATA,
-    tape: generateTape(),
+    tape: [],
     dashboard: FALLBACK_DASHBOARD,
     wrSeries: PRED_DATA.wrSeries,
   });
@@ -77,7 +77,12 @@ export function usePredStats(): PredStats {
         if (!cancelled) setStats(mapResponseToData(data));
       } catch {
         if (!cancelled) {
-          setStats((prev) => ({ ...prev, loading: false, mode: "fallback" }));
+          setStats((prev) => ({
+            ...prev,
+            loading: false,
+            mode: "fallback",
+            tape: prev.tape.length ? prev.tape : generateTape(),
+          }));
         }
       }
     }
