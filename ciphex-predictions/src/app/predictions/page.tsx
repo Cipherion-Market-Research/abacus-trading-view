@@ -23,6 +23,13 @@ const ROW_PAD = "7px 14px";
 export default function PredictionsPage() {
   const { mode, staleSince, D, tape, dashboard, wrSeries } = usePredStats();
 
+  const GATE_CATS: Record<number, string> = {
+    1: "Signal", 2: "Signal", 3: "Signal", 4: "Execution", 5: "Signal",
+    6: "Microstructure", 7: "Microstructure", 8: "Execution", 9: "Signal",
+    10: "Regime", 11: "Signal", 12: "Execution", 13: "Microstructure",
+    14: "Execution", 15: "Regime",
+  };
+
   return (
     <div
       style={{
@@ -69,6 +76,7 @@ export default function PredictionsPage() {
           <a href="#execution" className="text-[#8b949e] hover:text-[#c9d1d9] text-xs transition-colors">Execution</a>
           <a href="#dataset" className="text-[#8b949e] hover:text-[#c9d1d9] text-xs transition-colors">Dataset</a>
           <a href="#expansion" className="text-[#8b949e] hover:text-[#c9d1d9] text-xs transition-colors">Expansion</a>
+          <a href="#roadmap" className="text-[#8b949e] hover:text-[#c9d1d9] text-xs transition-colors">Roadmap</a>
           <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-[#238636] hover:bg-[#2ea043] text-white border border-[#238636] transition-colors cursor-pointer">
             <Calendar size={12} /> Schedule a Call
           </button>
@@ -107,7 +115,7 @@ export default function PredictionsPage() {
               <span style={{ color: C.subtle }}>{r.ts}</span>
               <span style={{ color: r.tier === "T3" ? A : C.muted }}>{r.tier}</span>
               <span style={{ color: r.dir === "UP" ? C.greenF : C.amber }}>{r.dir}</span>
-              <span>m={r.margin}</span>
+              <span>cs={r.margin}</span>
               {r.btc && r.btc !== "—" && <span>${r.btc}</span>}
               <span style={{ color: r.result === "WIN" ? C.greenF : C.red }}>
                 {r.result === "WIN" ? "✓" : "✗"}
@@ -131,16 +139,19 @@ export default function PredictionsPage() {
           }}
         >
           <div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 4, filter: "drop-shadow(0 0 24px rgba(88,166,255,0.28))" }}>
               <span
                 style={{
                   fontFamily: "var(--font-geist-mono)",
                   fontSize: 128,
                   fontWeight: 600,
-                  color: A,
                   letterSpacing: "-0.04em",
                   lineHeight: 0.9,
                   fontVariantNumeric: "tabular-nums",
+                  background: "linear-gradient(165deg, #e8f4ff 0%, #a8d4ff 30%, #58a6ff 60%, rgba(88,166,255,0.65) 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
                 }}
               >
                 96.3
@@ -150,8 +161,11 @@ export default function PredictionsPage() {
                   fontFamily: "var(--font-geist-mono)",
                   fontSize: 64,
                   fontWeight: 500,
-                  color: A,
                   letterSpacing: "-0.02em",
+                  background: "linear-gradient(165deg, #e8f4ff 0%, #a8d4ff 30%, #58a6ff 60%, rgba(88,166,255,0.65) 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
                 }}
               >
                 %
@@ -171,7 +185,7 @@ export default function PredictionsPage() {
               accuracy at extreme conviction
             </h1>
             <div style={{ color: C.muted, fontSize: 14 }}>
-              Full tier · |margin| ≥ 100 · 109 signals
+              Extreme conviction tier · 109 signals
             </div>
           </div>
           <div style={{ borderLeft: `1px solid ${C.border}`, paddingLeft: 24 }}>
@@ -236,8 +250,9 @@ export default function PredictionsPage() {
               Accuracy by tier
             </h2>
             <p style={{ marginTop: 10, color: C.muted, fontSize: 12.5, lineHeight: 1.55 }}>
-              Capital deploys in three tranches at T-60s, T-45s, T-30s. Higher-conviction
-              signals receive 90% of capital — and post 90.3% accuracy across 3,112 instances.
+              Capital deploys in staged tranches across a defined execution window.
+              Higher-conviction signals receive 90% of capital — and post 90.3% accuracy
+              across 3,112 instances.
             </p>
           </div>
           <div>
@@ -336,7 +351,7 @@ export default function PredictionsPage() {
           }}
         >
           <div>
-            <Eyebrow style={{ color: A, marginBottom: 10 }}>§02 · Margin</Eyebrow>
+            <Eyebrow style={{ color: A, marginBottom: 10 }}>§02 · Conviction</Eyebrow>
             <h2
               style={{
                 margin: 0,
@@ -349,9 +364,9 @@ export default function PredictionsPage() {
               Accuracy scales with conviction
             </h2>
             <p style={{ marginTop: 10, color: C.muted, fontSize: 12.5, lineHeight: 1.55 }}>
-              &quot;Margin&quot; = BTC distance from strike at entry. The further from strike,
-              the stronger the directional signal — accuracy rises monotonically through every
-              band.
+              Our proprietary conviction score measures directional confidence at entry.
+              Accuracy scales consistently — the validation stack is designed so that
+              higher-conviction signals carry higher predictive power, band over band.
             </p>
           </div>
           <div
@@ -451,9 +466,9 @@ export default function PredictionsPage() {
               Tiered entry · 15-gate stack
             </h2>
             <p style={{ marginTop: 10, color: C.muted, fontSize: 12.5, lineHeight: 1.55 }}>
-              90% of capital only deploys when all 15 independent gates agree. Each gate was
-              developed from specific loss forensics and walk-forward validated before
-              deployment.
+              90% of capital only deploys when our complete validation suite independently
+              confirms the opportunity. Each layer was derived from rigorous loss attribution
+              and validated out-of-sample before production.
             </p>
           </div>
           <div>
@@ -533,13 +548,13 @@ export default function PredictionsPage() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "32px 1fr 60px 1fr 90px",
+                  gridTemplateColumns: "28px minmax(0, 1fr) 130px",
                   padding: ROW_PAD,
                   background: C.s2,
                   borderBottom: `1px solid ${C.border}`,
                 }}
               >
-                {["#", "Gate", "Ver", "Condition", "Fired"].map((h) => (
+                {["#", "Gate", "Fired"].map((h) => (
                   <Eyebrow key={h} style={{ fontSize: 9, color: C.muted }}>
                     {h}
                   </Eyebrow>
@@ -551,22 +566,20 @@ export default function PredictionsPage() {
                   className="pred-tape-row"
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "32px 1fr 60px 1fr 90px",
+                    gridTemplateColumns: "28px minmax(0, 1fr) 130px",
                     padding: ROW_PAD,
                     borderBottom: `1px solid ${C.border}`,
                     alignItems: "center",
+                    gap: 8,
                   }}
                 >
                   <Mono size={11} color={C.subtle}>
                     {String(g.n).padStart(2, "0")}
                   </Mono>
-                  <span style={{ color: C.fg, fontSize: 12.5, fontWeight: 500 }}>{g.name}</span>
-                  <Mono size={11} color={g.v === "v30" ? A : C.muted}>
-                    {g.v}
-                  </Mono>
-                  <Mono size={11} color={C.muted}>
-                    {g.blurb}
-                  </Mono>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", minWidth: 0 }}>
+                    <span style={{ color: C.fg, fontSize: 12.5, fontWeight: 500 }}>{g.name}</span>
+                    <Pill tone="neutral">{GATE_CATS[g.n] ?? "Signal"}</Pill>
+                  </div>
                   <div
                     style={{
                       display: "flex",
@@ -578,12 +591,12 @@ export default function PredictionsPage() {
                     <MiniBar
                       pct={Math.min(100, Math.log10(g.fired + 1) * 25)}
                       color={C.fgEmph}
-                      w={48}
+                      w={56}
                     />
                     <Mono
                       size={11}
                       color={C.muted}
-                      style={{ minWidth: 40, textAlign: "right" }}
+                      style={{ minWidth: 44, textAlign: "right" }}
                     >
                       {g.fired.toLocaleString()}
                     </Mono>
@@ -743,8 +756,9 @@ export default function PredictionsPage() {
               Live operations console
             </h2>
             <p style={{ marginTop: 10, color: C.muted, fontSize: 12.5, lineHeight: 1.55 }}>
-              Every position is logged to S3 JSONL with 60+ fields. The dashboard polls the
-              bucket and surfaces gate fires, T3 entries, and PnL — all auditable.
+              Every position is logged to a structured event store with 60+ fields per record.
+              The dashboard surfaces signal events, conviction-tier entries, and running
+              performance — all auditable and available in the data room.
             </p>
           </div>
           <DashboardPreview accent={A} accentBg={ABg} tape={tape} stats={dashboard} />
@@ -765,7 +779,7 @@ export default function PredictionsPage() {
           <div className="pred-card" style={{ padding: 24 }}>
             <Eyebrow style={{ color: A, marginBottom: 4 }}>§06 · Dataset</Eyebrow>
             <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, marginBottom: 18 }}>
-              The only known 1-second Polymarket dataset
+              The only known high-resolution prediction market dataset
             </h3>
             {D.dataset.map((r, i) => (
               <div
@@ -800,14 +814,14 @@ export default function PredictionsPage() {
                 fontSize: 11.5,
               }}
             >
-              Grows ~190 positions/day automatically. Backtesting ground truth.
+              Grows continuously with every production cycle — the only known sub-second prediction market dataset of its kind.
             </div>
           </div>
 
           <div className="pred-card" style={{ padding: 24 }}>
             <Eyebrow style={{ color: A, marginBottom: 4 }}>§07 · Feeds</Eyebrow>
             <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, marginBottom: 18 }}>
-              Six independent data sources
+              A proprietary multi-source data stack
             </h3>
             {D.feeds.map((f, i) => (
               <div
@@ -866,9 +880,10 @@ export default function PredictionsPage() {
               Venue-agnostic signal engine
             </h2>
             <p style={{ marginTop: 10, color: C.muted, fontSize: 12.5, lineHeight: 1.55 }}>
-              The same 88.2% directional signal applies wherever a 5-minute BTC window can be
-              expressed. Polymarket pays binary; CEX perp futures pay proportional — the
-              economics differ fundamentally.
+              The same directional signal framework applies across venue types wherever an
+              equivalent short-window BTC market exists. Binary prediction markets and
+              perpetual futures have fundamentally different payoff structures — both are
+              addressable.
             </p>
           </div>
           <div>
@@ -950,6 +965,101 @@ export default function PredictionsPage() {
         </div>
       </section>
 
+      {/* ─── §09 ROADMAP ─── */}
+      <section
+        id="roadmap"
+        style={{
+          borderTop: `1px solid ${C.border}`,
+          padding: "48px 32px",
+          maxWidth: 1280,
+          margin: "0 auto",
+        }}
+      >
+        <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", gap: 56, alignItems: "start" }}>
+          <div>
+            <Eyebrow style={{ color: A, marginBottom: 10 }}>§09 · Roadmap</Eyebrow>
+            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: C.fg, letterSpacing: "-0.01em" }}>
+              Growth trajectory
+            </h2>
+            <p style={{ marginTop: 10, color: C.muted, fontSize: 12.5, lineHeight: 1.55 }}>
+              The signal engine is live and compounding. Expansion proceeds in three stages —
+              asset coverage, venue diversification, and institutional distribution.
+            </p>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 1, background: C.border, border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
+            {([
+              {
+                phase: "Now",
+                tone: "blue" as const,
+                title: "BTC/USD Live",
+                points: [
+                  "88.2% directional accuracy · 187 signals/day",
+                  "15-layer validation stack · 11,000+ position dataset",
+                  "Binary prediction market venue · continuous operation since Feb 2026",
+                ],
+              },
+              {
+                phase: "Near-term",
+                tone: "neutral" as const,
+                title: "Multi-Asset Expansion",
+                points: [
+                  "ETH/USD, SOL/USD, XRP/USD via standard asset port",
+                  "~4× daily signal volume across the combined portfolio",
+                  "Cross-asset signal correlation research underway",
+                ],
+              },
+              {
+                phase: "Mid-term",
+                tone: "neutral" as const,
+                title: "Venue Diversification",
+                points: [
+                  "Regulated event exchange — parallel to current venue",
+                  "Derivatives exchange integration — symmetric payoff structure",
+                  "Multi-venue position capture and reconciliation",
+                ],
+              },
+              {
+                phase: "Long-term",
+                tone: "neutral" as const,
+                title: "Institutional Signal Product",
+                points: [
+                  "Multi-asset signal ensemble with portfolio-level risk controls",
+                  "Institutional API — signal access for qualified counterparties",
+                  "Proprietary dataset licensing — the 11K+ position archive as a product",
+                ],
+              },
+            ] as const).map((item) => (
+              <div
+                key={item.phase}
+                style={{
+                  background: item.tone === "blue" ? C.s3 : C.s1,
+                  padding: "20px 24px",
+                  display: "grid",
+                  gridTemplateColumns: "120px 1fr",
+                  gap: 24,
+                  alignItems: "start",
+                }}
+              >
+                <div>
+                  <Pill tone={item.tone} style={{ marginBottom: 8 }}>{item.phase}</Pill>
+                  <div style={{ color: C.fg, fontSize: 13, fontWeight: 600, marginTop: 6 }}>
+                    {item.title}
+                  </div>
+                </div>
+                <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
+                  {item.points.map((pt) => (
+                    <li key={pt} style={{ display: "flex", alignItems: "baseline", gap: 8, color: C.muted, fontSize: 12 }}>
+                      <span style={{ color: A, flexShrink: 0, fontSize: 10 }}>▸</span>
+                      {pt}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ─── CTA ─── */}
       <section
         style={{
@@ -990,8 +1100,8 @@ export default function PredictionsPage() {
                 lineHeight: 1.55,
               }}
             >
-              We&apos;ll walk through the live console, the gate logic, and the 11K-position
-              dataset. 30 minutes, no slides.
+              We&apos;ll walk through the live console, the validation framework, and the
+              full position dataset. 30 minutes, no slides.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -1006,13 +1116,87 @@ export default function PredictionsPage() {
       </section>
 
       {/* ─── FOOTER ─── */}
-      <footer className="border-t border-[#30363d] px-5 py-4 max-w-[1280px] mx-auto flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <AbacusWordmark size={18} text="Abacus Predictions" showCipheX compact />
+      <footer className="w-full border-t border-[#21262d]">
+        {/* Top: wordmark + nav */}
+        <div className="mx-auto w-full max-w-[1280px] px-5 md:px-8 py-10 md:py-14">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-10 lg:gap-0">
+            <div className="shrink-0">
+              <AbacusWordmark showLogo={false} text="Abacus Predictions" showCipheX />
+            </div>
+            <nav className="flex flex-row gap-12">
+              <div className="flex flex-col gap-3">
+                <h3 style={{ color: C.fg, fontWeight: 600, fontSize: 13, margin: 0 }}>Engine</h3>
+                <div className="flex flex-col gap-2">
+                  {[["Signal", "#signal"], ["Execution", "#execution"], ["Dataset", "#dataset"], ["Expansion", "#expansion"], ["Roadmap", "#roadmap"]].map(([label, href]) => (
+                    <a key={href} href={href} className="text-[#8b949e] hover:text-[#3fb950] text-xs transition-colors">{label}</a>
+                  ))}
+                </div>
+              </div>
+              <div className="flex flex-col gap-3">
+                <h3 style={{ color: C.fg, fontWeight: 600, fontSize: 13, margin: 0 }}>Engage</h3>
+                <div className="flex flex-col gap-2">
+                  <a href="https://ciphex.io/contact" className="text-[#8b949e] hover:text-[#3fb950] text-xs transition-colors">Schedule a Call</a>
+                  <a href="https://ciphex.io/contact" className="text-[#8b949e] hover:text-[#3fb950] text-xs transition-colors">Data Room</a>
+                </div>
+              </div>
+            </nav>
+          </div>
         </div>
-        <Mono size={11} color={C.subtle}>
-          v30 · build 2026.04.27 · eu-west-1
-        </Mono>
+
+        {/* Methodology disclaimer */}
+        <div className="border-t border-[#21262d]">
+          <div className="mx-auto w-full max-w-[1280px] px-5 md:px-8 py-5">
+            <Mono size={11} color={C.subtle} style={{ display: "block", lineHeight: 1.7 }}>
+              Signal generation parameters, risk filter conditions, and data feed weightings are proprietary and are not disclosed publicly. Performance statistics reflect live and paper-traded production results.
+            </Mono>
+          </div>
+        </div>
+
+        {/* Important Notice */}
+        <div className="border-t border-[#21262d]">
+          <div className="mx-auto w-full max-w-[1280px] px-5 md:px-8 py-8 md:py-10">
+            <p style={{ color: C.fg, fontWeight: 600, fontSize: 11, marginBottom: 10 }}>
+              Important Notice to Reader
+            </p>
+            <p style={{ color: C.subtle, fontSize: 10, lineHeight: 1.7, textAlign: "justify" }}>
+              The following information is strictly for presentation and illustrative purposes only. It does not constitute an offer to sell, a solicitation of an offer to buy, or a recommendation to invest in any securities, digital assets, investment products, or financial instruments associated with the Alpha Centurion Network (Alpha CPX) or CipheX Capital Ecosystem (collectively referred to as CipheX). No information contained herein should be construed as investment, legal, accounting, or tax advice. You should not rely on any information on this website as a substitute for professional advice from qualified advisors. Any descriptions of potential market strategies, financial models, or projected outcomes are provided solely for illustrative purposes. Participation in digital asset markets involves substantial risk, including the potential loss of your entire investment. Digital assets may be subject to extreme volatility, limited liquidity, and rapidly evolving legal and regulatory frameworks. No assurance can be given that any investment or trading activity will achieve favorable or expected outcomes. Any statements or representations not originating directly from CipheX, Cipherion Capital SA, or its authorized affiliates are unauthorized and expressly disclaimed. CipheX reserves the right to update or modify any information published on its website at any time without advanced notice.{" "}
+              <strong style={{ color: C.muted }}>Past performance is not indicative of future results.</strong>
+            </p>
+          </div>
+        </div>
+
+        {/* Bottom bar */}
+        <div className="border-t border-[#21262d]">
+          <div className="mx-auto w-full max-w-[1280px] px-5 md:px-8 py-5 md:py-6 flex flex-col lg:flex-row items-center justify-between gap-4">
+            <p style={{ color: C.subtle, fontSize: 11 }}>
+              &copy; 2026{" "}
+              <a
+                href="https://www.cipherion.co/"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: C.subtle }}
+                className="hover:text-[#f0f6fc] transition-colors"
+              >
+                Cipherion Capital SA
+              </a>
+              {" · "}CipheX Capital Ecosystem
+            </p>
+            <div className="flex items-center gap-6">
+              <a href="https://ciphex.io/terms-of-use" style={{ color: C.subtle, fontSize: 11 }} className="hover:text-[#3fb950] transition-colors">Terms of Use</a>
+              <a href="https://ciphex.io/privacy-policy" style={{ color: C.subtle, fontSize: 11 }} className="hover:text-[#3fb950] transition-colors">Privacy Policy</a>
+              <a href="https://ciphex.io/contact" style={{ color: C.subtle, fontSize: 11 }} className="hover:text-[#3fb950] transition-colors">Contact</a>
+            </div>
+            <a
+              href="https://ciphex.io"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: C.subtle, fontSize: 11, fontWeight: 600 }}
+              className="hover:text-[#3fb950] transition-colors"
+            >
+              Powered by Cipherion (CPX)
+            </a>
+          </div>
+        </div>
       </footer>
     </div>
   );

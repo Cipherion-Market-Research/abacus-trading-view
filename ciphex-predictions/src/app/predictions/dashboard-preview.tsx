@@ -40,9 +40,9 @@ export function DashboardPreview({
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <Dot color={accent} pulse />
           <Mono size={11} color={C.fg} weight={500}>
-            btc-sniper-prod · ECS Fargate
+            abacus-predictions-prod
           </Mono>
-          <Pill tone="neutral">eu-west-1</Pill>
+          <Pill tone="neutral">production</Pill>
         </div>
         <Mono size={11} color={C.muted}>
           uptime 99.5% · 64d 03h
@@ -116,7 +116,7 @@ export function DashboardPreview({
             borderBottom: `1px solid ${C.border}`,
           }}
         >
-          {["Time", "Tier", "Dir", "Margin", "Entry", "Conf", "Result"].map((h) => (
+          {["Time", "Tier", "Dir", "CS", "Entry", "Score", "Result"].map((h) => (
             <Eyebrow key={h} style={{ fontSize: 9 }}>
               {h}
             </Eyebrow>

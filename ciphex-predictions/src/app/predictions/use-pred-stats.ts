@@ -42,10 +42,10 @@ function mapResponseToData(res: PredStatsResponse): PredStats {
       dataset: res.dataset
         ? [
             { what: "Position records", count: res.dataset.positions, fields: "60+ each", note: "Complete since market inception" },
-            { what: "Per-tranche signal snapshots", count: res.dataset.trancheSnapshots, fields: "20 each", note: "T1/T2/T3 microstructure at entry" },
-            { what: "Pre-entry signals", count: res.dataset.preEntrySignals, fields: "12 each", note: "T-80 / T-70 / T-65 directional probes" },
-            { what: "Margin trajectory samples", count: res.dataset.marginSamples, fields: "3 each", note: "5-second sampling, full window" },
-            { what: "Post-T3 1-second snapshots", count: res.dataset.postT3Snapshots, fields: "10 each", note: "1-sec high-res from T3 to resolution" },
+            { what: "Per-tranche signal snapshots", count: res.dataset.trancheSnapshots, fields: "20 each", note: "Per-stage microstructure captured at each entry point" },
+            { what: "Pre-entry signals", count: res.dataset.preEntrySignals, fields: "12 each", note: "Multi-horizon directional probes prior to entry" },
+            { what: "Conviction trajectory samples", count: res.dataset.marginSamples, fields: "3 each", note: "High-frequency intra-window sampling" },
+            { what: "Post-conviction snapshots", count: res.dataset.postT3Snapshots, fields: "10 each", note: "High-resolution signal capture through resolution" },
             { what: "Live fill records", count: res.dataset.fillRecords, fields: "10 each", note: "On-chain verified execution data" },
           ]
         : PRED_DATA.dataset,

@@ -1,210 +1,291 @@
 # CipheX Atlas — Roadmap
 
-**Last updated:** 2026-04-21
-**Purpose:** Consolidated list of remaining work, categorized by priority. For current build state see `ATLAS_HANDOFF.md`. For original scope see `RWA_TOKEN_PLATFORM_IMPLEMENTATION_PLAN.md`.
+**Last updated:** 2026-04-23 (post-Phase 2.B + remediation sprint)
+**Purpose:** Ordered roadmap from current demo state → pilot-ready → public-production. For current build state see `ATLAS_HANDOFF.md`. For the ordered execution checklist see `PRE_PRODUCTION_CHECKLIST.md`.
 
 ---
 
 ## Legend
 
-- 🟥 **P0** — blockers for production mainnet launch
-- 🟧 **P1** — high value before production, can wait for Phase 2
-- 🟨 **P2** — polish, nice-to-have
-- 🟩 **P3** — long-term / future / speculative
-- ⚪️ **Ops** — infrastructure + configuration, not code
+- ✅ **Shipped** — in `main`, verified on devnet
+- 🟥 **P0** — blocker; cannot proceed without this
+- 🟧 **P1** — required for pilot/production; schedule into current phase
+- 🟨 **P2** — polish, differentiator; schedule opportunistically
+- 🟩 **P3** — future/speculative; don't start without a customer pulling
+- ⚪️ **Ops** — infrastructure/configuration, not product code
+- 💼 **Biz** — business/legal/partnership work, parallel to code
 
 ---
 
-## 1. Dashboard polish (carryover from Phase 1E mobile pass)
+## Phase map
+
+| Phase | Goal | Duration | Exit criteria |
+|---|---|---|---|
+| **1 — Foundation** | Production-grade demo: full issuer + investor lifecycle on Solana | ✅ Shipped 2026-04-21 | Phases 1A–1G + Tracks A/B complete |
+| **2 — Pilot-Ready** | Institutional posture, multisig governance, quality hardening, chain narrative | ~2 weeks | Platform passes institutional diligence bar; demo script complete |
+| **3 — Market Launch** | Production infrastructure: real KYC, institutional custody, mainnet issuance | ~6–8 weeks | First paying issuer onboards and issues tokens on mainnet |
+| **4 — Platform Scale** | Full institutional feature set: compliance depth, EVM expansion, secondary liquidity | ~3–5 months post-launch | Competitive parity with Securitize in the $50–300M AUM segment |
+
+All Phase 2 work is prerequisite to Phase 3. Phase 3 work can begin before Phase 2 finishes, but the first paying issuer cannot land before all Phase 3 items ship.
+
+---
+
+## 1. ✅ Phase 1 — Shipped work
+
+### 1A — Dashboard MVP
+Wallet connection, Token-2022 creation wizard (5 asset templates, all compliance extensions), cap table, onboarding, pro-rata + equal distributions, P2P transfer, freeze/thaw/pause/force-burn, transaction history, explorer lookup. Devnet-verified end-to-end.
+
+### 1B — Environment hardening + Vercel deploy
+Pinata server proxy (`/api/ipfs/upload`), Helius origin-lock, Upstash catalog (`/api/mints/register` with on-chain authority verification), live on Vercel.
+
+### 1C — Marketing + KYC gate
+Landing, `/institutions`, `/regulation`, `/faq`, 3-step mock-KYC signup, `<RequireKyc>` client guard, `KycPill` reset flow, faucet deep-link.
+
+### 1D — Design system parity
+AtlasLogo/Wordmark, Polaris Crosshair favicon, `PageHeader`, unified canvas color, all-Geist typography scale, wordmark attribution.
+
+### 1E — Mobile + tablet responsive
+Marketing nav drawer, app header drawer, responsive type, table stacking, tabs overflow scroll, meta stats grid, iOS input-zoom prevention.
+
+### 1F — Demo polish
+`YieldTicker` (per-second accrual), `TokenAvatar` (asset-type icons), sample-data seeder (5 realistic tokens), **Distributions tab** (mint-to-holder pro-rata + equal-share, BUIDL mechanic).
+
+### 1G — Demo refinements
+`/tokens` migrated to Upstash KV, atomic redemption simulator (burn at NAV + JSON receipt), `NavDisplay`, distribution accrual record on yield ticker, seeder idempotency, full demo reset.
+
+### Track A — Demo polish + holder view (2026-04-21)
+Compliance pre-trade simulator (5-rule engine), audit pack ZIP export, reconciliation panel (CSV diff + inline onboard), holder detail `/portfolio/[mint]`, landing page overhaul.
+
+### Track B — NAV mutation + scoped history + EVM table + cleanup (2026-04-21)
+On-chain NAV update form (`updateMetadataFields` + auto-sets `nav_date`), scoped transaction history on `/portfolio/[mint]` (wallet ATA query), ERC-3643 compliance mapping table on `/regulation`, `pillars-test` dev scratch removed, `sample-register.csv` fixture.
+
+---
+
+## 2. Phase 2 — Pilot-Ready (next 2 weeks)
+
+**Goal:** achieve institutional-grade posture ahead of first pilot engagements. The platform is functionally complete — this phase delivers multisig governance, compliance controls, the chain expansion narrative, and the quality baseline that sophisticated counterparties examine during diligence.
+
+### 2.1 Institutional posture
 
 | Priority | Item | Notes | Est. |
 |---|---|---|---|
-| ✅ Done | Cap table mobile card view | `<Table>` rendered on `sm:block`, card-per-holder stack on mobile (address + status pill on row 1, balance + % on row 2). | shipped 2026-04-18 |
-| ✅ Done | Portfolio `TokenRow` mobile balance alignment | Title row uses `flex-wrap` so status badge drops below name+symbol when crowded. Right column gets `shrink-0`. | shipped 2026-04-18 |
-| ✅ Done | Create wizard mobile polish | Step indicator gets `overflow-x-auto scrollbar-hide` so 5 pills can swipe on tiny phones. Wizard card padding `p-4 sm:p-6`. Page padding `px-5 md:px-6 py-6 md:py-8`. | shipped 2026-04-18 |
-| ✅ Done | `/tokens/[mint]` Compliance tab mobile | Holder rows stack action buttons below info on mobile via `flex-col sm:flex-row`. Status pill wraps with balance via `flex-wrap`. | shipped 2026-04-18 |
-| ✅ Done | `/tokens/[mint]` History tab mobile | Transaction rows stack signature + memo above time + link via `flex-col sm:flex-row` with `justify-between` only on `sm+`. | shipped 2026-04-18 |
-| 🟨 P2 | Multi-viewport manual QA pass | iPhone SE (375), iPhone 14 (393), iPad Mini (768), iPad Pro (1024), desktop. Human judgment required. | 45 min |
-| 🟨 P2 | Landscape orientation check | `md:` rules apply at 768px regardless of orientation. Phones in landscape at 750×393 may behave unexpectedly. | 15 min |
+| 🟧 P1 | **Squads multisig integration — authorities step** | Add "Use Squads multisig" option to creation wizard Step 3 (Supply & Authorities). Paste a Squads vault address as mint/freeze/permanent-delegate authority. Dashboard shows authority is a multisig and deep-links to the Squads vault. No deep integration — just recognition and display. | 2–3 days |
+| 🟧 P1 | **Jurisdiction enforcement in simulator** | Compliance simulator currently reads 5 rules. Add rule 6: jurisdiction mismatch. Metadata field `allowed_jurisdictions` (comma-separated). Compare against investor's KYC-declared jurisdiction (from localStorage form data for now). Verdict line: "BLOCKED — investor jurisdiction AU not in allowed set [US, EU]". | 3–4 hours |
+| 🟨 P2 | **Authority rotation UI** | Transfer mint/freeze authority to another pubkey (or Squads vault). Supported on-chain; no UI today. Useful for "migrate to multisig" demo beat. | 4 hours |
 
----
+### 2.2 ✅ Audit-trail durability — SHIPPED
 
-## 2. Compliance features (Phase 1B)
+Distributions and reconciliation register persisted to Upstash. Wallet-signed auth on all write routes. SETNX dedup with canonical hashing. Pending-sync banner on failed server writes. Remediation sprint added auth to `/api/mints/register`, fixed pause-state and defaultAccountState detection, sanitized error responses, added Zod validation to GET params.
 
 | Priority | Item | Notes | Est. |
 |---|---|---|---|
-| 🟧 P1 | **Transfer Hook program** | Anchor/Rust program enforcing whitelist-based transfer compliance. Unlocks compliant DEX trading, jurisdiction checks, investor caps. The canonical path for mint-level memo enforcement (dropped from the account-level MemoTransfer approach in Phase 1A). | 2–4 weeks |
-| 🟧 P1 | Whitelist registry UI | Frontend for adding/removing whitelisted addresses, visualizing hook state. Depends on above. | 3–5 days |
-| 🟧 P1 | Transfer Hook wizard toggle | Creation-wizard step exposing the hook. Requires program deployed first. | 1 day |
-| 🟨 P2 | Investor caps (hook logic) | Max-holder-count and max-balance-per-wallet enforcement. Adds ~1 week of hook work. | +1 week |
+| 🟨 P2 | **Compliance action audit log** | Every freeze/thaw/pause/burn/authority-rotation POSTs a row to a server log keyed by mint + actor + timestamp + tx signature. On-chain tx is canonical; log is for UI + regulator export. | 1 day |
 
----
-
-## 3. Production readiness (Phase 2)
+### 2.3 Multichain narrative (no EVM code yet)
 
 | Priority | Item | Notes | Est. |
 |---|---|---|---|
-| 🟥 P0 | **Real KYC provider integration** | Wire `/signup` step 2 to Civic Pass, Synaps, or Persona. Keep the 3-step shape; swap mock file-upload for real doc verification + liveness. | 1–2 weeks |
-| 🟥 P0 | **Server-side KYC state** | Current implementation uses `localStorage` (anyone can flip status client-side). Move to session-based auth with DB-backed approval state before charging anyone money. | 1 week |
-| 🟥 P0 | **Mainnet deployment** | One env-var swap (`NEXT_PUBLIC_SOLANA_NETWORK=mainnet-beta` + paid-tier RPC). Requires legal review, authority-wallet custody setup (Squads/Fireblocks), and fresh mints on mainnet (no migration from devnet). | 2–3 days + legal time |
-| 🟧 P1 | Helius key behind `/api/rpc` proxy | Current setup relies on Helius origin-lock for browser-side key exposure. Zero-exposure path is a server-side proxy with a server-only `HELIUS_RPC_ENDPOINT` var. Mirrors the Pinata proxy pattern. | 1 day |
-| 🟧 P1 | Persistent audit log | Transactions currently read from Solana RPC on each page load. Helius webhook → append events to Postgres `audit_log` table. Query locally; eliminates RPC load for history views. | 4–8 hours |
-| 🟧 P1 | Cap table — full pagination | Currently uses `getTokenLargestAccounts` (max 20 holders). Switch to `getProgramAccounts` with Helius DAS or webhook-populated DB for unbounded holder count. | 2 hours |
-| 🟧 P1 | Transaction history — full parse | Currently uses `getSignaturesForAddress` only (rate-limit accommodation). Helius Enhanced Transactions API or webhook → DB gives full parsed data. | 4 hours |
+| 🟧 P1 | **Chain Advisor flow** | 5-question interactive tool: jurisdiction, asset class, distribution venue, custody relationship, ATS target. Outputs a reasoned chain recommendation (Solana / Base / Polygon / Avalanche). Lives at `/chains/advisor` and is embedded in the workspace onboarding flow. Entirely client-side — no chain code. | 2 days |
+| 🟧 P1 | **Chain abstraction refactor** | Wrap `lib/solana/*.ts` behind a `TokenService` interface. Re-structure as `lib/chains/solana/*`. Every hook and component calls the interface, not `@solana/web3.js` directly. Non-user-visible. Unblocks Phase 4 Base integration. | 3–5 days |
+| 🟨 P2 | **ChainBadge + ChainSelector shared components** | Ship the components even though only Solana is wired up. Displayed consistently on `/portfolio` rows, `/explorer` catalog, `/tokens/[mint]` header. | 1 day |
+| 🟨 P2 | **DualStandardTable** on `/regulation` | Token-2022 extension ↔ ERC-3643 module side-by-side (builds on the table already shipped in Track B). | 4 hours |
+| 🟨 P2 | **`/chains` public page** | Chain comparison deep-dive. Cost table, compliance-standard mapping, supported-wallet matrix per chain. | 1 day |
+| 🟨 P2 | **ChainCostTable** replacing Solana-only `/institutions` cost table | Columns: Solana, Base (projected), Polygon (projected), Avalanche (projected). Labels projected rows clearly. | 4 hours |
+
+### 2.4 Quality baseline
+
+| Priority | Item | Notes | Est. |
+|---|---|---|---|
+| 🟧 P1 | **Test suite baseline — pure functions** | Vitest. Unit tests on `reconcile.ts` (6 diff states × edge cases), `audit-pack.ts` (ZIP contents + CSV escaping), compliance-simulator rules engine, `distribution-service.ts` `computeAllocations`. Target: 100% branch coverage on these four. | 2 days |
+| 🟧 P1 | **Playwright smoke suite** | 5 journeys: create token → seed → distribute → simulate block → export audit pack. Runs against devnet. CI-gated. | 1.5 days |
+| 🟨 P2 | **Console.log cleanup** | 21 occurrences across 9 files. Replace debug logs with a `debug()` helper that noops in production, keep intentional error logs. | 2 hours |
+| 🟨 P2 | **Multi-viewport manual QA pass** | iPhone SE 375, iPhone 14 393, iPad Mini 768, iPad Pro 1024, desktop. Landscape on phones. | 45 min |
+
+### 2.5 Documentation
+
+| Priority | Item | Notes | Est. |
+|---|---|---|---|
+| 🟧 P1 | **`DEMO_SCRIPT.md` full refresh** | Current script predates Track A. Add sections: compliance simulator beat, audit pack export beat, reconciliation walkthrough, issuer→holder wallet switch on `/portfolio/[mint]`, NAV mutation demo. | 2 hours |
+| 🟨 P2 | **`DESIGN_SYSTEM.md`** | Consolidate AtlasLogo/Wordmark, PageHeader, MarketingNav/Footer, MetaStat, Pillar, Row, CostCard, RequireKyc, KycPill, ChainBadge. | 2 hours |
 
 ---
 
-## 3b. Demo polish (Phase 1F) — shipped 2026-04-18
+## 3. Phase 3 — Market Launch (6–8 weeks)
 
-Research-driven feature set to make a counterparty walkthrough land. Pivoted from "transfer pro-rata from treasury" to "mint-to-holder pro-rata" after research surfaced that BUIDL/BENJI/OUSG all use mint-based distributions.
+**Goal:** convert from a compelling demo to a live, revenue-generating platform. A paying issuer can complete real KYC, issue tokens on mainnet, manage their cap table, and distribute to verified investors. See `PRE_PRODUCTION_CHECKLIST.md` for the ordered execution plan with acceptance criteria.
 
-| Item | Status | Notes |
+### 3.1 Backend foundation
+
+| Priority | Item | Notes | Est. |
+|---|---|---|---|
+| 🟥 P0 | **Supabase backend provisioned** | Auth (email + wallet SIWS), Postgres, RLS, Vercel integration. Replaces localStorage for KYC state, distributions, reconciliation register, compliance log. | 2–3 weeks |
+| 🟥 P0 | **Role model** | `admin`, `issuer`, `compliance_officer`, `investor`, `auditor_readonly`. RLS policies per role. Admin approves new issuer workspaces. | included above |
+| 🟥 P0 | **Server-side route guards** | Every mutating API route verifies session + role. Every sensitive page verifies server-side, not just client `<RequireKyc>`. | 3 days |
+| 🟥 P0 | **Append-only compliance audit log** | Postgres table: `compliance_events` (mint, actor, action, tx_sig, timestamp, metadata). Exposed to auditor-readonly role. Exported in audit pack. | 2 days |
+| 🟥 P0 | **`/api/rpc` proxy** | Helius key becomes server-only (`HELIUS_RPC_ENDPOINT`). Browser calls `/api/rpc`, server forwards with auth. Rate-limited. | 1 day |
+| 🟧 P1 | **Rate limiting on mutating routes** | Upstash Ratelimit on `/api/mints/register`, `/api/ipfs/upload`, `/api/distributions/*`, `/api/reconciliation/*`. | 4 hours |
+| 🟧 P1 | **Monitoring + error reporting** | Sentry (or equivalent). Alert on API 5xx, Solana tx failures, KYC verification failures. | 2 hours |
+
+### 3.2 Identity & compliance
+
+| Priority | Item | Notes | Est. |
+|---|---|---|---|
+| 🟥 P0 | **Real KYC provider — Persona** | Replaces mock 3-step signup. Keep the wizard shape; swap step 2 for Persona Inquiry. Webhook → server flips user state to `kyc_approved`. | 1.5–2 weeks |
+| 🟥 P0 | **Accredited-investor verification** | Separate flow from KYC. Persona Accreditation module or VerifyInvestor.com. Required for Reg D 506(c) offerings. Surfaced as a pill on investor profile. | 1 week |
+| 🟧 P1 | **KYC portability / reusable attestation** | Investor KYC'd for issuer A can request transfer to issuer B without re-submitting docs. Server-side attestation with timestamp + expiry. | 3 days |
+
+### 3.3 Custody & authority governance
+
+| Priority | Item | Notes | Est. |
+|---|---|---|---|
+| 🟥 P0 | **Squads multisig required on mainnet** | Phase 2 shipped display + wizard option. Phase 3 makes multisig mandatory for any mint/freeze/permanent-delegate authority on mainnet. Enforced at `/api/mints/register` — rejects single-key authorities on mainnet. | 2 days |
+| 🟧 P1 | **Fireblocks integration documented** | Institutional path. No build — just docs + a verified onboarding runbook. | 4 hours |
+
+### 3.4 Mainnet deploy
+
+| Priority | Item | Notes | Est. |
+|---|---|---|---|
+| 🟥 P0 | **Helius paid-tier + mainnet RPC** | Developer plan ($49/mo). Allowed-domains configured. | 15 min |
+| 🟥 P0 | **Env var flip + fresh mints** | `NEXT_PUBLIC_SOLANA_NETWORK=mainnet-beta`. Code is chain-agnostic between devnet and mainnet (same Token-2022 program ID). | 2 days incl. QA |
+| 🟥 P0 | **Custom domain + SSL** | `atlas.cipherion.com` or similar. | 15 min |
+| 🟥 P0 | **Rotate leaked secrets** | Pinata JWT + Helius key were pasted into chat. Rotate before any production use. | 15 min |
+| 🟥 P0 | **Marketing copy audit** | Walk back "Live on Solana · Base · Avalanche · Ethereum" to reflect actual state. Flag any other aspirational claims. | 2 hours |
+
+---
+
+## 4. Phase 4 — Platform Scale (post-mainnet, 3–5 months)
+
+**Goal:** build the institutional platform that the $50–300M AUM segment actually needs — one that Securitize prices out of reach and legacy transfer agents cannot offer digitally. Sequencing is deliberate: Transfer Hook requires real KYC from Phase 3, EVM requires the chain abstraction from Phase 2.
+
+### 4.1 Compliance depth
+
+| Priority | Item | Notes | Est. |
+|---|---|---|---|
+| 🟧 P1 | **Transfer Hook program (Rust/Anchor)** | Whitelist-based compliance enforcement. Creation-wizard toggle. Integration into dashboard. Multisig governance of hook upgrade authority. | 6 weeks (program 2–4, integration + governance 2+) |
+| 🟧 P1 | **Investor caps via Transfer Hook** | Max holder count + max balance per wallet. Builds on hook. | +1 week |
+| 🟨 P2 | **Confidential Transfers (when re-enabled by Solana)** | Token-2022 ZK balance extension. Incompatible with Transfer Hooks — pick one. | 2 weeks when available |
+
+### 4.2 Distributions & lifecycle
+
+| Priority | Item | Notes | Est. |
+|---|---|---|---|
+| 🟧 P1 | **Waterfall distributions** | Preferred returns, hurdle rates, carried interest. Critical for PE / VC / real-estate funds (bigger segment than treasuries in the $50–300M band). | 1 week |
+| 🟧 P1 | **Capital calls** | Reverse of distributions: issuer calls capital from committed investors. Workflow + deadline + status tracking. | 1 week |
+| 🟧 P1 | **Production redemption queue** | Upgrade from current simulator. Approval queue before burn, NAV cutoff windows, real USDC payout. | 1–2 weeks |
+| 🟨 P2 | **DRIP (dividend reinvestment)** | Auto-reinvest distributions into additional tokens. Builds on pro-rata. | 3–5 days |
+
+### 4.3 Onboarding workflow
+
+| Priority | Item | Notes | Est. |
+|---|---|---|---|
+| 🟧 P1 | **Subscription agreement + e-sign** | Upload offering memo → investor reads → e-signs subscription (DocuSign embedded or Dropbox Sign) → wire instructions → issuer confirms wire → tokens mint. | 1–2 weeks |
+| 🟨 P2 | **Investor messaging** | "Send notice to all holders" with retained audit trail. Scheduled sends. Regulator-friendly comms log. | 1 week |
+
+### 4.4 Tax reporting
+
+| Priority | Item | Notes | Est. |
+|---|---|---|---|
+| 🟧 P1 | **1099-DIV / 1042-S / K-1 export surface** | CSV + PDF per investor. Scheduled generation at year-end. Feeds into audit pack. | 2 weeks |
+
+### 4.5 Secondary market
+
+| Priority | Item | Notes | Est. |
+|---|---|---|---|
+| 🟧 P1 | **OTC desk / RFQ** | Compliant peer-to-peer with pre-clearance. Request-for-quote between approved holders. | 2 weeks |
+| 🟨 P2 | **ATS integrations** | Per-ATS: Securitize Markets, tZERO, INX.one, Archax. Each has its own API + KYC portability story. | 4–6 weeks per ATS |
+| 🟨 P2 | **Compliant AMM pool on Raydium/Orca** | Transfer Hook validates both sides of swap. Depends on Phase 4.1 hook. | 2–3 weeks |
+
+### 4.6 EVM chain expansion
+
+Detailed research in `MULTICHAIN_RESEARCH_2026-04.md`. Recommended sequence: **Base → Polygon PoS → Avalanche C-Chain**. XRPL/Stellar deferred indefinitely until a named customer asks. Plume re-evaluated late 2026.
+
+| Priority | Item | Notes | Est. |
+|---|---|---|---|
+| 🟩 P3 | **Base + ERC-3643 / T-REX** | Depends on Phase 2 chain abstraction + Phase 3 backend + KYC (ONCHAINID needs real identity). `wagmi` + `viem` + T-REX SDK + ONCHAINID per investor. | 6–10 weeks |
+| 🟩 P3 | **Polygon PoS** | Same code path as Base. Biggest existing RWA market outside Ethereum. | 1–2 weeks after Base |
+| 🟩 P3 | **Avalanche C-Chain** | Subnet upsell documented. Weaker current TVL than Polygon. | 1–2 weeks after Polygon |
+| 🟩 P3 | **XRPL / Stellar** | Different programming model. Defer until issuer asks. | Re-evaluate annually |
+
+### 4.7 Ecosystem integrations
+
+| Priority | Item | Notes | Est. |
+|---|---|---|---|
+| 🟨 P2 | **Fund-admin integration** | SS&C, NAV Consulting, Aquila, Kriya. Each has a different SFTP/API. Unlock for the $50–300M band where outsourced admin is the norm. | 2 weeks per admin |
+| 🟨 P2 | **Issuer API** | RESTful + webhook. Cap table, distributions, compliance events. Depends on backend. | 2 weeks |
+| 🟨 P2 | **White-label** | Custom domain + branding per issuer workspace. | 1 week |
+
+---
+
+## 5. 💼 Business & Legal Track (parallel to Phase 3)
+
+**Not product work, but gated to public production. Start in parallel with Phase 3 code.**
+
+| Item | Lead time | Notes |
 |---|---|---|
-| ✅ Yield ticker | shipped | `YieldTicker` component reads `coupon_rate` / `annual_yield` / `apy` from metadata. Live per-second accrual computation, displayed at top of `/tokens/[mint]` and `/explorer/[mint]`. Replicates Franklin BENJI's 2025 differentiator. |
-| ✅ Asset-type icons | shipped | `TokenAvatar` component — uses Pinata image if present, falls back to lucide icon + tinted bg per asset type. Threaded through Explorer catalog, `/tokens` cards, and `/portfolio` rows. `usePortfolio` extended to read `image` and `asset_type` from metadata. |
-| ✅ Sample data seeder | shipped | `SeedDemoButton` on `/explorer` empty state, dialog walks through 5 realistic tokens (Treasury, REIT, private credit, gold, tech index). Real on-chain creation, auto-registered in catalog, ~$0.04 SOL total cost. Eligibility: devnet + connected + KYC approved. |
-| ✅ Distributions tab | shipped | New tab on `/tokens/[mint]`. **Mint-to-holder pro-rata** (BUIDL mechanic). Form: total amount + memo + allocation preview. Sequential signing with per-recipient progress UI. Per-mint history persisted to localStorage. Excludes treasury, frozen, and zero-balance accounts from pro-rata. |
+| Broker-dealer partner signed | 4–12 weeks | North Capital / Dalmore / Entoro. Cannot legally run securities issuance in the US without one (or registering yourself, which is 24+ months). |
+| Legal opinion on tokenization structure | 4–8 weeks | Outside counsel with tokenization experience. Required by institutional counterparties in diligence. |
+| Insurance carrier engagement | 6–10 weeks | E&O and cyber policies. Insurer will ask about multisig, custody, incident response. |
+| Fractional compliance officer or hire | 2–6 weeks | Required for SEC-registered offerings. Responsible for the compliance controls. |
+| ATS partnership (pick 1 to start) | 8–16 weeks | Securitize Markets, INX.one, tZERO, or SDX depending on jurisdiction. |
+| First pilot issuer signed | ongoing | Ideally a $50–200M AUM fund manager willing to run the first mainnet issuance. |
 
-## 3c. Phase 1G — Continued demo refinements (shipped 2026-04-20)
+---
 
-Picked up where Phase 1F left off. Same demo-first lens — building features that wow institutional buyers in a 30-min walkthrough without requiring real production infrastructure.
+## 6. ⚪️ Ops & Infrastructure (ongoing)
 
-| Item | Status | Notes |
+| Priority | Item | Notes |
 |---|---|---|
-| ✅ Migrate `/tokens` → Upstash KV | shipped | `useTokenList` now fetches from `/api/mints/list?creator=<wallet>` as primary source, localStorage as fallback. Cross-environment inconsistency resolved. |
-| ✅ Atomic redemption simulator | shipped | "Redeem at NAV" button on `/portfolio`. Dialog: amount → NAV calc → Permanent Delegate burn → mock USDC receipt → downloadable JSON receipt. |
-| ✅ NAV oracle display | shipped | `NavDisplay` component on `/tokens/[mint]` and `/explorer/[mint]`. Reads `nav_per_token` from metadata, shows per-token NAV + total AUM + issuer-attested badge. |
-| ✅ Distribution accrual record | shipped | Yield ticker now shows "Last paid Xh ago · Y tokens to Z holders" when distribution history exists for the mint. |
-| ✅ Sample-data seeder idempotency | shipped | Seeder checks catalog for existing entries by name+creator before minting. Skips duplicates. |
-| ✅ Demo reset (full) | shipped | KYC pill "Reset demo" now clears localStorage + flushes Upstash catalog via `POST /api/mints/flush`. Clean slate for meeting walkthroughs. |
-
-## 3d. Track A — Demo polish + holder view (shipped 2026-04-21)
-
-Off-site sprint. Shipped all 4 features from `TRACK_A_PROPOSAL.md` plus a landing page overhaul.
-
-| Item | Status | Notes |
-|---|---|---|
-| ✅ Compliance pre-trade simulator | shipped | Paste a wallet on the Compliance tab → instant green/red verdict. 5-rule engine: token paused, account frozen, investor onboarded, investor cap, distribution eligibility. `compliance-simulator.tsx` |
-| ✅ Audit pack (ZIP export) | shipped | One-click "Audit Pack" button in `/tokens/[mint]` header. ZIP contains `holders.csv`, `transactions.csv` (up to 500), `distributions.csv`, `token_metadata.json`, `README.txt`. Uses `jszip`. `audit-pack.ts` + `audit-pack-button.tsx` |
-| ✅ Reconciliation view | shipped | New "Reconciliation" tab on `/tokens/[mint]`. Upload CSV or paste from clipboard → side-by-side diff (match / balance mismatch / status mismatch / missing on-chain / missing from register). Direct "Onboard" action from diff. Export diff as CSV. Register persists to localStorage. `reconciliation-panel.tsx` + `reconcile.ts` |
-| ✅ Holder detail view | shipped | New `/portfolio/[mint]` route. Position summary (balance, % supply, status), YieldTicker with `balanceOverride` (accrual on *my* balance), NavDisplay, MyDistributions (filtered to connected wallet), Transfer + Redeem at NAV. `my-distributions.tsx` |
-| ✅ Explorer "View my position" link | shipped | `/explorer/[mint]` shows contextual "View my position" link when the connected wallet holds the token. |
-| ✅ Portfolio chevron links | shipped | Portfolio list rows now have ChevronRight linking to `/portfolio/[mint]`. |
-| ✅ Landing page overhaul | shipped | Five-pillar hover-expand section, "Book a walkthrough" CTA, full legal footer (4-column nav, Important Notice, Terms/Privacy/Contact bar). |
-| ⚠️ Cleanup | `pillars-test/page.tsx` | Dev scratch page (568 lines) — should be removed before production. |
+| ⚪️ Ops | Upstash KV provisioned | Done via Vercel Marketplace. `KV_REST_API_URL` / `KV_REST_API_TOKEN` auto-populated. |
+| ⚪️ Ops | Supabase provisioned (Phase 3) | Vercel Marketplace → Supabase. Env vars auto-populated. |
+| ⚪️ Ops | Helius allowed-domains | Production domain + `*.vercel.app` for previews. Empty for local dev. |
+| ⚪️ Ops | Custom domain + SSL | Phase 3. |
+| ⚪️ Ops | Rotate pasted secrets | Phase 3 blocker. |
+| ⚪️ Ops | Sentry monitoring | Phase 3. |
+| ⚪️ Ops | Status page | Post-mainnet. `status.atlas.cipherion.com`. |
 
 ---
 
-## 4. Revenue features (Phase 2)
+## 7. Technical debt & known test gaps
 
-| Priority | Item | Notes | Est. |
-|---|---|---|---|
-| ✅ Done | **Programmable distributions** | Pro-rata + equal-share mint-to-holder. Shipped Phase 1F. | shipped |
-| ✅ Done | **NAV oracle display** | Reads `nav_per_token` from metadata, shows per-token NAV + AUM. Shipped Phase 1G. | shipped |
-| ✅ Done | **Redemption simulator** | Investor-initiated burn via PermanentDelegate + NAV pricing + JSON receipt. Shipped Phase 1G. | shipped |
-| 🟧 P1 | Waterfall distributions | Preferred returns, hurdle rates, carried interest. Builds on existing pro-rata. | +1 week |
-| 🟧 P1 | Production redemption | Real USDC payout (not simulated receipt). Issuer approval queue before burn. | 1–2 weeks |
-| 🟨 P2 | DRIP (dividend reinvestment) | Auto-reinvest distributions into additional tokens. Builds on pro-rata. | 3–5 days |
-| 🟨 P2 | NAV oracle — on-chain updates | Issuer-pushed NAV updates via metadata field mutation. Currently static at creation. | 1 week |
+- No E2E verification of freeze/thaw of a specific holder mid-flow — unit tests only.
+- No E2E verification of force-burn via PermanentDelegate against a real holder.
+- Pause/unpause effect on in-flight transfers — untested.
+- Transfer-fee accrual to collector account — visible in receipt, accrual untested.
+- Large-holder cap table (>20 holders) — blocked by `getTokenLargestAccounts` 20-holder cap.
+- Wallet rotation (mint authority transfer) — supported by Solana, no UI yet (tracked in Phase 2.1).
+- Transaction history uses `getSignaturesForAddress` only (lightweight mode) — full parse via Helius Enhanced Transactions or Webhook → DB needed for production.
 
----
-
-## 5. Secondary market (Phase 2+)
-
-| Priority | Item | Notes | Est. |
-|---|---|---|---|
-| 🟧 P1 | **OTC desk / RFQ** | Compliant peer-to-peer transfer with pre-clearance. Request-for-quote system between approved holders. Feasible on top of current stack. | 2 weeks |
-| 🟨 P2 | ATS integration | Integration with Securitize Markets, tZERO, or Archax for regulated listing. Each ATS has its own API + KYC portability requirements. | 4–6 weeks per ATS |
-| 🟨 P2 | Compliant AMM pool | Permissioned liquidity pool on Raydium/Orca. Transfer Hook validates that both sides of every swap are approved. Depends on Phase 1B hook. | 2–3 weeks |
-| 🟩 P3 | Lending/borrowing | RWA tokens as collateral. Liquidation logic (auction to pre-approved liquidators) is the hard part. | 4+ weeks |
+Phase 2.4 test baseline covers the pure-function core. E2E gaps above move into Phase 3 Playwright expansion.
 
 ---
 
-## 5b. Multi-chain expansion (Phase 3)
+## 8. Decision points requiring user input
 
-Detailed research in `plans/MULTICHAIN_RESEARCH_2026-04.md`. Strategic premise (every named institutional issuer is multi-chain) is correct, but **explicitly gated behind the Phase 2 P0 blockers**: real KYC provider, server-side KYC state, mainnet deploy. Don't widen scope until we can serve real users on the chain we already have.
+Before Phase 3 starts, lock in:
 
-| Priority | Item | Notes | Est. |
-|---|---|---|---|
-| 🟩 P3 | **Add Base + ERC-3643 / T-REX** | Lowest-cost EVM chain, strongest US distribution story via Coinbase. Requires `wagmi`/`viem` wallet adapter, T-REX SDK integration, ONCHAINID per investor (real KYC dependency), chain-aware service layer. **Realistic estimate: 6–10 weeks for one EVM chain done right** — not the "ships fastest" framing in the research doc. | 6–10 weeks |
-| 🟩 P3 | Add Polygon PoS | Same code path as Base. Biggest existing RWA market outside Ethereum (BUIDL, Franklin BENJI). | 1–2 weeks (after Base) |
-| 🟩 P3 | Add Avalanche C-Chain | Subnet upsell motion documented. Smaller current TVL than Polygon but stronger institutional positioning. | 1–2 weeks (after Polygon) |
-| 🟩 P3 | Evaluate XRPL / Stellar | Different programming models, higher engineering lift. Defer until specific issuer asks. | Re-evaluate annually |
-| 🟩 P3 | Re-evaluate Plume | Could subsume Atlas's compliance-wizard layer. Needs a strategic call before committing. | Re-evaluate late 2026 |
-
-**Marketing claim discipline:** Landing page currently claims "Live on Solana · Base · Avalanche · Ethereum" — this was a deliberate user decision for positioning. The actual product is Solana-only. EVM chains are aspirational until at least one ships end-to-end.
+1. **Backend platform:** Supabase (recommended — auth + Postgres + RLS + Vercel one-click) vs Neon+custom auth vs AWS Cognito+RDS.
+2. **KYC vendor:** Persona (recommended — best mid-market pricing, US/EU coverage, accreditation module), Synaps (crypto-native), or Civic (third).
+3. **Broker-dealer partner:** North Capital, Dalmore, Entoro, or register in-house. Start outreach now.
+4. **Custody default:** Fireblocks (institutional) vs Squads (prosumer) as the "recommended" path in our onboarding.
+5. **EVM standard lock-in:** ERC-3643 (recommended — $32B issued, open standard) vs ERC-1400 (legacy) vs ERC-7518/DyCIST (emerging).
+6. **First pilot issuer profile:** asset class, jurisdiction, AUM. Drives Phase 4 prioritization (waterfall vs treasury-only).
 
 ---
 
-## 6. Confidentiality & advanced features (Phase 3)
+## 9. Next-session priorities
 
-| Priority | Item | Notes | Est. |
-|---|---|---|---|
-| 🟩 P3 | Confidential Transfers | Token-2022 extension — ElGamal-encrypted balances with ZK proofs. Currently paused by Solana for security audit; re-enable expected. Incompatible with Transfer Hooks, so pick one. | 2 weeks (when available) |
-| 🟩 P3 | Fund-of-funds / basket tokens | Tokenized index products. Deep infrastructure: NAV calculation, rebalancing, compliance inheritance. | 6+ weeks |
-| 🟩 P3 | Cross-chain bridge support | Bridge RWA tokens to EVM chains for broader composability. Major compliance risk — only compliant bridges (LayerZero + whitelist). | 4+ weeks |
+**Phase 2.B (audit-trail durability) is shipped.** All write routes authenticated, extension detection fixed, error responses sanitized. Ready for production testing.
 
----
+**Remaining Phase 2 items, in priority order:**
 
-## 7. Operations & infrastructure
+1. 🟧 **Production test pass** — run the full demo flow on devnet, verify all shipped features including Phase 2.B server persistence, compliance simulator with pause-state, defaultAccountState detection, mints/register auth.
+2. 🟧 **Pure-function test baseline (Vitest)** — `reconcile.ts`, `audit-pack.ts`, compliance-simulator rules, `computeAllocations`. Highest-leverage quality gate.
+3. 🟧 **Squads multisig option in creation wizard** — institutional posture for pitch meetings.
+4. 🟧 **Chain Advisor flow (`/chains/advisor`)** — biggest narrative unlock for pilot meetings.
+5. 🟧 **Chain abstraction refactor** — unblocks Phase 4 Base work.
+6. 🟧 **`DEMO_SCRIPT.md` refresh** — current script predates Phase 2.B wallet-auth flows.
+7. 🟨 Console.log cleanup (21 occurrences → `debug()` helper).
 
-| Priority | Item | Notes | Est. |
-|---|---|---|---|
-| ⚪️ Ops | Helius allowed-domains (production) | Restrict the Helius RPC key to your prod domain + `*.vercel.app` for previews. Leave empty for local dev (Helius rejects `localhost`). | 5 min |
-| ⚪️ Ops | Upstash KV provisioned on Vercel | Provisioned via Marketplace → Upstash. `KV_REST_API_URL` / `KV_REST_API_TOKEN` auto-populated. | done if live |
-| ⚪️ Ops | Custom domain + SSL | Point `tokenize.cipherion.com` (or similar) at Vercel. | 15 min |
-| ⚪️ Ops | Rotate secrets | Pinata JWT and Helius key were pasted into Claude conversation history at various points during the build. Rotate both before public launch. | 15 min |
-| ⚪️ Ops | Monitoring / alerting | No APM or error reporting configured. Add Sentry or similar before real users. | 2 hours |
-| ⚪️ Ops | Rate limiting on API routes | `/api/mints/register` is currently unauthenticated. A malicious actor could spam registrations (the on-chain verification prevents spoofed creators, but not garbage mint-attempts). Add Upstash Ratelimit or similar. | 2 hours |
+**Starting Phase 3?** Read `PRE_PRODUCTION_CHECKLIST.md` first.
 
----
-
-## 8. Documentation / housekeeping
-
-| Priority | Item | Notes | Est. |
-|---|---|---|---|
-| 🟨 P2 | Design system reference doc | Consolidate the accumulated primitives (AtlasLogo/Wordmark, PageHeader, MarketingNav/Footer, MetaStat, Pillar, Row, CostCard, RequireKyc, KycPill) into `plans/DESIGN_SYSTEM.md`. Would make onboarding new agents faster. | 2 hours |
-| 🟨 P2 | CLAUDE.md / AGENTS.md refresh | `cipherion-tokenize/CLAUDE.md` and `AGENTS.md` reference old Next.js behavior and are pre-build. Refresh to point at current patterns + common pitfalls. | 1 hour |
-| 🟨 P2 | Demo scenario walkthrough | Scripted 3-wallet demo (Issuer, Investor A, Investor B) from the original proposal doc (Section 9). Useful for counterparty presentations. Could live as a `plans/DEMO_SCRIPT.md`. | 2 hours |
-| 🟩 P3 | API docs for `/api/mints/*` | If we open the catalog to external issuers (white-label / third-party tokenizers), the register/list endpoints need public docs + auth. | 4 hours |
-
----
-
-## 9. Known test gaps
-
-These aren't tasks per se — they're things that work but weren't explicitly verified end-to-end in the current build.
-
-- Compliance actions on a held account — freeze/thaw of a specific holder mid-flow. Unit tests pass, E2E incomplete.
-- Force-burn via Permanent Delegate on a real holder's balance. Unit tests pass, E2E incomplete.
-- Pause/unpause effect on in-flight transfers.
-- Transfer with fee config — fee accrual to collector account. Visible in receipt, not verified accrual.
-- Wallet rotation (mint authority transfer). Supported in Solana but no UI currently.
-- Large-holder cap table (>20 holders) — current limit of `getTokenLargestAccounts` means untested beyond demo scale.
-
----
-
-## Priorities for the next session
-
-**Track B — Feature hardening & UX gaps:**
-
-1. **🟨 P2** Remove `pillars-test/page.tsx` dev scratch page before production.
-2. **🟨 P2** Multi-viewport manual QA pass (iPhone SE 375, iPhone 14 393, iPad Mini 768, iPad Pro 1024, desktop).
-3. **🟨 P2** Demo script update — `DEMO_SCRIPT.md` needs sections on compliance simulator, audit pack, reconciliation, and holder view.
-4. **🟨 P2** Design system reference doc — consolidate accumulated primitives into `plans/DESIGN_SYSTEM.md`.
-
-**Track C — Multichain marketing components** (Phase B — when Base integration begins):
-
-5. **ChainBadge + ChainSelector** shared components
-6. **DualStandardTable** for regulation page (Token-2022 vs ERC-3643 mapping)
-7. **ChainCostTable** replacing Solana-only cost table on `/institutions`
-8. New `/chains` route with chain comparison deep-dive
-
-**Track D — Production readiness** (Phase 2 P0 blockers):
-
-9. **🟥 P0** Server-side KYC state — move off localStorage. Blocks taking any real user.
-10. **🟥 P0** Real KYC provider integration (Civic Pass / Synaps / Persona). Blocks any regulated issuer.
-11. **🟥 P0** Mainnet deploy — needs custody plan (Squads / Fireblocks) + legal review.
-12. **🟧 P1** Transfer Hook program (Rust/Anchor) — unlocks compliant DEX listings; biggest unshipped product differentiator.
-13. **🟧 P1** Helius key behind `/api/rpc` proxy — zero browser-side key exposure.
-
-All tracks are independent. Pick a direction at the start of each session.
+**Business track?** Start broker-dealer outreach and KYC-vendor demos in parallel — both have 4–12 week lead times.
