@@ -628,13 +628,14 @@ export default function PredictionsPage() {
               }}
             >
               {D.t3Eras.map((e, i) => {
-                const isLatest = i === 2;
+                const isLatest = i === D.t3Eras.length - 1;
+                const phase = ["Phase I", "Phase II", "Phase III", "Phase IV", "Phase V"][i] ?? `Phase ${i + 1}`;
                 return (
                   <div
-                    key={e.era}
+                    key={i}
                     style={{ background: isLatest ? C.s3 : C.s1, padding: 22 }}
                   >
-                    <Eyebrow style={{ marginBottom: 6 }}>{e.era}</Eyebrow>
+                    <Eyebrow style={{ marginBottom: 6 }}>{phase}</Eyebrow>
                     <Mono size={11} color={C.subtle}>
                       {e.span}
                     </Mono>
@@ -661,7 +662,7 @@ export default function PredictionsPage() {
                         </Mono>
                       </div>
                       <div style={{ textAlign: "right" }}>
-                        <Eyebrow style={{ fontSize: 9 }}>Gates</Eyebrow>
+                        <Eyebrow style={{ fontSize: 9 }}>Gates active</Eyebrow>
                         <Mono size={13} color={C.fg} weight={500}>
                           {e.gates}
                         </Mono>
@@ -1119,7 +1120,7 @@ export default function PredictionsPage() {
         <div className="border-t border-[#21262d]">
           <div className="mx-auto w-full max-w-[1280px] px-5 md:px-8 py-5">
             <Mono size={11} color={C.subtle} style={{ display: "block", lineHeight: 1.7 }}>
-              Signal generation parameters, risk filter conditions, and data feed weightings are proprietary and are not disclosed publicly. Performance statistics reflect live and paper-traded production results.
+              Signal generation parameters, risk filter conditions, and data feed weightings are proprietary and are not disclosed publicly. Performance statistics reflect live production results.
             </Mono>
           </div>
         </div>
