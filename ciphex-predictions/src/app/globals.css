@@ -182,6 +182,251 @@
 }
 
 /* ============================================================
+   Product switcher bottom sheet (mobile)
+   ============================================================ */
+.pss-bento-trigger {
+  appearance: none;
+  border: 1px solid #30363d;
+  background: #1c232c;
+  border-radius: 8px;
+  padding: 7px;
+  cursor: pointer;
+  display: inline-grid;
+  grid-template-columns: repeat(3, 4px);
+  grid-template-rows: repeat(3, 4px);
+  gap: 2.5px;
+  transition: border-color 180ms, background 180ms;
+  -webkit-tap-highlight-color: transparent;
+}
+.pss-bento-trigger:active {
+  background: #21262d;
+  border-color: #8b949e;
+}
+.pss-bento-trigger i {
+  display: block;
+  width: 4px; height: 4px;
+  border-radius: 1px;
+  background: #8b949e;
+  transition: background 180ms;
+}
+.pss-bento-trigger:active i { background: #3fb950; }
+
+.pss-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 280ms cubic-bezier(0.76, 0, 0.24, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+.pss-backdrop.pss-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.pss-sheet {
+  position: fixed;
+  left: 0; right: 0;
+  bottom: 0;
+  z-index: 101;
+  background: #161b22;
+  border-top: 1px solid #30363d;
+  border-radius: 16px 16px 0 0;
+  padding: 0 0 env(safe-area-inset-bottom, 16px);
+  transform: translateY(100%);
+  transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 480px;
+  margin: 0 auto;
+  box-shadow: 0 -8px 40px rgba(0,0,0,0.5);
+  will-change: transform;
+  touch-action: none;
+}
+.pss-sheet.pss-open {
+  transform: translateY(0);
+}
+
+.pss-handle {
+  display: flex;
+  justify-content: center;
+  padding: 10px 0 6px;
+  cursor: grab;
+}
+.pss-handle::after {
+  content: "";
+  width: 36px;
+  height: 4px;
+  border-radius: 999px;
+  background: #30363d;
+}
+
+.pss-header {
+  padding: 4px 20px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.pss-title {
+  font-family: ui-monospace, "Geist Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #8b949e;
+}
+.pss-close {
+  appearance: none;
+  border: none;
+  background: none;
+  color: #8b949e;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: inline-flex;
+  transition: color 120ms, background 120ms;
+  -webkit-tap-highlight-color: transparent;
+}
+.pss-close:active {
+  background: #21262d;
+  color: #f0f6fc;
+}
+
+.pss-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 0 16px 16px;
+}
+
+.pss-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #21262d;
+  background: #1c232c;
+  text-decoration: none;
+  color: #f0f6fc;
+  cursor: pointer;
+  transition: transform 200ms cubic-bezier(0.22, 1.4, 0.36, 1), border-color 160ms, background 160ms;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+}
+.pss-card:active {
+  transform: scale(0.97);
+  background: color-mix(in oklab, #3fb950 6%, #1c232c);
+  border-color: color-mix(in oklab, #3fb950 40%, #30363d);
+}
+.pss-current {
+  border-color: color-mix(in oklab, #3fb950 50%, #30363d);
+  background: color-mix(in oklab, #3fb950 5%, #1c232c);
+}
+.pss-card-icon {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  border: 1px solid #21262d;
+  background: #161b22;
+  display: grid;
+  place-items: center;
+}
+.pss-card-label {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+.pss-card-desc {
+  font-size: 11px;
+  color: #8b949e;
+  line-height: 1.4;
+}
+.pss-current-badge {
+  position: absolute;
+  top: 10px; right: 10px;
+  font-family: ui-monospace, "Geist Mono", monospace;
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #3fb950;
+  background: rgba(63,185,80,0.12);
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+
+.pss-soon {
+  opacity: 0.5;
+  cursor: default;
+}
+.pss-soon:active {
+  transform: none;
+  background: #1c232c;
+  border-color: #21262d;
+}
+.pss-soon-badge {
+  font-family: ui-monospace, "Geist Mono", monospace;
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #6e7681;
+  background: #21262d;
+  padding: 2px 6px;
+  border-radius: 999px;
+  align-self: flex-start;
+}
+
+.pss-footer {
+  padding: 12px 16px 4px;
+  border-top: 1px solid #21262d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.pss-footer span {
+  font-family: ui-monospace, "Geist Mono", monospace;
+  font-size: 10px;
+  color: #6e7681;
+  letter-spacing: 0.06em;
+}
+.pss-cpx {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px; height: 14px;
+  border-radius: 3px;
+  background: #3fb950;
+  color: #000 !important;
+  font-size: 8px !important;
+  font-weight: 700;
+}
+
+/* Card entrance stagger */
+.pss-sheet.pss-open .pss-card {
+  animation: pss-card-in 400ms cubic-bezier(0.22, 1.4, 0.36, 1) backwards;
+}
+.pss-sheet.pss-open .pss-card:nth-child(1) { animation-delay: 40ms; }
+.pss-sheet.pss-open .pss-card:nth-child(2) { animation-delay: 80ms; }
+.pss-sheet.pss-open .pss-card:nth-child(3) { animation-delay: 120ms; }
+.pss-sheet.pss-open .pss-card:nth-child(4) { animation-delay: 160ms; }
+@keyframes pss-card-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.pss-sheet.pss-open .pss-soon {
+  animation-name: pss-card-in-soon;
+}
+@keyframes pss-card-in-soon {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to   { opacity: 0.5; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pss-sheet { transition-duration: 120ms; }
+  .pss-backdrop { transition-duration: 120ms; }
+  .pss-sheet.pss-open .pss-card { animation: none; }
+}
+
+/* ============================================================
    Abacus product switcher — cross-fade morph wordmark
    See: docs/wordmark-hover-demo.html (variant 04)
    ============================================================ */

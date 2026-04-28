@@ -14,6 +14,7 @@ import {
 import { DataSourceToggle, DataSource } from './DataSourceToggle';
 import { AssetSelector } from './AssetSelector';
 import { AbacusSwitcher } from '@/components/shared/abacus-switcher';
+import { ProductSwitcherSheet } from '@/components/shared/product-switcher-sheet';
 import type { MarketStatus } from '@/hooks/useMarketStatus';
 
 interface HeaderProps {
@@ -108,6 +109,7 @@ export function Header({
     <header className={cn("bg-[#161b22] px-5 py-3 items-center justify-between border-b border-[#30363d]", className)}>
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2.5">
+          <ProductSwitcherSheet current="ams" />
           <h1 className="m-0">
             <AbacusSwitcher current="ams" showLogo={false} compact />
           </h1>

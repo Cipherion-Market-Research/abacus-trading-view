@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Abacus — Mobile Product Switcher Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:        #0a0e13;
+    --bg-2:      #0d1117;
+    --panel:     #161b22;
+    --panel-2:   #1c232c;
+    --line:      #30363d;
+    --line-soft: #21262d;
+    --text:      #f0f6fc;
+    --muted:     #8b949e;
+    --subtle:    #6e7681;
+    --green:     #3fb950;
+    --green-2:   #238636;
+    --blue:      #58a6ff;
+
+    --ease-spring: cubic-bezier(0.22, 1.4, 0.36, 1);
+    --ease-quart:  cubic-bezier(0.76, 0, 0.24, 1);
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* ========== Demo chrome ========== */
+  .demo-frame {
+    max-width: 420px;
+    margin: 0 auto;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--line-soft);
+    border-right: 1px solid var(--line-soft);
+    position: relative;
+    overflow: hidden;
+  }
+  .demo-label {
+    text-align: center;
+    padding: 10px;
+    font-family: "Geist Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--subtle);
+    background: var(--bg-2);
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  /* ========== App header ========== */
+  .app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--panel);
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--line);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .wordmark {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: var(--text);
+  }
+  .wordmark svg { flex-shrink: 0; }
+  .wordmark-text {
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: -0.01em;
+  }
+  .wordmark .by {
+    font-family: "Geist Mono", monospace;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-left: 8px;
+    margin-left: 8px;
+    border-left: 1px solid var(--line);
+  }
+  .live-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: linear-gradient(135deg, #238636, #2ea043);
+    color: white;
+  }
+  .live-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: white;
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* ========== Bento trigger button ========== */
+  .bento-trigger {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: var(--panel-2);
+    border-radius: 8px;
+    padding: 7px;
+    cursor: pointer;
+    display: inline-grid;
+    grid-template-columns: repeat(3, 4px);
+    grid-template-rows: repeat(3, 4px);
+    gap: 2.5px;
+    transition: border-color 180ms, background 180ms;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bento-trigger:active {
+    background: var(--line-soft);
+    border-color: var(--muted);
+  }
+  .bento-trigger i {
+    display: block;
+    width: 4px; height: 4px;
+    border-radius: 1px;
+    background: var(--muted);
+    transition: background 180ms;
+  }
+  .bento-trigger:active i { background: var(--green); }
+
+  /* ========== Fake page content ========== */
+  .page-content {
+    flex: 1;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .page-content .eyebrow {
+    font-family: "Geist Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .page-content h1 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+  }
+  .page-content p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+  .fake-card {
+    background: var(--panel);
+    border: 1px solid var(--line-soft);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .fake-bar {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--line-soft);
+    margin-bottom: 10px;
+  }
+  .fake-bar:last-child { margin-bottom: 0; width: 60%; }
+
+  /* ========== Bottom sheet backdrop ========== */
+  .sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 280ms var(--ease-quart);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .sheet-backdrop.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* ========== Bottom sheet ========== */
+  .sheet {
+    position: fixed;
+    left: 0; right: 0;
+    bottom: 0;
+    z-index: 101;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    border-radius: 16px 16px 0 0;
+    padding: 0 0 env(safe-area-inset-bottom, 16px);
+    transform: translateY(100%);
+    transition: transform 380ms var(--ease-out-expo);
+    max-width: 420px;
+    margin: 0 auto;
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.5);
+    will-change: transform;
+    touch-action: none;
+  }
+  .sheet.open {
+    transform: translateY(0);
+  }
+
+  /* Drag handle */
+  .sheet-handle {
+    display: flex;
+    justify-content: center;
+    padding: 10px 0 6px;
+    cursor: grab;
+  }
+  .sheet-handle::after {
+    content: "";
+    width: 36px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--line);
+  }
+
+  /* Sheet content */
+  .sheet-header {
+    padding: 4px 20px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .sheet-title {
+    font-family: "Geist Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .sheet-close {
+    appearance: none;
+    border: none;
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    display: inline-flex;
+    transition: color 120ms, background 120ms;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .sheet-close:active {
+    background: var(--line-soft);
+    color: var(--text);
+  }
+
+  /* Product cards grid */
+  .sheet-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 0 16px 16px;
+  }
+  .product-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid var(--line-soft);
+    background: var(--panel-2);
+    text-decoration: none;
+    color: var(--text);
+    cursor: pointer;
+    transition: transform 200ms var(--ease-spring), border-color 160ms, background 160ms;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+  }
+  .product-card:active {
+    transform: scale(0.97);
+    background: color-mix(in oklab, var(--green) 6%, var(--panel-2));
+    border-color: color-mix(in oklab, var(--green) 40%, var(--line));
+  }
+  .product-card.current {
+    border-color: color-mix(in oklab, var(--green) 50%, var(--line));
+    background: color-mix(in oklab, var(--green) 5%, var(--panel-2));
+  }
+  .product-card .icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--line-soft);
+    background: var(--panel);
+    display: grid;
+    place-items: center;
+  }
+  .product-card .label {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+  }
+  .product-card .desc {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .product-card .current-badge {
+    position: absolute;
+    top: 10px; right: 10px;
+    font-family: "Geist Mono", monospace;
+    font-size: 8px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--green);
+    background: rgba(63,185,80,0.12);
+    padding: 2px 6px;
+    border-radius: 999px;
+  }
+
+  /* Coming soon cards */
+  .product-card.soon {
+    opacity: 0.5;
+    cursor: default;
+  }
+  .product-card.soon:active {
+    transform: none;
+    background: var(--panel-2);
+    border-color: var(--line-soft);
+  }
+  .soon-badge {
+    font-family: "Geist Mono", monospace;
+    font-size: 8px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--subtle);
+    background: var(--line-soft);
+    padding: 2px 6px;
+    border-radius: 999px;
+    align-self: flex-start;
+  }
+
+  /* Sheet footer */
+  .sheet-footer {
+    padding: 12px 16px 4px;
+    border-top: 1px solid var(--line-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .sheet-footer span {
+    font-family: "Geist Mono", monospace;
+    font-size: 10px;
+    color: var(--subtle);
+    letter-spacing: 0.06em;
+  }
+  .sheet-footer .cpx {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px; height: 14px;
+    border-radius: 3px;
+    background: var(--green);
+    color: #000;
+    font-size: 8px;
+    font-weight: 700;
+    font-family: "Geist Mono", monospace;
+  }
+
+  /* ========== Entrance stagger on cards ========== */
+  .sheet.open .product-card {
+    animation: card-in 400ms var(--ease-spring) backwards;
+  }
+  .sheet.open .product-card:nth-child(1) { animation-delay: 40ms; }
+  .sheet.open .product-card:nth-child(2) { animation-delay: 80ms; }
+  .sheet.open .product-card:nth-child(3) { animation-delay: 120ms; }
+  .sheet.open .product-card:nth-child(4) { animation-delay: 160ms; }
+  @keyframes card-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .product-card.soon .card-in { animation: none; }
+  .sheet.open .product-card.soon {
+    animation: card-in-soon 400ms var(--ease-spring) backwards;
+  }
+  @keyframes card-in-soon {
+    from { opacity: 0; transform: translateY(12px) scale(0.96); }
+    to   { opacity: 0.5; transform: translateY(0) scale(1); }
+  }
+
+  /* ========== Reduced motion ========== */
+  @media (prefers-reduced-motion: reduce) {
+    .sheet { transition-duration: 120ms; }
+    .sheet-backdrop { transition-duration: 120ms; }
+    .sheet.open .product-card { animation: none; }
+    .live-dot { animation: none; }
+  }
+
+  /* ========== Demo instructions ========== */
+  .demo-instructions {
+    position: fixed;
+    bottom: 20px; left: 50%;
+    transform: translateX(-50%);
+    font-family: "Geist Mono", monospace;
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 8px 16px;
+    border-radius: 999px;
+    z-index: 5;
+    pointer-events: none;
+    opacity: 0.8;
+    max-width: 340px;
+    text-align: center;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<div class="demo-frame">
+  <div class="demo-label">Mobile product switcher · 420px frame</div>
+
+  <!-- App header -->
+  <header class="app-header">
+    <div class="header-left">
+      <a href="#" class="wordmark">
+        <svg width="22" height="22" viewBox="0 0 56 56" fill="none" aria-hidden="true">
+          <rect x="8" y="8" width="40" height="40" rx="10" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
+          <path d="M8 28 Q28 20 48 28" stroke="#3fb950" stroke-width="2" fill="none"/>
+          <path d="M8 36 Q28 30 48 36" stroke="#3fb950" stroke-width="2" stroke-opacity="0.6" fill="none"/>
+          <path d="M8 44 Q28 40 48 44" stroke="#3fb950" stroke-width="2" stroke-opacity="0.3" fill="none"/>
+          <circle cx="28" cy="20" r="3" fill="#3fb950"/>
+        </svg>
+        <span>
+          <span class="wordmark-text">Abacus AMS</span>
+          <span class="by">by CipheX</span>
+        </span>
+      </a>
+      <span class="live-pill"><span class="live-dot"></span> Live</span>
+    </div>
+    <button class="bento-trigger" id="bento-btn" aria-label="Switch product" aria-haspopup="dialog">
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    </button>
+  </header>
+
+  <!-- Fake page content -->
+  <div class="page-content">
+    <div class="eyebrow">Abacus AMS · Asset Management</div>
+    <h1>Real-time charting with multi-venue price aggregation</h1>
+    <p>Tap the grid icon in the header to open the product switcher bottom sheet. Swipe down on the handle or tap the backdrop to dismiss.</p>
+    <div class="fake-card">
+      <div class="fake-bar" style="width:90%"></div>
+      <div class="fake-bar" style="width:70%"></div>
+      <div class="fake-bar" style="width:80%"></div>
+      <div class="fake-bar"></div>
+    </div>
+    <div class="fake-card">
+      <div class="fake-bar" style="width:85%"></div>
+      <div class="fake-bar" style="width:55%"></div>
+      <div class="fake-bar"></div>
+    </div>
+    <div class="fake-card">
+      <div class="fake-bar" style="width:95%"></div>
+      <div class="fake-bar" style="width:75%"></div>
+      <div class="fake-bar" style="width:65%"></div>
+      <div class="fake-bar"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Backdrop -->
+<div class="sheet-backdrop" id="backdrop"></div>
+
+<!-- Bottom sheet -->
+<div class="sheet" id="sheet" role="dialog" aria-label="Abacus apps">
+  <div class="sheet-handle" id="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title">Abacus apps</span>
+    <button class="sheet-close" id="sheet-close" aria-label="Close">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
+  <div class="sheet-grid">
+    <!-- AMS (current) -->
+    <a href="#" class="product-card current">
+      <span class="current-badge">Current</span>
+      <span class="icon">
+        <svg width="18" height="18" viewBox="0 0 56 56" fill="none">
+          <rect x="8" y="8" width="40" height="40" rx="10" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
+          <path d="M8 28 Q28 20 48 28" stroke="#3fb950" stroke-width="2" fill="none"/>
+          <path d="M8 36 Q28 30 48 36" stroke="#3fb950" stroke-width="2" stroke-opacity="0.6" fill="none"/>
+          <circle cx="28" cy="20" r="3" fill="#3fb950"/>
+        </svg>
+      </span>
+      <span class="label">Abacus AMS</span>
+      <span class="desc">Real-time charting & multi-venue aggregation</span>
+    </a>
+
+    <!-- Predictions -->
+    <a href="#" class="product-card">
+      <span class="icon">
+        <svg width="18" height="18" viewBox="0 0 56 56" fill="none">
+          <rect x="8" y="8" width="40" height="40" rx="10" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
+          <path d="M8 28 Q28 20 48 28" stroke="#58a6ff" stroke-width="2" fill="none"/>
+          <path d="M8 36 Q28 30 48 36" stroke="#58a6ff" stroke-width="2" stroke-opacity="0.6" fill="none"/>
+          <circle cx="28" cy="20" r="3" fill="#58a6ff"/>
+        </svg>
+      </span>
+      <span class="label">Predictions</span>
+      <span class="desc">Forecasting engine & signal performance</span>
+    </a>
+
+    <!-- Atlas (coming soon) -->
+    <a class="product-card soon">
+      <span class="icon" style="opacity:0.5">
+        <svg width="18" height="18" viewBox="4 4 48 48" fill="none">
+          <circle cx="28" cy="28" r="18" stroke="#30363d" stroke-width="1.2"/>
+          <circle cx="28" cy="28" r="10" stroke="#30363d" stroke-width="1.2"/>
+          <circle cx="28" cy="28" r="2.5" fill="#6e7681"/>
+        </svg>
+      </span>
+      <span class="label">Atlas</span>
+      <span class="desc">RWA tokenization & compliance</span>
+      <span class="soon-badge">Coming soon</span>
+    </a>
+
+    <!-- Markets (coming soon) -->
+    <a class="product-card soon">
+      <span class="icon" style="opacity:0.5">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6e7681" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+      </span>
+      <span class="label">Markets</span>
+      <span class="desc">Cross-venue order routing</span>
+      <span class="soon-badge">Coming soon</span>
+    </a>
+  </div>
+
+  <div class="sheet-footer">
+    <span class="cpx">X</span>
+    <span>CipheX Capital Ecosystem</span>
+  </div>
+</div>
+
+<div class="demo-instructions">
+  Tap ⊞ grid icon → bottom sheet opens<br/>
+  Swipe handle down or tap backdrop → dismiss
+</div>
+
+<script>
+  const sheet = document.getElementById('sheet');
+  const backdrop = document.getElementById('backdrop');
+  const bentoBtn = document.getElementById('bento-btn');
+  const closeBtn = document.getElementById('sheet-close');
+  const handle = document.getElementById('sheet-handle');
+
+  function openSheet() {
+    sheet.classList.add('open');
+    backdrop.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeSheet() {
+    sheet.classList.remove('open');
+    backdrop.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  bentoBtn.addEventListener('click', openSheet);
+  closeBtn.addEventListener('click', closeSheet);
+  backdrop.addEventListener('click', closeSheet);
+
+  // Swipe-to-dismiss on the sheet
+  let startY = 0;
+  let currentY = 0;
+  let isDragging = false;
+
+  function onTouchStart(e) {
+    if (!sheet.classList.contains('open')) return;
+    startY = e.touches[0].clientY;
+    currentY = startY;
+    isDragging = true;
+    sheet.style.transition = 'none';
+  }
+
+  function onTouchMove(e) {
+    if (!isDragging) return;
+    currentY = e.touches[0].clientY;
+    const dy = Math.max(0, currentY - startY);
+    sheet.style.transform = `translateY(${dy}px)`;
+    // Fade backdrop proportionally
+    const progress = Math.min(dy / 200, 1);
+    backdrop.style.opacity = 1 - progress * 0.7;
+  }
+
+  function onTouchEnd() {
+    if (!isDragging) return;
+    isDragging = false;
+    sheet.style.transition = '';
+    backdrop.style.opacity = '';
+    const dy = currentY - startY;
+    if (dy > 80) {
+      closeSheet();
+    } else {
+      sheet.style.transform = '';
+      sheet.classList.add('open');
+    }
+  }
+
+  sheet.addEventListener('touchstart', onTouchStart, { passive: true });
+  sheet.addEventListener('touchmove', onTouchMove, { passive: true });
+  sheet.addEventListener('touchend', onTouchEnd);
+
+  // Keyboard: Escape to close
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && sheet.classList.contains('open')) closeSheet();
+  });
+
+  // Product card click feedback
+  for (const card of document.querySelectorAll('.product-card:not(.soon)')) {
+    card.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (card.classList.contains('current')) {
+        closeSheet();
+        return;
+      }
+      card.style.background = 'color-mix(in oklab, var(--green) 12%, var(--panel-2))';
+      card.style.borderColor = 'var(--green)';
+      setTimeout(() => {
+        closeSheet();
+        // In real app: navigate
+        setTimeout(() => {
+          card.style.background = '';
+          card.style.borderColor = '';
+        }, 400);
+      }, 200);
+    });
+  }
+</script>
+</body>
+</html>

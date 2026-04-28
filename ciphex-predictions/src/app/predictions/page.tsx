@@ -15,6 +15,7 @@ import {
 import { DashboardPreview } from "./dashboard-preview";
 import { AbacusWordmark } from "@/components/shared/abacus-logo";
 import { AbacusSwitcher } from "@/components/shared/abacus-switcher";
+import { ProductSwitcherSheet } from "@/components/shared/product-switcher-sheet";
 import { usePredStats } from "./use-pred-stats";
 import { SpringCounter } from "./spring-counter";
 
@@ -78,6 +79,7 @@ export default function PredictionsPage() {
       {/* ─── HEADER — mirrors Abacus AMS main repo: bg #161b22, px-5 py-3 ─── */}
       <header className="sticky top-0 z-10 flex items-center justify-between bg-[#161b22] px-5 py-3 border-b border-[#30363d]">
         <div className="flex items-center gap-2.5">
+          <ProductSwitcherSheet current="predictions" />
           <h1 className="m-0">
             <AbacusSwitcher current="predictions" showLogo={false} compact />
           </h1>
