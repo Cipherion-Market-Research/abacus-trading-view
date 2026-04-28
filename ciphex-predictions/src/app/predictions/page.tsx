@@ -159,7 +159,7 @@ export default function PredictionsPage() {
           }}
         >
           <div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 4, filter: "drop-shadow(0 0 24px rgba(88,166,255,0.28))" }}>
+            <div className="pred-hero-num" style={{ display: "flex", alignItems: "baseline", gap: 4, filter: "drop-shadow(0 0 24px rgba(88,166,255,0.28))" }}>
               <SpringCounter
                 from={85}
                 to={extremeTier?.wr ?? 96.3}

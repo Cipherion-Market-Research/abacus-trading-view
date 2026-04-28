@@ -336,11 +336,11 @@
     gap: 20px !important;
   }
 
-  /* Hero number scaling */
-  .pred-grid-hero [style*="font-size"] {
+  /* Hero number + % sign only */
+  .pred-hero-num > span:first-child {
     font-size: 72px !important;
   }
-  .pred-grid-hero [style*="font-size: 64"] {
+  .pred-hero-num > span:last-child {
     font-size: 36px !important;
   }
 
@@ -396,10 +396,10 @@
   .pred-grid-bands {
     grid-template-columns: 1fr !important;
   }
-  .pred-grid-hero [style*="font-size"] {
+  .pred-hero-num > span:first-child {
     font-size: 56px !important;
   }
-  .pred-grid-hero [style*="font-size: 64"] {
+  .pred-hero-num > span:last-child {
     font-size: 28px !important;
   }
 }
