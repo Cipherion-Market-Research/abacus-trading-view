@@ -16,6 +16,7 @@ import { DashboardPreview } from "./dashboard-preview";
 import { AbacusWordmark } from "@/components/shared/abacus-logo";
 import { AbacusSwitcher } from "@/components/shared/abacus-switcher";
 import { usePredStats } from "./use-pred-stats";
+import { SpringCounter } from "./spring-counter";
 
 const A = C.blue;
 const ABg = "rgba(88,166,255,0.10)";
@@ -37,6 +38,8 @@ export default function PredictionsPage() {
     10: "Regime", 11: "Signal", 12: "Execution", 13: "Microstructure",
     14: "Execution", 15: "Regime",
   };
+
+  const extremeTier = D.tiers.find(t => t.id === "m100");
 
   const layerCards = GATE_LAYERS.map(l => ({
     ...l,
@@ -155,7 +158,9 @@ export default function PredictionsPage() {
         >
           <div>
             <div style={{ display: "flex", alignItems: "baseline", gap: 4, filter: "drop-shadow(0 0 24px rgba(88,166,255,0.28))" }}>
-              <span
+              <SpringCounter
+                from={85}
+                to={extremeTier?.wr ?? 96.3}
                 style={{
                   fontFamily: "var(--font-geist-mono)",
                   fontSize: 128,
@@ -168,9 +173,7 @@ export default function PredictionsPage() {
                   WebkitTextFillColor: "transparent",
                   backgroundClip: "text",
                 }}
-              >
-                96.3
-              </span>
+              />
               <span
                 style={{
                   fontFamily: "var(--font-geist-mono)",
@@ -200,7 +203,7 @@ export default function PredictionsPage() {
               accuracy at extreme conviction
             </h1>
             <div style={{ color: C.muted, fontSize: 14 }}>
-              Extreme conviction tier · 109 signals
+              Extreme conviction tier · {extremeTier?.n?.toLocaleString() ?? "109"} signals
             </div>
           </div>
           <div style={{ borderLeft: `1px solid ${C.border}`, paddingLeft: 24 }}>

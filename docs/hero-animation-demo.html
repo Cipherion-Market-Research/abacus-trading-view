@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Abacus — Hero Number Animation Exploration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* ---------- Tokens (match the Abacus dark palette) ---------- */
+  :root {
+    --bg:        #0a0e13;
+    --bg-2:      #0d1117;
+    --panel:     #161b22;
+    --panel-2:   #1c232c;
+    --line:      #30363d;
+    --line-soft: #21262d;
+    --text:      #f0f6fc;
+    --muted:     #8b949e;
+    --blue:      #58a6ff;
+    --green:     #3fb950;
+
+    --ease-spring: cubic-bezier(0.22, 1.4, 0.36, 1);
+    --ease-quart:  cubic-bezier(0.76, 0, 0.24, 1);
+
+    --radius:      14px;
+    --radius-pill: 999px;
+
+    color-scheme: dark;
+  }
+
+  /* ---------- @property for CSS counter technique ---------- */
+  @property --num {
+    syntax: "<number>";
+    initial-value: 85;
+    inherits: false;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 12% -10%, color-mix(in oklab, var(--blue) 7%, transparent), transparent 60%),
+      radial-gradient(900px 500px at 105% 105%, color-mix(in oklab, var(--blue) 5%, transparent), transparent 60%),
+      var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100dvh;
+  }
+
+  /* ---------- Page chrome ---------- */
+  header.page {
+    padding: 56px 48px 24px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  header.page h1 {
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0 0 6px;
+  }
+  header.page p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+    max-width: 760px;
+    line-height: 1.55;
+  }
+  header.page code {
+    font-family: "Geist Mono", ui-monospace, monospace;
+    font-size: 12px;
+    padding: 2px 6px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--panel);
+    color: var(--text);
+  }
+
+  /* ---------- Grid layout ---------- */
+  .grid {
+    display: grid;
+    gap: 24px;
+    padding: 32px 48px 24px;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .grid-full {
+    padding: 0 48px 48px;
+  }
+
+  /* ---------- Cards ---------- */
+  .card {
+    position: relative;
+    background: linear-gradient(180deg, var(--panel) 0%, var(--bg-2) 100%);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius);
+    padding: 22px;
+    overflow: visible;
+  }
+  .card::before {
+    content: "";
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(120% 80% at 50% -10%, rgba(255,255,255,0.04), transparent 60%);
+  }
+  .card.recommended {
+    border-color: color-mix(in oklab, var(--blue) 40%, var(--line));
+    box-shadow: 0 0 40px color-mix(in oklab, var(--blue) 10%, transparent);
+  }
+
+  .card .meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .card .name {
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: -0.005em;
+  }
+  .card .tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .card .tag {
+    font-family: "Geist Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    padding: 4px 8px;
+    border-radius: var(--radius-pill);
+    background: var(--panel-2);
+  }
+  .card .tag.rec {
+    border-color: color-mix(in oklab, var(--blue) 50%, var(--line));
+    color: var(--blue);
+  }
+
+  .card .stage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 140px;
+    padding: 16px 0;
+  }
+
+  .card .notes {
+    margin-top: 14px;
+    font-family: "Geist Mono", monospace;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.55;
+    border-top: 1px solid var(--line-soft);
+    padding-top: 14px;
+  }
+  .card .notes b { color: #c9d1d9; font-weight: 500; }
+
+  /* ---------- Gradient text treatment ---------- */
+  .hero-num {
+    font-family: "Geist Mono", ui-monospace, monospace;
+    font-weight: 700;
+    font-size: 96px;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    background: linear-gradient(165deg, #e8f4ff 0%, #a8d4ff 30%, #58a6ff 60%, rgba(88,166,255,0.65) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+    user-select: none;
+  }
+  .hero-num .pct {
+    font-size: 0.4em;
+    letter-spacing: 0;
+    vertical-align: super;
+    margin-left: 2px;
+  }
+
+  .card.recommended .hero-num {
+    font-size: 120px;
+  }
+
+  /* ---------- Replay button ---------- */
+  .replay-btn {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--muted);
+    font-family: "Geist Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    padding: 6px 14px;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition: color 180ms, border-color 180ms, background 180ms;
+    margin-top: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .replay-btn:hover {
+    color: var(--text);
+    border-color: color-mix(in oklab, var(--blue) 50%, var(--line));
+    background: var(--panel-2);
+  }
+  .replay-btn svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .btn-row {
+    display: flex;
+    justify-content: center;
+  }
+
+  /* ===========================================================
+     V1 — CSS @property Counter
+     =========================================================== */
+  .v1-counter {
+    --num: 85;
+    font-variant-numeric: tabular-nums;
+  }
+  .v1-counter::before {
+    counter-reset: num var(--num);
+    content: counter(num);
+  }
+
+  /* ===========================================================
+     V2 — Per-digit Odometer Flip
+     =========================================================== */
+  .odometer-wrap {
+    display: inline-flex;
+    align-items: baseline;
+    overflow: visible;
+    /* Override parent .hero-num gradient — applied per-span instead */
+    background: none !important;
+    -webkit-text-fill-color: initial !important;
+    color: inherit;
+  }
+  .odo-digit {
+    display: inline-block;
+    height: 1.1em;
+    overflow: hidden;
+    position: relative;
+  }
+  .odo-digit .odo-strip {
+    display: flex;
+    flex-direction: column;
+    transition: transform 800ms cubic-bezier(0.22, 1.4, 0.36, 1);
+    will-change: transform;
+  }
+  .odo-digit .odo-strip span {
+    display: block;
+    height: 1.1em;
+    line-height: 1.1em;
+    text-align: center;
+    background: linear-gradient(165deg, #e8f4ff 0%, #a8d4ff 30%, #58a6ff 60%, rgba(88,166,255,0.65) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  /* The "%" suffix inside odometer wraps also needs the gradient */
+  .odometer-wrap > .pct {
+    background: linear-gradient(165deg, #e8f4ff 0%, #a8d4ff 30%, #58a6ff 60%, rgba(88,166,255,0.65) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ===========================================================
+     V3 — Spring Physics
+     =========================================================== */
+  /* No special CSS — JS drives the text */
+
+  /* ===========================================================
+     V4 — View Transition API
+     =========================================================== */
+  .v4-num {
+    view-transition-name: hero-num;
+  }
+  ::view-transition-old(hero-num) {
+    animation: vt-out 400ms var(--ease-quart) forwards;
+  }
+  ::view-transition-new(hero-num) {
+    animation: vt-in 400ms var(--ease-quart) forwards;
+  }
+  @keyframes vt-out {
+    from { opacity: 1; transform: scale(1); filter: blur(0); }
+    to   { opacity: 0; transform: scale(0.92); filter: blur(6px); }
+  }
+  @keyframes vt-in {
+    from { opacity: 0; transform: scale(1.08); filter: blur(6px); }
+    to   { opacity: 1; transform: scale(1); filter: blur(0); }
+  }
+
+  /* ===========================================================
+     V5 — Combined (Production Recommended)
+     =========================================================== */
+  .v5-glow-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: baseline;
+  }
+  .v5-glow-wrap .glow-layer {
+    position: absolute;
+    inset: -20px -30px;
+    border-radius: 20px;
+    background: radial-gradient(ellipse at center, color-mix(in oklab, var(--blue) 25%, transparent) 0%, transparent 70%);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .v5-glow-wrap.glow-active .glow-layer {
+    animation: glow-pulse 1.2s ease-out forwards;
+  }
+  @keyframes glow-pulse {
+    0%   { opacity: 0; }
+    30%  { opacity: 0.8; }
+    100% { opacity: 0; }
+  }
+  .v5-glow-wrap .hero-num {
+    position: relative;
+    z-index: 1;
+  }
+
+  .scroll-spacer {
+    height: 300px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 24px;
+    color: var(--muted);
+    font-family: "Geist Mono", monospace;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    opacity: 0.6;
+  }
+  .scroll-spacer svg {
+    width: 16px;
+    height: 16px;
+    margin-left: 8px;
+    animation: bounce-arrow 1.5s ease-in-out infinite;
+  }
+  @keyframes bounce-arrow {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(4px); }
+  }
+
+  /* ---------- Reduced motion ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; transition-duration: 120ms !important; }
+    .scroll-spacer svg { animation: none !important; }
+  }
+
+  /* ---------- Footer legend ---------- */
+  .legend {
+    display: flex; gap: 16px; flex-wrap: wrap;
+    padding: 24px 48px 64px;
+    color: var(--muted);
+    font-family: "Geist Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    border-top: 1px solid var(--line-soft);
+    margin-top: 24px;
+  }
+  .legend span b { color: var(--blue); font-weight: 500; }
+</style>
+</head>
+<body>
+
+<header class="page">
+  <h1>Hero Number Animation — Exploration</h1>
+  <p>Five animation techniques for the Abacus Predictions hero win-rate counter. Each card animates <code>85.0</code> to <code>96.3%</code> using a different approach. Click "Replay" to re-trigger. Card 5 is the recommended production variant — scroll down to trigger its IntersectionObserver.</p>
+</header>
+
+<!-- ========== 2-column grid: techniques 1-4 ========== -->
+<section class="grid">
+
+  <!-- ========== V1: CSS @property Counter ========== -->
+  <article class="card v1">
+    <div class="meta">
+      <span class="name">01 — CSS @property Counter</span>
+      <div class="tags">
+        <span class="tag">Pure CSS</span>
+        <span class="tag">@property</span>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="hero-num v1-counter" id="v1-num"><span class="pct">%</span></div>
+    </div>
+    <div class="btn-row">
+      <button class="replay-btn" data-replay="v1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Replay
+      </button>
+    </div>
+    <div class="notes">
+      <b>Tech:</b> <code>@property --num</code> registered as <code>&lt;number&gt;</code>, CSS-transitioned from 85 to 96.3. <code>counter()</code> displays the integer part; JS reads computed <code>--num</code> each frame for the decimal. Zero animation JS — pure CSS interpolation drives the motion.<br/>
+      <b>Pro:</b> Simplest, GPU-composited. <b>Con:</b> <code>counter()</code> truncates to integer — needs a JS shim for the fractional digit.
+    </div>
+  </article>
+
+  <!-- ========== V2: Per-digit Odometer Flip ========== -->
+  <article class="card v2">
+    <div class="meta">
+      <span class="name">02 — Per-digit Odometer Flip</span>
+      <div class="tags">
+        <span class="tag">CSS transform</span>
+        <span class="tag">Staggered</span>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="hero-num odometer-wrap" id="v2-num">
+        <span class="pct">%</span>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="replay-btn" data-replay="v2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Replay
+      </button>
+    </div>
+    <div class="notes">
+      <b>Tech:</b> Each character is a vertical strip of 0-9 (or ".") in a clipped container. <code>translateY()</code> positions the visible digit. Spring easing <code>cubic-bezier(0.22, 1.4, 0.36, 1)</code> with ~80ms stagger per digit.<br/>
+      <b>Pro:</b> Classic odometer feel, very satisfying. <b>Con:</b> DOM-heavy if you have many counters.
+    </div>
+  </article>
+
+  <!-- ========== V3: Spring-Physics Interpolation ========== -->
+  <article class="card v3">
+    <div class="meta">
+      <span class="name">03 — Spring-Physics Interpolation</span>
+      <div class="tags">
+        <span class="tag">rAF</span>
+        <span class="tag">Overshoot</span>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="hero-num" id="v3-num">85.0<span class="pct">%</span></div>
+    </div>
+    <div class="btn-row">
+      <button class="replay-btn" data-replay="v3">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Replay
+      </button>
+    </div>
+    <div class="notes">
+      <b>Tech:</b> <code>requestAnimationFrame</code> with spring physics — stiffness 120, damping ratio ~0.7, mass 1. The number overshoots to ~97.1 then settles to 96.3. ~20 lines of spring math. Updates text content each frame.<br/>
+      <b>Pro:</b> Physically plausible motion, the overshoot feels "alive." <b>Con:</b> JS-driven, not composited.
+    </div>
+  </article>
+
+  <!-- ========== V4: View Transition API ========== -->
+  <article class="card v4">
+    <div class="meta">
+      <span class="name">04 — View Transition API</span>
+      <div class="tags">
+        <span class="tag">View Transitions</span>
+        <span class="tag">Cross-fade</span>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="hero-num v4-num" id="v4-num">85.0<span class="pct">%</span></div>
+    </div>
+    <div class="btn-row">
+      <button class="replay-btn" data-replay="v4">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Replay
+      </button>
+    </div>
+    <div class="notes">
+      <b>Tech:</b> <code>document.startViewTransition()</code> morphs between old and new number. <code>::view-transition-old</code> scales down + blurs out, <code>::view-transition-new</code> scales up + blurs in. Falls back to direct swap if unsupported.<br/>
+      <b>Pro:</b> Browser-native morph, minimal code. <b>Con:</b> Chrome/Edge only (as of 2026), no per-digit control.
+    </div>
+  </article>
+
+</section>
+
+<!-- ========== V5: Combined (Production) — full-width ========== -->
+<section class="grid-full">
+  <div class="scroll-spacer">
+    Scroll down to trigger the IntersectionObserver
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+
+  <article class="card recommended v5">
+    <div class="meta">
+      <span class="name">05 — Combined: Odometer + Spring + IntersectionObserver</span>
+      <div class="tags">
+        <span class="tag rec">Recommended</span>
+        <span class="tag">Spring</span>
+        <span class="tag">Odometer</span>
+        <span class="tag">IO</span>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="v5-glow-wrap" id="v5-wrap">
+        <div class="glow-layer" aria-hidden="true"></div>
+        <div class="hero-num odometer-wrap" id="v5-num">
+          <span class="pct">%</span>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="replay-btn" data-replay="v5">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Replay
+      </button>
+    </div>
+    <div class="notes">
+      <b>Tech:</b> Per-digit odometer strips, driven by spring-interpolated values via <code>requestAnimationFrame</code>. Animation triggers only when the element enters the viewport via <code>IntersectionObserver(threshold: 0.5)</code>. A subtle blue glow pulse fires when the spring settles. Before visibility, displays "85.0".<br/>
+      <b>Why this variant:</b> Combines the satisfying mechanical feel of the odometer, the organic motion of spring physics, and the performance win of lazy triggering. The glow pulse provides a completion signal. Production-ready.
+    </div>
+  </article>
+</section>
+
+<div class="legend">
+  <span><b>@property</b> CSS Houdini custom property</span>
+  <span><b>odometer</b> translateY strip per digit</span>
+  <span><b>spring</b> damped harmonic oscillator</span>
+  <span><b>view-transition</b> browser-native morph</span>
+  <span><b>IO</b> IntersectionObserver lazy trigger</span>
+</div>
+
+<script>
+// ============================================================
+// Shared helpers
+// ============================================================
+const FROM = 85.0;
+const TO = 96.3;
+
+function formatNum(n) {
+  return n.toFixed(1);
+}
+
+// ============================================================
+// V1 — CSS @property Counter
+// ============================================================
+const v1El = document.getElementById('v1-num');
+let v1Raf = null;
+
+function v1Start() {
+  if (v1Raf) cancelAnimationFrame(v1Raf);
+  // Use inline style for BOTH values so specificity is consistent
+  v1El.style.transition = 'none';
+  v1El.style.setProperty('--num', '85');
+  void v1El.offsetWidth;
+  v1El.style.transition = '--num 1.6s cubic-bezier(0.76, 0, 0.24, 1)';
+  // Set target via inline style (not class) to avoid specificity mismatch
+  requestAnimationFrame(() => {
+    v1El.style.setProperty('--num', '96.3');
+  });
+
+  // Poll the computed --num to update the decimal display
+  const decSpan = v1El.querySelector('.v1-dec');
+  function tick() {
+    const val = parseFloat(getComputedStyle(v1El).getPropertyValue('--num'));
+    const intPart = Math.floor(val);
+    const decPart = Math.round((val - intPart) * 10);
+    if (decSpan) decSpan.textContent = '.' + (decPart % 10);
+    v1Raf = requestAnimationFrame(tick);
+  }
+  tick();
+  // Stop polling after transition duration + buffer
+  setTimeout(() => { if (v1Raf) cancelAnimationFrame(v1Raf); }, 2200);
+}
+
+// Init: inject decimal span
+(function initV1() {
+  const decSpan = document.createElement('span');
+  decSpan.className = 'v1-dec';
+  decSpan.textContent = '.0';
+  const pct = v1El.querySelector('.pct');
+  v1El.insertBefore(decSpan, pct);
+  setTimeout(v1Start, 400);
+})();
+
+// ============================================================
+// V2 — Per-digit Odometer Flip
+// ============================================================
+function createOdometerDigits(container, chars) {
+  const pctSpan = container.querySelector('.pct');
+  // Remove existing digit elements
+  while (container.firstChild && container.firstChild !== pctSpan) {
+    container.removeChild(container.firstChild);
+  }
+
+  chars.forEach((ch, i) => {
+    const wrapper = document.createElement('span');
+    wrapper.className = 'odo-digit';
+
+    if (ch === '.') {
+      const strip = document.createElement('span');
+      strip.className = 'odo-strip';
+      const s = document.createElement('span');
+      s.textContent = '.';
+      strip.appendChild(s);
+      wrapper.appendChild(strip);
+      wrapper.style.width = '0.35em';
+    } else {
+      const strip = document.createElement('span');
+      strip.className = 'odo-strip';
+      strip.style.transitionDelay = (i * 80) + 'ms';
+      for (let n = 0; n <= 9; n++) {
+        const s = document.createElement('span');
+        s.textContent = n;
+        strip.appendChild(s);
+      }
+      wrapper.appendChild(strip);
+      wrapper.style.width = '0.62em';
+    }
+
+    container.insertBefore(wrapper, pctSpan);
+  });
+}
+
+function setOdometerValue(container, value) {
+  const str = formatNum(value);
+  const digitEls = container.querySelectorAll('.odo-digit');
+  const chars = str.split('');
+
+  chars.forEach((ch, i) => {
+    if (i >= digitEls.length) return;
+    if (ch === '.') return; // static
+    const strip = digitEls[i].querySelector('.odo-strip');
+    const n = parseInt(ch, 10);
+    strip.style.transform = 'translateY(' + -(n * 1.1) + 'em)';
+  });
+}
+
+// Init V2
+const v2El = document.getElementById('v2-num');
+createOdometerDigits(v2El, formatNum(FROM).split(''));
+
+function v2Start() {
+  const strips = v2El.querySelectorAll('.odo-strip');
+  // Disable transitions, snap to start
+  strips.forEach(s => { s.style.transition = 'none'; });
+  setOdometerValue(v2El, FROM);
+  void v2El.offsetWidth;
+  // Re-enable transitions with stagger
+  strips.forEach((s, i) => {
+    s.style.transition = 'transform 800ms cubic-bezier(0.22, 1.4, 0.36, 1)';
+    s.style.transitionDelay = (i * 80) + 'ms';
+  });
+  // Animate to target on next frame
+  requestAnimationFrame(() => {
+    setOdometerValue(v2El, TO);
+  });
+}
+
+setTimeout(v2Start, 500);
+
+// ============================================================
+// V3 — Spring-Physics Interpolation
+// ============================================================
+const v3El = document.getElementById('v3-num');
+let v3Raf = null;
+
+function springAnimate(from, to, onUpdate, onComplete) {
+  // Damped harmonic oscillator
+  const stiffness = 120;
+  const damping = 2 * 0.7 * Math.sqrt(stiffness); // zeta = 0.7
+  const mass = 1;
+  const dt = 1 / 60;
+
+  let x = from;
+  let v = 0;
+  let lastTime = null;
+  let accumulator = 0;
+  let rafId = null;
+
+  function tick(now) {
+    if (lastTime === null) lastTime = now;
+    const elapsed = Math.min((now - lastTime) / 1000, 0.1);
+    lastTime = now;
+    accumulator += elapsed;
+
+    while (accumulator >= dt) {
+      const force = -stiffness * (x - to) - damping * v;
+      const acc = force / mass;
+      v += acc * dt;
+      x += v * dt;
+      accumulator -= dt;
+    }
+
+    onUpdate(x);
+
+    if (Math.abs(x - to) < 0.01 && Math.abs(v) < 0.01) {
+      onUpdate(to);
+      if (onComplete) onComplete();
+      return;
+    }
+
+    rafId = requestAnimationFrame(tick);
+  }
+
+  rafId = requestAnimationFrame(tick);
+  return () => { if (rafId) cancelAnimationFrame(rafId); };
+}
+
+function v3Start() {
+  if (v3Raf) v3Raf(); // cancel previous
+  v3El.childNodes[0].textContent = formatNum(FROM);
+  void v3El.offsetWidth;
+  v3Raf = springAnimate(FROM, TO,
+    (val) => { v3El.childNodes[0].textContent = formatNum(val); },
+    ()    => { v3El.childNodes[0].textContent = formatNum(TO); }
+  );
+}
+
+setTimeout(v3Start, 600);
+
+// ============================================================
+// V4 — View Transition API
+// ============================================================
+const v4El = document.getElementById('v4-num');
+
+function v4Start() {
+  // Reset to start value
+  v4El.childNodes[0].textContent = formatNum(FROM);
+  void v4El.offsetWidth;
+
+  setTimeout(() => {
+    const update = () => {
+      v4El.childNodes[0].textContent = formatNum(TO);
+    };
+
+    if (document.startViewTransition) {
+      document.startViewTransition(update);
+    } else {
+      // Fallback: simple opacity cross-fade
+      v4El.style.transition = 'opacity 300ms';
+      v4El.style.opacity = '0';
+      setTimeout(() => {
+        update();
+        v4El.style.opacity = '1';
+      }, 300);
+    }
+  }, 200);
+}
+
+setTimeout(v4Start, 700);
+
+// ============================================================
+// V5 — Combined: Odometer + Spring + IntersectionObserver
+// ============================================================
+const v5El = document.getElementById('v5-num');
+const v5Wrap = document.getElementById('v5-wrap');
+createOdometerDigits(v5El, formatNum(FROM).split(''));
+// Snap to start with no transition
+v5El.querySelectorAll('.odo-strip').forEach(s => { s.style.transition = 'none'; });
+setOdometerValue(v5El, FROM);
+
+let v5HasTriggered = false;
+let v5CancelSpring = null;
+
+function v5Start() {
+  if (v5CancelSpring) v5CancelSpring();
+  // Reset
+  v5Wrap.classList.remove('glow-active');
+  v5El.querySelectorAll('.odo-strip').forEach(s => { s.style.transition = 'none'; });
+  setOdometerValue(v5El, FROM);
+  void v5El.offsetWidth;
+
+  // Spring drives the odometer — no CSS transition on the strips,
+  // the spring sets translateY directly each frame.
+  v5CancelSpring = springAnimate(FROM, TO,
+    (val) => {
+      const clamped = Math.max(0, Math.min(99.9, val));
+      setOdometerValue(v5El, clamped);
+    },
+    () => {
+      setOdometerValue(v5El, TO);
+      v5Wrap.classList.add('glow-active');
+    }
+  );
+}
+
+// IntersectionObserver: trigger at 50% visibility
+const v5Observer = new IntersectionObserver((entries) => {
+  for (const entry of entries) {
+    if (entry.isIntersecting && !v5HasTriggered) {
+      v5HasTriggered = true;
+      v5Start();
+    }
+  }
+}, { threshold: 0.5 });
+
+v5Observer.observe(v5Wrap);
+
+// ============================================================
+// Replay button wiring
+// ============================================================
+for (const btn of document.querySelectorAll('[data-replay]')) {
+  btn.addEventListener('click', () => {
+    switch (btn.dataset.replay) {
+      case 'v1': v1Start(); break;
+      case 'v2': v2Start(); break;
+      case 'v3': v3Start(); break;
+      case 'v4': v4Start(); break;
+      case 'v5':
+        v5HasTriggered = true;
+        v5Wrap.classList.remove('glow-active');
+        v5El.querySelectorAll('.odo-strip').forEach(s => { s.style.transition = 'none'; });
+        setOdometerValue(v5El, FROM);
+        void v5El.offsetWidth;
+        setTimeout(v5Start, 80);
+        break;
+    }
+  });
+}
+</script>
+</body>
+</html>
