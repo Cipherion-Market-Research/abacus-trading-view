@@ -1,0 +1,1002 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Abacus — Wordmark Hover Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* ---------- Tokens (match the Abacus dark palette) ---------- */
+  :root {
+    --bg:        #0a0e13;
+    --bg-2:      #0d1117;
+    --panel:     #161b22;
+    --panel-2:   #1c232c;
+    --line:      #30363d;
+    --line-soft: #21262d;
+    --text:      #f0f6fc;
+    --muted:     #8b949e;
+    --green:     #3fb950;
+    --green-2:   #238636;
+    --green-mix: color-mix(in oklab, var(--green) 24%, transparent);
+    --halo:      color-mix(in oklab, var(--green) 50%, transparent);
+
+    --ease-spring: cubic-bezier(0.22, 1.4, 0.36, 1);
+    --ease-quart:  cubic-bezier(0.76, 0, 0.24, 1);
+    --dwell:       650ms; /* hover-intent dwell */
+
+    --radius:      14px;
+    --radius-pill: 999px;
+
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 12% -10%, color-mix(in oklab, var(--green) 9%, transparent), transparent 60%),
+      radial-gradient(900px 500px at 105% 105%, color-mix(in oklab, #4f8bff 7%, transparent), transparent 60%),
+      var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100dvh;
+  }
+
+  /* ---------- Page chrome ---------- */
+  header.page {
+    padding: 56px 48px 24px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  header.page h1 {
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0 0 6px;
+  }
+  header.page p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+    max-width: 720px;
+    line-height: 1.55;
+  }
+  header.page kbd {
+    font-family: "Geist Mono", ui-monospace, monospace;
+    font-size: 11px;
+    padding: 2px 6px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--panel);
+    color: var(--text);
+  }
+
+  .grid {
+    display: grid;
+    gap: 24px;
+    padding: 32px 48px 96px;
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  }
+
+  .card {
+    position: relative;
+    background: linear-gradient(180deg, var(--panel) 0%, var(--bg-2) 100%);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius);
+    padding: 22px;
+    min-height: 220px;
+    overflow: visible;
+  }
+  .card::before {
+    content: "";
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(120% 80% at 50% -10%, rgba(255,255,255,0.04), transparent 60%);
+  }
+  .card .meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .card .name {
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: -0.005em;
+  }
+  .card .tag {
+    font-family: "Geist Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    padding: 4px 8px;
+    border-radius: var(--radius-pill);
+    background: var(--panel-2);
+  }
+  .card .stage {
+    /* where the wordmark sits */
+    display: flex;
+    align-items: center;
+    min-height: 96px;
+    padding: 8px 0 6px;
+  }
+  .card .notes {
+    margin-top: 18px;
+    font-family: "Geist Mono", monospace;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+  .card .notes b { color: #c9d1d9; font-weight: 500; }
+
+  /* ---------- Shared wordmark base ---------- */
+  .wm {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text);
+    font-weight: 600;
+    font-size: 18px;
+    letter-spacing: -0.01em;
+    line-height: 1;
+    user-select: none;
+  }
+  .wm .by {
+    font-family: "Geist Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-left: 10px;
+    margin-left: 10px;
+    border-left: 1px solid var(--line);
+    font-weight: 500;
+  }
+  .mark {
+    width: 24px; height: 24px;
+    flex: 0 0 24px;
+    display: inline-block;
+  }
+
+  /* ---------- Trigger root: shared hover-intent ---------- */
+  .trigger {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    border-radius: 10px;
+    padding: 6px 8px;
+    margin: -6px -8px;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .trigger:focus-visible {
+    box-shadow: 0 0 0 2px var(--bg-2), 0 0 0 4px var(--green-mix);
+  }
+
+  /* ===========================================================
+     V1 — Magnetic Slide
+     =========================================================== */
+  .v1 .trigger { gap: 0; }
+  .v1 .wm-stack {
+    position: relative;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    transition: padding-right 600ms var(--ease-spring);
+  }
+  .v1 .sep {
+    width: 1px;
+    height: 18px;
+    background: var(--line);
+    margin: 0 14px;
+    opacity: 0;
+    transform: scaleY(0.3);
+    transition: opacity 350ms var(--ease-quart) 50ms,
+                transform 350ms var(--ease-quart) 50ms;
+  }
+  .v1 .sibling {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 18px;
+    letter-spacing: -0.01em;
+    transform: translateX(-12px);
+    opacity: 0;
+    pointer-events: none;
+    white-space: nowrap;
+    transition: transform 600ms var(--ease-spring),
+                opacity 360ms var(--ease-quart) 80ms,
+                color 200ms var(--ease-quart);
+    border-radius: 8px;
+    padding: 4px 6px;
+    margin: -4px -6px;
+  }
+  .v1 .sibling:hover { color: var(--text); }
+  .v1.is-open .sep { opacity: 1; transform: scaleY(1); }
+  .v1.is-open .sibling { transform: translateX(0); opacity: 1; pointer-events: auto; }
+
+  /* ===========================================================
+     V2 — Glass Popover with Chevron
+     =========================================================== */
+  .v2 .chev {
+    width: 14px; height: 14px;
+    margin-left: 6px;
+    color: var(--muted);
+    opacity: 0;
+    transform: translateY(-2px);
+    transition: opacity 200ms, transform 280ms var(--ease-quart),
+                rotate 280ms var(--ease-quart);
+  }
+  .v2 .trigger:hover .chev,
+  .v2.is-open .chev { opacity: 1; transform: translateY(0); }
+  .v2.is-open .chev { rotate: 180deg; color: var(--green); }
+
+  .v2 .pop {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: -4px;
+    width: 280px;
+    padding: 8px;
+    border-radius: 14px;
+    border: 1px solid color-mix(in oklab, var(--line) 80%, transparent);
+    background: color-mix(in oklab, var(--panel) 78%, transparent);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.04) inset,
+      0 12px 32px rgba(0,0,0,0.5),
+      0 0 0 1px rgba(255,255,255,0.02);
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+    transform-origin: 24px top;
+    pointer-events: none;
+    transition: opacity 220ms var(--ease-quart),
+                transform 320ms var(--ease-spring);
+    z-index: 5;
+  }
+  @starting-style {
+    .v2.is-open .pop { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  }
+  .v2.is-open .pop {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+  .pop-item {
+    display: grid;
+    grid-template-columns: 32px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px;
+    border-radius: 10px;
+    color: var(--text);
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 160ms var(--ease-quart);
+  }
+  .pop-item:hover { background: color-mix(in oklab, var(--green) 10%, transparent); }
+  .pop-item .ico { width: 32px; height: 32px; border-radius: 8px; background: var(--panel-2); display: grid; place-items: center; border: 1px solid var(--line-soft); }
+  .pop-item .t { font-size: 13px; font-weight: 600; line-height: 1.2; }
+  .pop-item .s { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.3; }
+  .pop-item .arrow { color: var(--muted); transition: transform 200ms var(--ease-quart), color 200ms; }
+  .pop-item:hover .arrow { transform: translateX(2px); color: var(--green); }
+
+  /* ===========================================================
+     V3 — Bento Switcher (Atlassian/Google-style)
+     =========================================================== */
+  .v3 .bento-btn {
+    display: inline-grid;
+    grid-template-columns: repeat(3, 4px);
+    grid-template-rows: repeat(3, 4px);
+    gap: 3px;
+    padding: 8px;
+    margin-left: 8px;
+    border-radius: 8px;
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background 200ms, border-color 200ms;
+  }
+  .v3 .bento-btn i { width: 4px; height: 4px; border-radius: 1.5px; background: var(--muted); transition: background 180ms; }
+  .v3 .trigger:hover .bento-btn,
+  .v3.is-open .bento-btn { background: var(--panel-2); border-color: var(--line-soft); }
+  .v3 .trigger:hover .bento-btn i,
+  .v3.is-open .bento-btn i { background: var(--green); }
+
+  .v3 .bento-panel {
+    position: absolute;
+    top: calc(100% + 12px);
+    left: -4px;
+    width: 340px;
+    padding: 14px;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    background: color-mix(in oklab, var(--panel) 88%, transparent);
+    backdrop-filter: blur(22px) saturate(150%);
+    -webkit-backdrop-filter: blur(22px) saturate(150%);
+    box-shadow: 0 18px 40px rgba(0,0,0,0.55);
+    opacity: 0; transform: translateY(-6px) scale(0.98);
+    transform-origin: 70% top;
+    pointer-events: none;
+    transition: opacity 220ms var(--ease-quart), transform 320ms var(--ease-spring);
+    z-index: 5;
+  }
+  .v3.is-open .bento-panel { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+  .v3 .bento-panel h6 {
+    font-family: "Geist Mono", monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 10px;
+    color: var(--muted);
+    margin: 4px 6px 10px;
+    font-weight: 500;
+  }
+  .v3 .bento-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .v3 .bento-card {
+    display: block;
+    text-decoration: none;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid var(--line-soft);
+    background: var(--panel-2);
+    color: var(--text);
+    cursor: pointer;
+    transition: transform 200ms var(--ease-spring), border-color 160ms, background 160ms;
+  }
+  .v3 .bento-card:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in oklab, var(--green) 60%, var(--line));
+    background: color-mix(in oklab, var(--green) 8%, var(--panel-2));
+  }
+  .v3 .bento-card .icon { width: 28px; height: 28px; margin-bottom: 8px; }
+  .v3 .bento-card .label { font-size: 13px; font-weight: 600; }
+  .v3 .bento-card .desc { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.35; }
+  .v3 .bento-card.current { outline: 1px solid color-mix(in oklab, var(--green) 70%, transparent); }
+  .v3 .bento-card.current::after {
+    content: "Current";
+    display: inline-block; margin-top: 6px;
+    font-family: "Geist Mono", monospace;
+    font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--green);
+  }
+
+  /* ===========================================================
+     V4 — Cross-fade Morph (text-only)
+     =========================================================== */
+  .v4 .morph {
+    position: relative;
+    display: inline-block;
+    height: 18px;
+    overflow: hidden;
+    vertical-align: -1px;
+  }
+  .v4 .morph .a, .v4 .morph .b {
+    display: inline-block;
+    transition: transform 480ms var(--ease-spring), opacity 360ms var(--ease-quart), filter 360ms;
+  }
+  .v4 .morph .a { transform: translateY(0); opacity: 1; }
+  .v4 .morph .b {
+    position: absolute; left: 0; top: 0;
+    transform: translateY(110%);
+    opacity: 0;
+    color: var(--green);
+    filter: blur(3px);
+  }
+  .v4.is-open .morph .a { transform: translateY(-110%); opacity: 0; filter: blur(3px); }
+  .v4.is-open .morph .b { transform: translateY(0); opacity: 1; filter: blur(0); }
+  .v4 .hint {
+    margin-left: 10px;
+    font-family: "Geist Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: opacity 280ms, transform 280ms var(--ease-quart);
+  }
+  .v4.is-open .hint { opacity: 1; transform: translateX(0); color: var(--green); }
+  .v4 .trigger { text-decoration: none; color: inherit; }
+  .v4.is-open .trigger { cursor: pointer; }
+  .v4.is-open .wm { color: color-mix(in oklab, var(--green) 18%, var(--text)); transition: color 320ms var(--ease-quart); }
+
+  /* Toast — fires when V4 link is activated */
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 32px;
+    transform: translate(-50%, 12px);
+    background: color-mix(in oklab, var(--panel) 88%, transparent);
+    border: 1px solid color-mix(in oklab, var(--green) 40%, var(--line));
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    color: var(--text);
+    padding: 10px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.5),
+                0 0 24px color-mix(in oklab, var(--green) 30%, transparent);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 240ms var(--ease-quart), transform 360ms var(--ease-spring);
+    z-index: 50;
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: "Geist", sans-serif;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .toast .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .toast .url { font-family: "Geist Mono", monospace; font-size: 11px; color: var(--muted); }
+
+  /* ===========================================================
+     V5 — Segmented Control Switcher (Stripe-style)
+     =========================================================== */
+  .v5 .seg {
+    display: inline-flex;
+    align-items: stretch;
+    padding: 4px;
+    border-radius: 999px;
+    background: var(--panel-2);
+    border: 1px solid var(--line-soft);
+    margin-left: 12px;
+    gap: 0;
+    max-width: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-width 520ms var(--ease-spring),
+                opacity 280ms var(--ease-quart),
+                padding 480ms var(--ease-spring),
+                margin 480ms var(--ease-spring);
+  }
+  .v5.is-open .seg {
+    max-width: 360px;
+    opacity: 1;
+  }
+  .v5 .seg button {
+    appearance: none; border: 0; cursor: pointer;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    white-space: nowrap;
+    transition: color 180ms, background 200ms;
+    font-weight: 600;
+  }
+  .v5 .seg button.is-current {
+    background: color-mix(in oklab, var(--green) 18%, var(--panel));
+    color: var(--text);
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--green) 35%, transparent) inset;
+  }
+  .v5 .seg button:hover:not(.is-current) { color: var(--text); }
+
+  /* ===========================================================
+     V6 — Spotlight Halo + Floating Pill
+     =========================================================== */
+  .v6 .trigger { isolation: isolate; }
+  .v6 .halo {
+    position: absolute;
+    inset: -8px -16px;
+    border-radius: 16px;
+    pointer-events: none;
+    background:
+      conic-gradient(from var(--ang, 0deg),
+        color-mix(in oklab, var(--green) 35%, transparent),
+        transparent 30%,
+        color-mix(in oklab, #4f8bff 30%, transparent),
+        transparent 60%,
+        color-mix(in oklab, var(--green) 35%, transparent));
+    filter: blur(18px);
+    opacity: 0;
+    transition: opacity 320ms var(--ease-quart);
+    z-index: -1;
+    animation: spin 8s linear infinite;
+    animation-play-state: paused;
+  }
+  @keyframes spin { to { --ang: 360deg; } }
+  @property --ang { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+  .v6.is-open .halo { opacity: 0.7; animation-play-state: running; }
+
+  .v6 .pill {
+    position: absolute;
+    top: calc(100% + 14px);
+    left: 4px;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 14px 8px 10px;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--panel) 78%, transparent);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    border: 1px solid color-mix(in oklab, var(--green) 30%, var(--line));
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.03) inset,
+      0 10px 28px rgba(0,0,0,0.45),
+      0 0 24px color-mix(in oklab, var(--green) 30%, transparent);
+    opacity: 0;
+    transform: translateY(-4px);
+    pointer-events: none;
+    transition: opacity 240ms var(--ease-quart), transform 360ms var(--ease-spring);
+    z-index: 5;
+  }
+  .v6.is-open .pill { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  .v6 .pill:hover { border-color: var(--green); }
+  .v6 .pill .arrow { color: var(--green); transition: transform 220ms var(--ease-quart); }
+  .v6 .pill:hover .arrow { transform: translateX(3px); }
+
+  /* ===========================================================
+     V7 — Stack Peek (cards stacked, sibling peeks underneath)
+     =========================================================== */
+  .v7 .stack {
+    position: relative;
+    padding: 4px 6px;
+    border-radius: 12px;
+    transition: transform 320ms var(--ease-spring);
+  }
+  .v7 .peek {
+    position: absolute;
+    left: 14px; right: -10px;
+    top: 6px;
+    height: 100%;
+    border-radius: 12px;
+    border: 1px solid var(--line-soft);
+    background: var(--panel-2);
+    display: flex; align-items: center;
+    padding: 0 14px 0 14px;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+    z-index: -1;
+    transform: translateY(0) rotate(-1.5deg) scale(0.96);
+    opacity: 0.0;
+    pointer-events: none;
+    transition: transform 460ms var(--ease-spring),
+                opacity 260ms var(--ease-quart),
+                color 200ms;
+    white-space: nowrap;
+  }
+  .v7 .peek::after {
+    content: "↗";
+    margin-left: 8px;
+    color: var(--green);
+    opacity: 0;
+    transition: opacity 200ms;
+  }
+  .v7.is-open .stack { transform: translateY(-2px) rotate(0.4deg); }
+  .v7.is-open .peek {
+    opacity: 1;
+    transform: translateY(34px) rotate(-2deg) scale(1);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .v7.is-open .peek:hover { transform: translateY(34px) rotate(-2deg) scale(1.01); border-color: color-mix(in oklab, var(--green) 60%, var(--line)); }
+  .v7.is-open .peek::after { opacity: 1; }
+
+  /* ===========================================================
+     V8 — Mission Control / Orbital Reveal
+     =========================================================== */
+  .v8 .stage { min-height: 160px; }
+  .v8 .center {
+    position: relative;
+    transform: translateZ(0);
+    transition: transform 420ms var(--ease-spring);
+    z-index: 2;
+  }
+  .v8.is-open .center { transform: scale(0.94); }
+
+  .v8 .orb {
+    position: absolute;
+    left: 0; right: 0; top: 0; bottom: 0;
+    pointer-events: none;
+  }
+  .v8 .orb .item {
+    position: absolute;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: var(--panel-2);
+    border: 1px solid var(--line-soft);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    opacity: 0;
+    transform: translate(0, 0) scale(0.6);
+    transition: opacity 240ms var(--ease-quart),
+                transform 520ms var(--ease-spring),
+                border-color 200ms;
+    pointer-events: none;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .v8 .orb .item .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+  }
+  .v8 .orb .item:hover { border-color: color-mix(in oklab, var(--green) 60%, var(--line)); }
+  .v8.is-open .orb .item { opacity: 1; pointer-events: auto; }
+  /* Two siblings fan out to the right at slight angles */
+  .v8.is-open .orb .item.i1 {
+    transform: translate(190px, -18px) scale(1);
+    transition-delay: 40ms;
+  }
+  .v8.is-open .orb .item.i2 {
+    transform: translate(170px, 28px) scale(1);
+    transition-delay: 110ms;
+  }
+
+  /* dotted connector lines */
+  .v8 .orb svg.lines {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    opacity: 0;
+    transition: opacity 320ms var(--ease-quart);
+    pointer-events: none;
+  }
+  .v8.is-open .orb svg.lines { opacity: 0.6; }
+
+  /* ---------- Reduced motion ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; transition-duration: 120ms !important; }
+    .v6 .halo { animation: none !important; }
+  }
+
+  /* ---------- Footer key ---------- */
+  .legend {
+    display: flex; gap: 16px; flex-wrap: wrap;
+    padding: 0 48px 64px;
+    color: var(--muted);
+    font-family: "Geist Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+  }
+  .legend span b { color: var(--green); font-weight: 500; }
+</style>
+</head>
+<body>
+
+<header class="page">
+  <h1>Wordmark hover-reveal — exploration</h1>
+  <p>Eight variants of a cross-product navlink revealed by a ~650ms hover dwell. Hover any wordmark in the cards below. Press <kbd>Tab</kbd> + <kbd>Enter</kbd> to open via keyboard, <kbd>Esc</kbd> to close. Each card lists the design techniques used.</p>
+</header>
+
+<section class="grid">
+
+  <!-- ========== V1 Magnetic Slide ========== -->
+  <article class="card v1" data-variant="v1">
+    <div class="meta"><span class="name">01 — Magnetic Slide</span><span class="tag">Spring · Inline</span></div>
+    <div class="stage">
+      <span class="trigger" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false">
+        <span class="wm-stack">
+          <span class="wm">
+            <span class="mark" data-logo></span>
+            Abacus AMS
+            <span class="by">by CipheX</span>
+          </span>
+          <span class="sep" aria-hidden="true"></span>
+          <a href="#" class="sibling" tabindex="-1">
+            <span class="mark" data-logo></span>
+            Abacus Predictions
+          </a>
+        </span>
+      </span>
+    </div>
+    <div class="notes">
+      <b>Tech:</b> CSS spring easing · transform/opacity only · zero JS layout · respects <code>prefers-reduced-motion</code>.<br/>
+      <b>Feel:</b> Wordmark stays anchored, sibling slides in along an inline track. Most "native" — no overlay.
+    </div>
+  </article>
+
+  <!-- ========== V2 Glass Popover ========== -->
+  <article class="card v2" data-variant="v2">
+    <div class="meta"><span class="name">02 — Glass Popover</span><span class="tag">Backdrop-filter · @starting-style</span></div>
+    <div class="stage">
+      <span class="trigger" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false">
+        <span class="wm">
+          <span class="mark" data-logo></span>
+          Abacus AMS
+          <span class="by">by CipheX</span>
+        </span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+        <div class="pop" role="menu" aria-label="Switch product">
+          <a class="pop-item" href="#" role="menuitem">
+            <span class="ico"><span class="mark" data-logo></span></span>
+            <span><div class="t">Abacus Predictions</div><div class="s">Forecasting & market signals</div></span>
+            <svg class="arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </a>
+        </div>
+      </span>
+    </div>
+    <div class="notes">
+      <b>Tech:</b> <code>backdrop-filter: blur(18px) saturate(140%)</code> · <code>@starting-style</code> entry · <code>color-mix()</code> tints.<br/>
+      <b>Feel:</b> Linear / Vercel-style. Discoverable via chevron. Leaves room for more siblings later.
+    </div>
+  </article>
+
+  <!-- ========== V3 Bento Switcher ========== -->
+  <article class="card v3" data-variant="v3">
+    <div class="meta"><span class="name">03 — Bento Switcher</span><span class="tag">Atlassian / Google · Grid</span></div>
+    <div class="stage">
+      <span class="trigger" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false">
+        <span class="wm">
+          <span class="mark" data-logo></span>
+          Abacus AMS
+          <span class="by">by CipheX</span>
+        </span>
+        <span class="bento-btn" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        <div class="bento-panel" role="menu" aria-label="Abacus apps">
+          <h6>Abacus apps</h6>
+          <div class="bento-grid">
+            <a class="bento-card current" href="#" role="menuitem">
+              <span class="icon mark" data-logo></span>
+              <div class="label">Abacus AMS</div>
+              <div class="desc">Asset management & compliance</div>
+            </a>
+            <a class="bento-card" href="#" role="menuitem">
+              <span class="icon mark" data-logo></span>
+              <div class="label">Abacus Predictions</div>
+              <div class="desc">Forecasting & market signals</div>
+            </a>
+          </div>
+        </div>
+      </span>
+    </div>
+    <div class="notes">
+      <b>Tech:</b> 9-dot mark · panel uses <code>backdrop-filter</code> + spring scale-in · "current" outline ring.<br/>
+      <b>Feel:</b> Familiar enterprise pattern. Scales to many products. Heaviest visual weight.
+    </div>
+  </article>
+
+  <!-- ========== V4 Cross-fade Morph ========== -->
+  <article class="card v4" data-variant="v4">
+    <div class="meta"><span class="name">04 — Cross-fade Morph</span><span class="tag">Option A · Click swaps product</span></div>
+    <div class="stage">
+      <a class="trigger" href="#abacus-ams" data-href-default="#abacus-ams" data-href-morph="#abacus-predictions" tabindex="0" aria-haspopup="true" aria-expanded="false">
+        <span class="wm">
+          <span class="mark" data-logo></span>
+          Abacus&nbsp;<span class="morph"><span class="a">AMS</span><span class="b">Predictions →</span></span>
+          <span class="by">by CipheX</span>
+        </span>
+        <span class="hint" aria-hidden="true">switch</span>
+      </a>
+    </div>
+    <div class="notes">
+      <b>Tech:</b> Vertical cross-fade with <code>filter: blur()</code> bridge · spring transform · color shift.<br/>
+      <b>Behavior:</b> Hover 650ms → morph "armed" → clicking the wordmark routes to <b>Abacus Predictions</b>. Click before morph routes to <b>AMS</b> home.
+    </div>
+  </article>
+
+  <!-- ========== V5 Segmented Control ========== -->
+  <article class="card v5" data-variant="v5">
+    <div class="meta"><span class="name">05 — Segmented Switcher</span><span class="tag">Stripe-style · Pill</span></div>
+    <div class="stage">
+      <span class="trigger" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false">
+        <span class="wm">
+          <span class="mark" data-logo></span>
+          Abacus
+          <span class="by">by CipheX</span>
+        </span>
+        <span class="seg" role="tablist">
+          <button class="is-current" role="tab" aria-selected="true">AMS</button>
+          <button role="tab" aria-selected="false">Predictions</button>
+        </span>
+      </span>
+    </div>
+    <div class="notes">
+      <b>Tech:</b> <code>max-width</code> animation reveals segmented control · current pill highlighted with <code>color-mix()</code> green.<br/>
+      <b>Feel:</b> Always shows where you are <i>and</i> where you can go. Strongest information density.
+    </div>
+  </article>
+
+  <!-- ========== V6 Spotlight Halo ========== -->
+  <article class="card v6" data-variant="v6">
+    <div class="meta"><span class="name">06 — Spotlight Halo + Pill</span><span class="tag">Conic-gradient · @property</span></div>
+    <div class="stage">
+      <span class="trigger" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false">
+        <span class="halo" aria-hidden="true"></span>
+        <span class="wm">
+          <span class="mark" data-logo></span>
+          Abacus AMS
+          <span class="by">by CipheX</span>
+        </span>
+        <a class="pill" href="#" role="menuitem">
+          <span class="mark" data-logo></span>
+          Abacus Predictions
+          <svg class="arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+      </span>
+    </div>
+    <div class="notes">
+      <b>Tech:</b> Animated <code>conic-gradient</code> driven by registered <code>@property --ang</code> · glass pill · OKLCH color-mix.<br/>
+      <b>Feel:</b> Most "premium / launch-page" energy. Halo signals interactivity from peripheral vision.
+    </div>
+  </article>
+
+  <!-- ========== V7 Stack Peek ========== -->
+  <article class="card v7" data-variant="v7">
+    <div class="meta"><span class="name">07 — Stack Peek</span><span class="tag">Card-stack · Tilt</span></div>
+    <div class="stage">
+      <span class="trigger" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false">
+        <span class="stack">
+          <span class="wm">
+            <span class="mark" data-logo></span>
+            Abacus AMS
+            <span class="by">by CipheX</span>
+          </span>
+          <a class="peek" href="#">Abacus Predictions</a>
+        </span>
+      </span>
+    </div>
+    <div class="notes">
+      <b>Tech:</b> Sibling card hidden behind, slides down + tilts on hover · <code>z-index</code> stack · spring rotate.<br/>
+      <b>Feel:</b> Playful, tactile, "shuffle deck" metaphor. Best when both products feel symmetrical.
+    </div>
+  </article>
+
+  <!-- ========== V8 Orbital Reveal ========== -->
+  <article class="card v8" data-variant="v8">
+    <div class="meta"><span class="name">08 — Orbital Reveal</span><span class="tag">Mission-control · Fan-out</span></div>
+    <div class="stage">
+      <span class="trigger" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false">
+        <span class="center wm">
+          <span class="mark" data-logo></span>
+          Abacus AMS
+          <span class="by">by CipheX</span>
+        </span>
+        <span class="orb" aria-hidden="true">
+          <svg class="lines" viewBox="0 0 400 160" preserveAspectRatio="none">
+            <path d="M 60,80 C 120,72 160,52 220,52" stroke="#3fb950" stroke-width="1" stroke-dasharray="2 4" fill="none"/>
+            <path d="M 60,80 C 120,90 160,108 220,108" stroke="#3fb950" stroke-width="1" stroke-dasharray="2 4" fill="none"/>
+          </svg>
+          <a href="#" class="item i1"><span class="dot"></span> Abacus Predictions</a>
+          <a href="#" class="item i2"><span class="dot"></span> Markets <span style="color:var(--muted); font-weight:500; font-family:'Geist Mono',monospace; font-size:9px; letter-spacing:.12em; margin-left:4px;">SOON</span></a>
+        </span>
+      </span>
+    </div>
+    <div class="notes">
+      <b>Tech:</b> Items fan out via translate + scale spring · dotted SVG connectors · staggered transition-delay.<br/>
+      <b>Feel:</b> Most expressive — shows the family as a constellation. Best on a marketing/landing page, heavy for app chrome.
+    </div>
+  </article>
+
+</section>
+
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <span class="dot"></span>
+  <span class="label">Navigated</span>
+  <span class="url"></span>
+</div>
+
+<div class="legend">
+  <span><b>dwell</b> 650ms hover-intent before reveal</span>
+  <span><b>close</b> mouseleave / Esc / click-out</span>
+  <span><b>a11y</b> Tab + Enter to open · arrow/Esc inside · respects <code>prefers-reduced-motion</code></span>
+</div>
+
+<!-- Inline Abacus mark (horizon curves) — cloned into every [data-logo] -->
+<template id="logo-tpl">
+  <svg viewBox="0 0 56 56" fill="none" aria-hidden="true" style="width:100%;height:100%;display:block;">
+    <rect x="8" y="8" width="40" height="40" rx="10" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
+    <path d="M8 28 Q28 20 48 28" stroke="#3fb950" stroke-width="2" fill="none"/>
+    <path d="M8 36 Q28 30 48 36" stroke="#3fb950" stroke-width="2" stroke-opacity="0.6" fill="none"/>
+    <path d="M8 44 Q28 40 48 44" stroke="#3fb950" stroke-width="2" stroke-opacity="0.3" fill="none"/>
+    <circle cx="28" cy="20" r="3" fill="#3fb950"/>
+  </svg>
+</template>
+
+<script>
+  // Inject the inline logo into every [data-logo] slot.
+  const tpl = document.getElementById('logo-tpl');
+  for (const slot of document.querySelectorAll('[data-logo]')) {
+    slot.appendChild(tpl.content.cloneNode(true));
+  }
+
+  // Hover-intent controller. Shared across all variants.
+  const DWELL = 650;
+  const cards = document.querySelectorAll('.card[data-variant]');
+
+  for (const card of cards) {
+    const trigger = card.querySelector('.trigger');
+    let openTimer = null;
+    let closeTimer = null;
+
+    const open = () => {
+      clearTimeout(closeTimer);
+      card.classList.add('is-open');
+      trigger.setAttribute('aria-expanded', 'true');
+    };
+    const close = () => {
+      clearTimeout(openTimer);
+      card.classList.remove('is-open');
+      trigger.setAttribute('aria-expanded', 'false');
+    };
+    const scheduleOpen = () => {
+      clearTimeout(openTimer);
+      openTimer = setTimeout(open, DWELL);
+    };
+    const scheduleClose = () => {
+      clearTimeout(openTimer);
+      // small grace period so the cursor can travel to the revealed surface
+      closeTimer = setTimeout(close, 140);
+    };
+
+    trigger.addEventListener('mouseenter', scheduleOpen);
+    trigger.addEventListener('mouseleave', scheduleClose);
+    trigger.addEventListener('focus', open);
+    trigger.addEventListener('blur', (e) => {
+      // close only when focus leaves the card entirely
+      setTimeout(() => {
+        if (!card.contains(document.activeElement)) close();
+      }, 0);
+    });
+    trigger.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+      if (e.key === 'Escape') close();
+    });
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { close(); trigger.focus(); }
+    });
+  }
+
+  /* ---- V4 Option A wiring: click swaps product based on hover state ---- */
+  const v4 = document.querySelector('.card.v4');
+  const v4Trigger = v4.querySelector('.trigger');
+  const toast = document.getElementById('toast');
+  const toastLabel = toast.querySelector('.label');
+  const toastUrl = toast.querySelector('.url');
+  let toastTimer = null;
+
+  function flashToast(label, url) {
+    toastLabel.textContent = label;
+    toastUrl.textContent = url;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
+  }
+
+  // Keep href in sync with morph state so screen readers / status bar reflect
+  // the live target. Clicking while morphed routes to Predictions.
+  const syncHref = () => {
+    const armed = v4.classList.contains('is-open');
+    const next = armed
+      ? v4Trigger.dataset.hrefMorph
+      : v4Trigger.dataset.hrefDefault;
+    v4Trigger.setAttribute('href', next);
+  };
+  // Observe class changes on the card to update href live
+  new MutationObserver(syncHref).observe(v4, { attributes: true, attributeFilter: ['class'] });
+  syncHref();
+
+  v4Trigger.addEventListener('click', (e) => {
+    e.preventDefault();
+    const armed = v4.classList.contains('is-open');
+    if (armed) {
+      flashToast('→ Abacus Predictions', '/predictions');
+    } else {
+      flashToast('Abacus AMS · home', '/ams');
+    }
+  });
+</script>
+</body>
+</html>

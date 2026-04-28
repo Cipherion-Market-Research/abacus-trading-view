@@ -180,3 +180,88 @@
     animation: none;
   }
 }
+
+/* ============================================================
+   Abacus product switcher — cross-fade morph wordmark
+   See: docs/wordmark-hover-demo.html (variant 04)
+   ============================================================ */
+.abacus-switcher {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  text-decoration: none;
+  color: inherit;
+  padding: 4px 6px;
+  margin: -4px -6px;
+  transition: color 320ms cubic-bezier(0.76, 0, 0.24, 1);
+}
+.abacus-switcher[data-armed="1"] {
+  color: color-mix(in oklab, #3fb950 18%, #f0f6fc);
+}
+
+.abacus-switcher__morph {
+  height: 1em;
+  line-height: 1;
+  vertical-align: -0.05em;
+  white-space: nowrap;
+}
+.abacus-switcher__a,
+.abacus-switcher__b {
+  display: inline-block;
+  transition:
+    transform 480ms cubic-bezier(0.22, 1.4, 0.36, 1),
+    opacity 360ms cubic-bezier(0.76, 0, 0.24, 1),
+    filter 360ms cubic-bezier(0.76, 0, 0.24, 1);
+}
+.abacus-switcher__a {
+  transform: translateY(0);
+  opacity: 1;
+}
+.abacus-switcher__b {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translateY(110%);
+  opacity: 0;
+  color: #3fb950;
+  filter: blur(3px);
+}
+.abacus-switcher[data-armed="1"] .abacus-switcher__a {
+  transform: translateY(-110%);
+  opacity: 0;
+  filter: blur(3px);
+}
+.abacus-switcher[data-armed="1"] .abacus-switcher__b {
+  transform: translateY(0);
+  opacity: 1;
+  filter: blur(0);
+}
+
+.abacus-switcher__hint {
+  margin-left: 8px;
+  font-family: ui-monospace, "Geist Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #8b949e;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition:
+    opacity 280ms cubic-bezier(0.76, 0, 0.24, 1),
+    transform 280ms cubic-bezier(0.76, 0, 0.24, 1),
+    color 200ms;
+}
+.abacus-switcher[data-armed="1"] .abacus-switcher__hint {
+  opacity: 1;
+  transform: translateX(0);
+  color: #3fb950;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .abacus-switcher__a,
+  .abacus-switcher__b,
+  .abacus-switcher__hint,
+  .abacus-switcher {
+    transition-duration: 120ms !important;
+    filter: none !important;
+  }
+}

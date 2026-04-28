@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select';
 import { DataSourceToggle, DataSource } from './DataSourceToggle';
 import { AssetSelector } from './AssetSelector';
-import { AbacusWordmark } from '@/components/shared/abacus-logo';
+import { AbacusSwitcher } from '@/components/shared/abacus-switcher';
 import type { MarketStatus } from '@/hooks/useMarketStatus';
 
 interface HeaderProps {
@@ -109,7 +109,7 @@ export function Header({
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2.5">
           <h1 className="m-0">
-            <AbacusWordmark showLogo={false} />
+            <AbacusSwitcher current="predictions" showLogo={false} compact />
           </h1>
           <span
             className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${

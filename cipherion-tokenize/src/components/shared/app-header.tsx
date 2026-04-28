@@ -9,7 +9,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { ConnectButton } from "@/components/wallet/connect-button";
 import { NetworkBadge } from "@/components/shared/network-badge";
 import { KycPill } from "@/components/auth/kyc-pill";
-import { AtlasLogo } from "@/components/shared/atlas-logo";
+import { AbacusSwitcher } from "@/components/shared/abacus-switcher";
 import { isDevnet } from "@/lib/solana/connection";
 import { cn } from "@/lib/utils";
 
@@ -32,15 +32,7 @@ export function AppHeader() {
   return (
     <header className="flex items-center justify-between border-b border-[#30363d] bg-[#0a0e13] px-4 py-2.5">
       <div className="flex items-center gap-4 md:gap-6">
-        <Link href="/" className="flex items-center gap-2 shrink-0">
-          <AtlasLogo size={24} />
-          <span className="text-sm font-semibold text-[#f0f6fc] hidden sm:inline tracking-tight">
-            Atlas
-            <span className="font-mono text-[9px] font-medium tracking-[0.12em] text-[#8b949e] uppercase pl-1.5 ml-1.5 border-l border-[#30363d]">
-              by CipheX
-            </span>
-          </span>
-        </Link>
+        <AbacusSwitcher current="ams" compact className="shrink-0" />
         <nav className="hidden md:flex items-center gap-1">
           {NAV_ITEMS.map((item) => (
             <Link
@@ -102,9 +94,22 @@ export function AppHeader() {
                   onClick={() => setMobileOpen(false)}
                   className="inline-flex items-center gap-2"
                 >
-                  <AtlasLogo size={22} />
+                  <svg
+                    width={22}
+                    height={22}
+                    viewBox="0 0 56 56"
+                    fill="none"
+                    aria-hidden="true"
+                    className="shrink-0"
+                  >
+                    <rect x="8" y="8" width="40" height="40" rx="10" fill="#161b22" stroke="#238636" strokeWidth="1.5" />
+                    <path d="M8 28 Q28 20 48 28" stroke="#3fb950" strokeWidth="2" fill="none" />
+                    <path d="M8 36 Q28 30 48 36" stroke="#3fb950" strokeWidth="2" strokeOpacity="0.6" fill="none" />
+                    <path d="M8 44 Q28 40 48 44" stroke="#3fb950" strokeWidth="2" strokeOpacity="0.3" fill="none" />
+                    <circle cx="28" cy="20" r="3" fill="#3fb950" />
+                  </svg>
                   <span className="text-sm font-semibold text-[#f0f6fc] tracking-tight">
-                    Atlas
+                    Abacus AMS
                   </span>
                 </Link>
               </Dialog.Title>
