@@ -363,6 +363,23 @@
     display: none;
   }
 
+  /* Scale down text that's set via inline styles */
+  .pred-section-hero h1 {
+    font-size: 18px !important;
+  }
+  .predictions-page h2 {
+    font-size: 17px !important;
+  }
+  .predictions-page h3 {
+    font-size: 14px !important;
+  }
+  .pred-section-cta h2 {
+    font-size: 22px !important;
+  }
+  .pred-section-cta p {
+    font-size: 13px !important;
+  }
+
   /* CTA buttons: stack full-width */
   .pred-section-cta .flex {
     flex-direction: column;
