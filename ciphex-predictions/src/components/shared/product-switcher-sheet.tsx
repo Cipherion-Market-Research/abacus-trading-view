@@ -16,8 +16,8 @@ interface Product {
 const PRODUCTS: Product[] = [
   { id: "ams", name: "Abacus AMS", desc: "Real-time charting & multi-venue aggregation", href: process.env.NEXT_PUBLIC_ABACUS_AMS_URL ?? "/" },
   { id: "predictions", name: "Predictions", desc: "Forecasting engine & signal performance", href: process.env.NEXT_PUBLIC_ABACUS_PREDICTIONS_URL ?? "/predictions" },
-  { id: "atlas", name: "Atlas", desc: "RWA tokenization & compliance", href: null, soon: true },
-  { id: "markets", name: "Markets", desc: "Cross-venue order routing", href: null, soon: true },
+  { id: "atlas", name: "Atlas", desc: "RWA tokenization & compliance", href: "https://ciphex-atlas.vercel.app" },
+  { id: "markets", name: "Markets", desc: "Cross-venue order routing", href: "https://ams.ciphex.io/" },
 ];
 
 function AbacusMark({ size = 18, color = "#3fb950" }: { size?: number; color?: string }) {
@@ -34,17 +34,23 @@ function AbacusMark({ size = 18, color = "#3fb950" }: { size?: number; color?: s
 function AtlasMark({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="4 4 48 48" fill="none" aria-hidden="true">
-      <circle cx="28" cy="28" r="18" stroke="#30363d" strokeWidth="1.2" />
-      <circle cx="28" cy="28" r="10" stroke="#30363d" strokeWidth="1.2" />
-      <circle cx="28" cy="28" r="2.5" fill="#6e7681" />
+      <circle cx="28" cy="28" r="22" stroke="#30363d" strokeWidth="1.2" />
+      <circle cx="28" cy="28" r="14" stroke="#30363d" strokeWidth="1.2" />
+      <g transform="rotate(45 28 28)">
+        <path d="M28 6 L32 28 L28 50 L24 28 Z" fill="#3fb950" />
+        <path d="M6 28 L28 24 L50 28 L28 32 Z" fill="#238636" />
+      </g>
+      <circle cx="28" cy="28" r="3.2" fill="#f0f6fc" />
     </svg>
   );
 }
 
 function MarketsMark({ size = 18 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#6e7681" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+    <svg width={size} height={size} viewBox="0 0 200 200" fill="none" aria-hidden="true">
+      <circle cx="100" cy="100" r="100" fill="#161b22" />
+      <path d="M100 30 L60 80 L100 130 L140 80 Z" stroke="#f0f6fc" strokeWidth="10" fill="none" strokeLinejoin="round" />
+      <path d="M100 70 L60 120 L100 170 L140 120 Z" stroke="#f0f6fc" strokeWidth="10" fill="none" strokeLinejoin="round" />
     </svg>
   );
 }
