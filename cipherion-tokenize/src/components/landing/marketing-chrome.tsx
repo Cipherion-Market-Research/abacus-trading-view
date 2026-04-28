@@ -84,12 +84,14 @@ export function MarketingNav() {
           >
             Sign in
           </button>
+          {/* HIDDEN: restore for post-investor-round launch
           <button
             onClick={handleGetStarted}
             className="rounded-full bg-[#f0f6fc] text-[#0a0e13] hover:bg-white text-xs font-medium px-[18px] py-2 transition-colors"
           >
             {ctaLabel}
           </button>
+          */}
         </div>
 
         {/* Mobile hamburger — visible below md */}
@@ -159,12 +161,14 @@ export function MarketingNav() {
               >
                 Sign in
               </button>
+              {/* HIDDEN: restore for post-investor-round launch
               <button
                 onClick={handleGetStarted}
                 className="w-full rounded-full bg-[#f0f6fc] text-[#0a0e13] hover:bg-white text-[14px] font-medium py-3 transition-colors"
               >
                 {ctaLabel}
               </button>
+              */}
             </div>
           </Dialog.Content>
         </Dialog.Portal>
