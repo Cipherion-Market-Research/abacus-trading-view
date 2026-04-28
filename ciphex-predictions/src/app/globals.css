@@ -278,10 +278,15 @@
 
 /* ============================================================
    /predictions page — responsive overrides
-   Targets inline-styled grids via attribute selectors
    ============================================================ */
 
-/* Tablet: stack sidebar grids, reduce margins */
+/* Table horizontal scroll on narrow viewports */
+.pred-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Tablet: stack grids, reduce side padding */
 @media (max-width: 1024px) {
   .predictions-page > section {
     padding-left: 20px !important;
@@ -292,25 +297,24 @@
     padding-right: 20px !important;
   }
 
-  /* All sidebar grids (240px sidebar + content) → stack */
-  .predictions-page [style*="240px"] {
+  .pred-grid-sidebar {
     grid-template-columns: 1fr !important;
     gap: 28px !important;
   }
-
-  /* Hero two-col → stack */
-  .pred-section-hero [style*="minmax"] {
+  .pred-grid-hero {
     grid-template-columns: 1fr !important;
     gap: 32px !important;
   }
-
-  /* 6-col margin bands → 3 cols */
-  .predictions-page [style*="repeat(6"] {
+  .pred-grid-hero > div:last-child {
+    border-left: none !important;
+    padding-left: 0 !important;
+    border-top: 1px solid #30363d;
+    padding-top: 24px;
+  }
+  .pred-grid-bands {
     grid-template-columns: repeat(3, 1fr) !important;
   }
-
-  /* CTA → stack */
-  .predictions-page [style*="1fr auto"][style*="gap: 40"] {
+  .pred-grid-cta {
     grid-template-columns: 1fr !important;
     gap: 24px !important;
   }
@@ -324,37 +328,61 @@
   .pred-section-hero {
     padding: 32px 16px 24px !important;
   }
+  .pred-section-cta {
+    padding: 40px 16px !important;
+  }
 
-  .predictions-page [style*="240px"] {
+  .pred-grid-sidebar {
     gap: 20px !important;
   }
 
-  /* Hero big number scaling */
-  .pred-section-hero [style*="drop-shadow"] > span:first-child {
+  /* Hero number scaling */
+  .pred-grid-hero [style*="font-size"] {
     font-size: 72px !important;
   }
-  .pred-section-hero [style*="drop-shadow"] > span:last-child {
+  .pred-grid-hero [style*="font-size: 64"] {
     font-size: 36px !important;
   }
 
-  /* 6-col bands → 2 cols */
-  .predictions-page [style*="repeat(6"] {
+  .pred-grid-bands {
     grid-template-columns: repeat(2, 1fr) !important;
   }
-
-  /* 3-col grids (tranches, eras) → single col */
-  .predictions-page [style*="repeat(3"] {
+  .pred-grid-3 {
     grid-template-columns: 1fr !important;
   }
-
-  /* 2-col dataset/feeds → stack */
-  .predictions-page [style*="1fr 1fr"] {
+  .pred-grid-2 {
     grid-template-columns: 1fr !important;
   }
-
-  /* Roadmap items → stack */
-  .predictions-page [style*="120px 1fr"] {
+  .pred-grid-roadmap-item {
     grid-template-columns: 1fr !important;
     gap: 12px !important;
+  }
+
+  /* Hide ticker tape on mobile — vertical space is premium */
+  .pred-ticker {
+    display: none;
+  }
+
+  /* CTA buttons: stack full-width */
+  .pred-section-cta .flex {
+    flex-direction: column;
+  }
+  .pred-section-cta .flex button,
+  .pred-section-cta .flex a {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Small mobile */
+@media (max-width: 420px) {
+  .pred-grid-bands {
+    grid-template-columns: 1fr !important;
+  }
+  .pred-grid-hero [style*="font-size"] {
+    font-size: 56px !important;
+  }
+  .pred-grid-hero [style*="font-size: 64"] {
+    font-size: 28px !important;
   }
 }

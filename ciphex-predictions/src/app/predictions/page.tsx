@@ -103,6 +103,7 @@ export default function PredictionsPage() {
 
       {/* ─── TICKER TAPE ─── */}
       <div
+        className="pred-ticker"
         style={{
           borderBottom: `1px solid ${C.border}`,
           background: C.bgDeep,
@@ -149,6 +150,7 @@ export default function PredictionsPage() {
           Abacus Predictions · Engine Performance Brief
         </Eyebrow>
         <div
+          className="pred-grid-hero"
           style={{
             display: "grid",
             gridTemplateColumns: "minmax(0, 1fr) minmax(280px, 360px)",
@@ -247,6 +249,7 @@ export default function PredictionsPage() {
         }}
       >
         <div
+          className="pred-grid-sidebar"
           style={{
             display: "grid",
             gridTemplateColumns: "240px 1fr",
@@ -273,8 +276,8 @@ export default function PredictionsPage() {
               across 3,112 instances.
             </p>
           </div>
-          <div>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <div className="pred-table-scroll">
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 580 }}>
               <thead>
                 <tr>
                   {["Tier", "Win rate", "n", "Per day", "Profile"].map((h, i) => (
@@ -361,6 +364,7 @@ export default function PredictionsPage() {
         }}
       >
         <div
+          className="pred-grid-sidebar"
           style={{
             display: "grid",
             gridTemplateColumns: "240px 1fr",
@@ -388,6 +392,7 @@ export default function PredictionsPage() {
             </p>
           </div>
           <div
+            className="pred-grid-bands"
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(6, 1fr)",
@@ -463,6 +468,7 @@ export default function PredictionsPage() {
         }}
       >
         <div
+          className="pred-grid-sidebar"
           style={{
             display: "grid",
             gridTemplateColumns: "240px 1fr",
@@ -492,6 +498,7 @@ export default function PredictionsPage() {
           <div>
             {/* Tranches */}
             <div
+              className="pred-grid-3"
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(3, 1fr)",
@@ -595,6 +602,7 @@ export default function PredictionsPage() {
         }}
       >
         <div
+          className="pred-grid-sidebar"
           style={{
             display: "grid",
             gridTemplateColumns: "240px 1fr",
@@ -622,6 +630,7 @@ export default function PredictionsPage() {
           </div>
           <div>
             <div
+              className="pred-grid-3"
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(3, 1fr)",
@@ -713,6 +722,7 @@ export default function PredictionsPage() {
         }}
       >
         <div
+          className="pred-grid-sidebar"
           style={{
             display: "grid",
             gridTemplateColumns: "240px 1fr",
@@ -753,7 +763,7 @@ export default function PredictionsPage() {
           margin: "0 auto",
         }}
       >
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+        <div className="pred-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
           <div className="pred-card" style={{ padding: 24 }}>
             <Eyebrow style={{ color: A, marginBottom: 4 }}>§06 · Dataset</Eyebrow>
             <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, marginBottom: 18 }}>
@@ -843,7 +853,7 @@ export default function PredictionsPage() {
           margin: "0 auto",
         }}
       >
-        <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", gap: 56 }}>
+        <div className="pred-grid-sidebar" style={{ display: "grid", gridTemplateColumns: "240px 1fr", gap: 56 }}>
           <div>
             <Eyebrow style={{ color: A, marginBottom: 10 }}>§08 · Surface</Eyebrow>
             <h2
@@ -864,13 +874,14 @@ export default function PredictionsPage() {
               addressable.
             </p>
           </div>
-          <div>
+          <div className="pred-table-scroll">
             <table
               style={{
                 width: "100%",
                 borderCollapse: "collapse",
                 border: `1px solid ${C.border}`,
                 borderRadius: 8,
+                minWidth: 580,
               }}
             >
               <thead>
@@ -953,7 +964,7 @@ export default function PredictionsPage() {
           margin: "0 auto",
         }}
       >
-        <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", gap: 56, alignItems: "start" }}>
+        <div className="pred-grid-sidebar" style={{ display: "grid", gridTemplateColumns: "240px 1fr", gap: 56, alignItems: "start" }}>
           <div>
             <Eyebrow style={{ color: A, marginBottom: 10 }}>§09 · Roadmap</Eyebrow>
             <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: C.fg, letterSpacing: "-0.01em" }}>
@@ -1009,6 +1020,7 @@ export default function PredictionsPage() {
             ] as const).map((item) => (
               <div
                 key={item.phase}
+                className="pred-grid-roadmap-item"
                 style={{
                   background: item.tone === "blue" ? C.s3 : C.s1,
                   padding: "20px 24px",
@@ -1040,6 +1052,7 @@ export default function PredictionsPage() {
 
       {/* ─── CTA ─── */}
       <section
+        className="pred-section-cta"
         style={{
           borderTop: `1px solid ${C.border}`,
           padding: "64px 32px",
@@ -1048,6 +1061,7 @@ export default function PredictionsPage() {
         }}
       >
         <div
+          className="pred-grid-cta"
           style={{
             display: "grid",
             gridTemplateColumns: "1fr auto",
