@@ -3,6 +3,7 @@
 import { Horizon } from '@/types';
 import { cn } from '@/lib/utils';
 import { AbacusWordmark } from '@/components/shared/abacus-logo';
+import { ProductSwitcherSheet } from '@/components/shared/product-switcher-sheet';
 
 interface MobileHeaderProps {
   currentPrice?: number;
@@ -41,6 +42,7 @@ export function MobileHeader({
       <header className="w-full px-4 py-3 flex items-center justify-between border-b border-[#30363d]">
         {/* Left: Logo and streaming indicator */}
         <div className="flex items-center gap-2">
+          <ProductSwitcherSheet current="ams" />
           <AbacusWordmark size={22} compact text="Abacus" showCipheX={false} />
           {streaming && (
             <span className="relative flex h-2 w-2">
