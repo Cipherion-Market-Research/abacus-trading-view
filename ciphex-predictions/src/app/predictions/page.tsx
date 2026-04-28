@@ -97,9 +97,11 @@ export default function PredictionsPage() {
           <a href="#dataset" className="text-[#8b949e] hover:text-[#c9d1d9] text-xs transition-colors">Dataset</a>
           <a href="#expansion" className="text-[#8b949e] hover:text-[#c9d1d9] text-xs transition-colors">Expansion</a>
           <a href="#roadmap" className="text-[#8b949e] hover:text-[#c9d1d9] text-xs transition-colors">Roadmap</a>
+          {/* HIDDEN: restore post-investor-round
           <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-[#238636] hover:bg-[#2ea043] text-white border border-[#238636] transition-colors cursor-pointer">
             <Calendar size={12} /> Schedule a Call
           </button>
+          */}
         </div>
       </header>
 
@@ -1100,9 +1102,11 @@ export default function PredictionsPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* HIDDEN: restore post-investor-round
             <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium bg-[#238636] hover:bg-[#2ea043] text-white border border-[#238636] transition-colors cursor-pointer">
               <Calendar size={14} /> Schedule a Call
             </button>
+            */}
             <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] border border-[#30363d] transition-colors cursor-pointer">
               <FileText size={14} /> Data Room
             </button>
@@ -1130,7 +1134,7 @@ export default function PredictionsPage() {
               <div className="flex flex-col gap-3">
                 <h3 style={{ color: C.fg, fontWeight: 600, fontSize: 13, margin: 0 }}>Engage</h3>
                 <div className="flex flex-col gap-2">
-                  <a href="https://ciphex.io/contact" className="text-[#8b949e] hover:text-[#3fb950] text-xs transition-colors">Schedule a Call</a>
+                  {/* HIDDEN: restore post-investor-round — <a href="https://ciphex.io/contact" className="text-[#8b949e] hover:text-[#3fb950] text-xs transition-colors">Schedule a Call</a> */}
                   <a href="https://ciphex.io/contact" className="text-[#8b949e] hover:text-[#3fb950] text-xs transition-colors">Data Room</a>
                 </div>
               </div>
