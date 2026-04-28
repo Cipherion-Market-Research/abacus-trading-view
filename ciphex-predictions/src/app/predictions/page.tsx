@@ -14,6 +14,7 @@ import {
 } from "./primitives";
 import { DashboardPreview } from "./dashboard-preview";
 import { AbacusWordmark } from "@/components/shared/abacus-logo";
+import { AbacusSwitcher } from "@/components/shared/abacus-switcher";
 import { usePredStats } from "./use-pred-stats";
 
 const A = C.blue;
@@ -74,7 +75,7 @@ export default function PredictionsPage() {
       <header className="sticky top-0 z-10 flex items-center justify-between bg-[#161b22] px-5 py-3 border-b border-[#30363d]">
         <div className="flex items-center gap-2.5">
           <h1 className="m-0">
-            <AbacusWordmark showLogo={false} text="Abacus Predictions" showCipheX />
+            <AbacusSwitcher current="predictions" showLogo={false} compact />
           </h1>
           <span className="flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold uppercase bg-linear-to-br from-[#238636] to-[#2ea043] text-white">
             <span className="relative flex h-2 w-2">
