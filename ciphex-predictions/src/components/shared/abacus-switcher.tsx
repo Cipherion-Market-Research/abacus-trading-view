@@ -157,8 +157,6 @@ export function AbacusSwitcher({
       }
       onMouseEnter={scheduleOpen}
       onMouseLeave={scheduleClose}
-      onFocus={() => setArmed(true)}
-      onBlur={() => setArmed(false)}
       onKeyDown={(e) => {
         if (e.key === "Escape") setArmed(false);
       }}

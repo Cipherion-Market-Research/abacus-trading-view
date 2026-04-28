@@ -63,7 +63,7 @@ interface ProductSwitcherSheetProps {
 export function BentoTrigger({ onClick }: { onClick: () => void }) {
   return (
     <button
-      className="pss-bento-trigger md:hidden"
+      className="pss-bento-trigger"
       onClick={onClick}
       aria-label="Switch product"
       aria-haspopup="dialog"

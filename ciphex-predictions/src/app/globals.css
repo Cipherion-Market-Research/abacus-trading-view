@@ -210,6 +210,9 @@
   transition: background 180ms;
 }
 .pss-bento-trigger:active i { background: #3fb950; }
+@media (min-width: 768px) {
+  .pss-bento-trigger { display: none; }
+}
 
 .pss-backdrop {
   position: fixed;
