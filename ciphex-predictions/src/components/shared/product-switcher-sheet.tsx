@@ -47,11 +47,7 @@ function AtlasMark({ size = 18 }: { size?: number }) {
 
 function MarketsMark({ size = 18 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 200 200" fill="none" aria-hidden="true">
-      <circle cx="100" cy="100" r="100" fill="#161b22" />
-      <path d="M100 30 L60 80 L100 130 L140 80 Z" stroke="#f0f6fc" strokeWidth="10" fill="none" strokeLinejoin="round" />
-      <path d="M100 70 L60 120 L100 170 L140 120 Z" stroke="#f0f6fc" strokeWidth="10" fill="none" strokeLinejoin="round" />
-    </svg>
+    <img src="/cpx-logo.png" width={size} height={size} alt="" aria-hidden="true" style={{ borderRadius: "50%" }} />
   );
 }
 
