@@ -237,22 +237,32 @@
 }
 
 .abacus-switcher__hint {
-  margin-left: 8px;
+  display: inline-block;
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: baseline;
   font-family: ui-monospace, "Geist Mono", monospace;
   font-size: 10px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #8b949e;
   opacity: 0;
-  transform: translateX(-4px);
+  margin-left: 0;
+  padding-left: 0;
   transition:
+    max-width 420ms cubic-bezier(0.22, 1.4, 0.36, 1),
     opacity 280ms cubic-bezier(0.76, 0, 0.24, 1),
-    transform 280ms cubic-bezier(0.76, 0, 0.24, 1),
+    margin 320ms cubic-bezier(0.22, 1.4, 0.36, 1),
+    padding 320ms cubic-bezier(0.22, 1.4, 0.36, 1),
     color 200ms;
 }
 .abacus-switcher[data-armed="1"] .abacus-switcher__hint {
+  max-width: 60px;
   opacity: 1;
-  transform: translateX(0);
+  margin-left: 8px;
+  padding-left: 8px;
+  border-left: 1px solid #30363d;
   color: #3fb950;
 }
 
@@ -263,5 +273,88 @@
   .abacus-switcher {
     transition-duration: 120ms !important;
     filter: none !important;
+  }
+}
+
+/* ============================================================
+   /predictions page — responsive overrides
+   Targets inline-styled grids via attribute selectors
+   ============================================================ */
+
+/* Tablet: stack sidebar grids, reduce margins */
+@media (max-width: 1024px) {
+  .predictions-page > section {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+  .pred-section-hero {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+
+  /* All sidebar grids (240px sidebar + content) → stack */
+  .predictions-page [style*="240px"] {
+    grid-template-columns: 1fr !important;
+    gap: 28px !important;
+  }
+
+  /* Hero two-col → stack */
+  .pred-section-hero [style*="minmax"] {
+    grid-template-columns: 1fr !important;
+    gap: 32px !important;
+  }
+
+  /* 6-col margin bands → 3 cols */
+  .predictions-page [style*="repeat(6"] {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+
+  /* CTA → stack */
+  .predictions-page [style*="1fr auto"][style*="gap: 40"] {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+}
+
+/* Mobile: tighter spacing, single-column everything */
+@media (max-width: 640px) {
+  .predictions-page > section {
+    padding: 32px 16px !important;
+  }
+  .pred-section-hero {
+    padding: 32px 16px 24px !important;
+  }
+
+  .predictions-page [style*="240px"] {
+    gap: 20px !important;
+  }
+
+  /* Hero big number scaling */
+  .pred-section-hero [style*="drop-shadow"] > span:first-child {
+    font-size: 72px !important;
+  }
+  .pred-section-hero [style*="drop-shadow"] > span:last-child {
+    font-size: 36px !important;
+  }
+
+  /* 6-col bands → 2 cols */
+  .predictions-page [style*="repeat(6"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* 3-col grids (tranches, eras) → single col */
+  .predictions-page [style*="repeat(3"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* 2-col dataset/feeds → stack */
+  .predictions-page [style*="1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Roadmap items → stack */
+  .predictions-page [style*="120px 1fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
   }
 }

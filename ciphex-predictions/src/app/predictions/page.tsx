@@ -46,6 +46,7 @@ export default function PredictionsPage() {
 
   return (
     <div
+      className="predictions-page"
       style={{
         width: "100%",
         background: C.bg,
@@ -85,7 +86,7 @@ export default function PredictionsPage() {
             Live
           </span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-3">
           <a href="#signal" className="text-[#8b949e] hover:text-[#c9d1d9] text-xs transition-colors">Signal</a>
           <a href="#execution" className="text-[#8b949e] hover:text-[#c9d1d9] text-xs transition-colors">Execution</a>
           <a href="#dataset" className="text-[#8b949e] hover:text-[#c9d1d9] text-xs transition-colors">Dataset</a>
@@ -140,7 +141,7 @@ export default function PredictionsPage() {
       </div>
 
       {/* ─── HERO: 96.3% extreme conviction ─── */}
-      <section style={{ padding: "56px 32px 40px", maxWidth: 1280, margin: "0 auto" }}>
+      <section className="pred-section-hero" style={{ padding: "56px 32px 40px", maxWidth: 1280, margin: "0 auto" }}>
         <Eyebrow style={{ marginBottom: 24 }}>
           Abacus Predictions · Engine Performance Brief
         </Eyebrow>

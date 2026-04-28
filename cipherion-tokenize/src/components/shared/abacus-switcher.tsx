@@ -175,6 +175,9 @@ export function AbacusSwitcher({
           <span className="abacus-switcher__a">{currentText}</span>
           <span className="abacus-switcher__b">{siblingText} →</span>
         </span>
+        <span className="abacus-switcher__hint" aria-hidden="true">
+          switch
+        </span>
         {showCipheX && (
           <span
             className={cn(
@@ -185,9 +188,6 @@ export function AbacusSwitcher({
             by CipheX
           </span>
         )}
-      </span>
-      <span className="abacus-switcher__hint" aria-hidden="true">
-        switch
       </span>
     </a>
   );
