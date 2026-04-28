@@ -109,7 +109,7 @@ export function Header({
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2.5">
           <h1 className="m-0">
-            <AbacusSwitcher current="predictions" showLogo={false} compact />
+            <AbacusSwitcher current="ams" showLogo={false} compact />
           </h1>
           <span
             className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${
