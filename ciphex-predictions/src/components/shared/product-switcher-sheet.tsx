@@ -187,7 +187,7 @@ export function ProductSwitcherSheet({ current }: ProductSwitcherSheetProps) {
               })}
             </div>
             <div className="pss-footer">
-              <span className="pss-cpx">X</span>
+              <MarketsMark size={14} />
               <span>CipheX Capital Ecosystem</span>
             </div>
           </div>
