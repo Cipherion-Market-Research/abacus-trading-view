@@ -30,7 +30,7 @@ const GATE_LAYERS = [
 ];
 
 export default function PredictionsPage() {
-  const { mode, staleSince, D, tape, dashboard, wrSeries } = usePredStats();
+  const { mode, staleSince, loading, D, tape, dashboard, wrSeries } = usePredStats();
 
   const GATE_CATS: Record<number, string> = {
     1: "Signal", 2: "Signal", 3: "Signal", 4: "Execution", 5: "Signal",
@@ -163,6 +163,7 @@ export default function PredictionsPage() {
               <SpringCounter
                 from={85}
                 to={extremeTier?.wr ?? 96.3}
+                ready={!loading}
                 style={{
                   fontFamily: "var(--font-geist-mono)",
                   fontSize: 128,

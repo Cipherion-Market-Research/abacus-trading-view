@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 interface SpringCounterProps {
   from: number;
   to: number;
+  ready?: boolean;
   decimals?: number;
   style?: React.CSSProperties;
   className?: string;
@@ -58,6 +59,7 @@ function springAnimate(
 export function SpringCounter({
   from,
   to,
+  ready = true,
   decimals = 1,
   style,
   className,
@@ -66,6 +68,7 @@ export function SpringCounter({
   const ref = useRef<HTMLSpanElement>(null);
   const hasAnimated = useRef(false);
   const cancelRef = useRef<(() => void) | null>(null);
+  const isVisible = useRef(false);
 
   useEffect(() => {
     const el = ref.current;
@@ -73,7 +76,8 @@ export function SpringCounter({
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !hasAnimated.current) {
+        isVisible.current = entries[0].isIntersecting;
+        if (isVisible.current && ready && !hasAnimated.current) {
           hasAnimated.current = true;
           cancelRef.current = springAnimate(from, to, decimals, setDisplay);
         }
@@ -82,11 +86,22 @@ export function SpringCounter({
     );
 
     observer.observe(el);
-    return () => {
-      observer.disconnect();
-      cancelRef.current?.();
-    };
-  }, [from, to, decimals]);
+    return () => { observer.disconnect(); };
+  }, []);
+
+  // When `ready` flips true or `to` changes after ready, fire if visible
+  useEffect(() => {
+    if (!ready || hasAnimated.current) return;
+    if (isVisible.current) {
+      hasAnimated.current = true;
+      cancelRef.current = springAnimate(from, to, decimals, setDisplay);
+    }
+  }, [ready, to, from, decimals]);
+
+  // Cleanup animation on unmount
+  useEffect(() => {
+    return () => { cancelRef.current?.(); };
+  }, []);
 
   return (
     <span ref={ref} style={style} className={className}>
