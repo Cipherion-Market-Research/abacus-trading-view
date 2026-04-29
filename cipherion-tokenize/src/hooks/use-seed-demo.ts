@@ -62,6 +62,11 @@ export function useSeedDemo() {
     let skippedCount = 0;
 
     for (let i = 0; i < DEMO_SEEDS.length; i++) {
+      // Throttle between creations to stay within RPC per-second limits
+      if (i > 0) {
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+
       const seed = DEMO_SEEDS[i];
 
       // Skip if a token with this name already exists in the catalog
@@ -98,7 +103,6 @@ export function useSeedDemo() {
         const imageField = seed.params.metadata.find((f) => f.key === "image");
         await register({
           mint: result.mint.toBase58(),
-          creator: publicKey.toBase58(),
           assetType: seed.params.assetType,
           imageUri: imageField?.value ?? "",
           description: seed.params.description ?? "",

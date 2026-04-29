@@ -11,6 +11,7 @@ const ALLOWED_TYPES = [
   "image/webp",
   "image/svg+xml",
   "image/gif",
+  "application/json",
 ];
 
 export async function POST(request: Request) {
@@ -71,12 +72,11 @@ export async function POST(request: Request) {
       gatewayUrl: `https://${gateway}/ipfs/${cid}`,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Upload failed";
-    const status =
-      message.includes("401") || message.includes("Unauthorized") ? 502 : 500;
+    const internal = err instanceof Error ? err.message : "";
+    const isAuthError = internal.includes("401") || internal.includes("Unauthorized");
     return NextResponse.json(
-      { error: `Pinata upload failed: ${message}` },
-      { status }
+      { error: isAuthError ? "Upload service authentication failed." : "Upload failed." },
+      { status: isAuthError ? 502 : 500 }
     );
   }
 }

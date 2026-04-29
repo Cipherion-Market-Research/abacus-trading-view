@@ -52,7 +52,14 @@ export function resetKyc(): void {
  * Used for fresh-slate demo resets before a walkthrough.
  * Does NOT affect on-chain state — tokens remain on devnet.
  */
-export async function resetAllDemoData(): Promise<void> {
+export interface DemoResetAuth {
+  wallet: string;
+  nonce: string;
+  timestamp: number;
+  signature: string;
+}
+
+export async function resetAllDemoData(auth?: DemoResetAuth): Promise<void> {
   if (typeof window === "undefined") return;
 
   // Clear KYC
@@ -61,21 +68,34 @@ export async function resetAllDemoData(): Promise<void> {
   // Clear created mints
   localStorage.removeItem("ciphex-atlas-mints");
 
-  // Clear all distribution records (dynamic keys: ciphex-atlas-distributions-*)
+  // Clear all distribution + register localStorage keys
   const keysToRemove: string[] = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key?.startsWith("ciphex-atlas-distributions-")) {
+    if (
+      key?.startsWith("ciphex-atlas-distributions-") ||
+      key?.startsWith("ciphex-atlas-register-")
+    ) {
       keysToRemove.push(key);
     }
   }
   keysToRemove.forEach((k) => localStorage.removeItem(k));
 
-  // Flush Upstash catalog (fire-and-forget — non-fatal if it fails)
-  try {
-    await fetch("/api/mints/flush", { method: "POST" });
-  } catch {
-    // Registry may not be configured locally — that's fine
+  // Flush all Upstash stores (catalog + distributions + registers)
+  if (auth) {
+    try {
+      const res = await fetch("/api/demo/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ auth }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        console.warn("[demo-reset] Server flush failed:", data.error ?? res.status);
+      }
+    } catch (err) {
+      console.warn("[demo-reset] Server flush failed:", err);
+    }
   }
 
   window.dispatchEvent(new CustomEvent(EVENT_NAME));

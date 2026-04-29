@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { ExplorerLink } from "@/components/shared/explorer-link";
-import { loadDistributions, type DistributionRecord } from "@/lib/distributions";
+import { useDistributions } from "@/hooks/use-distributions";
 
 interface MyDistributionsProps {
   mintAddress: string;
@@ -25,8 +25,9 @@ export function MyDistributions({
   decimals,
   symbol,
 }: MyDistributionsProps) {
+  const { records } = useDistributions(mintAddress);
+
   const receipts = useMemo((): MyReceipt[] => {
-    const records = loadDistributions(mintAddress);
     const result: MyReceipt[] = [];
 
     for (const record of records) {
@@ -45,7 +46,7 @@ export function MyDistributions({
     }
 
     return result;
-  }, [mintAddress, walletAddress, decimals]);
+  }, [records, walletAddress, decimals]);
 
   if (receipts.length === 0) {
     return (

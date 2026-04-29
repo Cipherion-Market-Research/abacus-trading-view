@@ -2,7 +2,7 @@ import JSZip from "jszip";
 import { PublicKey } from "@solana/web3.js";
 import { generateCsv } from "./csv";
 import { getTokenTransactions } from "@/lib/solana/history-service";
-import { loadDistributions } from "@/lib/distributions";
+import { loadDistributions, fetchDistributionsFromServer } from "@/lib/distributions";
 import { formatTokenAmount } from "@/lib/utils/format";
 import type { TokenInfo, HolderInfo, TransactionInfo } from "@/types/token";
 
@@ -72,11 +72,24 @@ function buildTransactionsCsv(transactions: TransactionInfo[]): string {
   return generateCsv(headers, rows);
 }
 
-function buildDistributionsCsv(
+async function buildDistributionsCsv(
   mintAddress: string,
   decimals: number
-): string {
-  const records = loadDistributions(mintAddress);
+): Promise<{ csv: string; source: "server" | "local" }> {
+  let records = loadDistributions(mintAddress);
+  let source: "server" | "local" = "local";
+
+  try {
+    const { records: serverRecords, configured } =
+      await fetchDistributionsFromServer(mintAddress);
+    if (configured && serverRecords.length > 0) {
+      records = serverRecords;
+      source = "server";
+    }
+  } catch {
+    // Fall through to localStorage
+  }
+
   const headers = [
     "Distribution ID",
     "Date",
@@ -89,6 +102,14 @@ function buildDistributionsCsv(
     "Recipient TX",
   ];
   const rows: string[][] = [];
+
+  if (source === "local" && records.length > 0) {
+    rows.push([
+      "⚠ WARNING: Data sourced from browser localStorage — server was unavailable. Verify against on-chain records.",
+      "", "", "", "", "", "", "", "",
+    ]);
+  }
+
   for (const record of records) {
     for (const r of record.recipients) {
       const amount = Number(BigInt(r.amount)) / Math.pow(10, decimals);
@@ -105,7 +126,7 @@ function buildDistributionsCsv(
       ]);
     }
   }
-  return generateCsv(headers, rows);
+  return { csv: generateCsv(headers, rows), source };
 }
 
 function buildMetadataJson(
@@ -135,8 +156,13 @@ function buildReadme(
   token: TokenInfo,
   network: string,
   txCount: number,
-  holderCount: number
+  holderCount: number,
+  distSource: "server" | "local"
 ): string {
+  const distNote =
+    distSource === "server"
+      ? "distribution records (server-verified)"
+      : "distribution records (LOCAL CACHE — server unavailable, verify against chain)";
   return [
     `Atlas Audit Pack`,
     `================`,
@@ -149,7 +175,7 @@ function buildReadme(
     `Contents:`,
     `  holders.csv         — ${holderCount} holder(s)`,
     `  transactions.csv    — ${txCount} transaction(s)`,
-    `  distributions.csv   — distribution records with per-recipient detail`,
+    `  distributions.csv   — ${distNote}`,
     `  token_metadata.json — full token configuration snapshot`,
     ``,
     `Disclaimer:`,
@@ -177,13 +203,16 @@ export async function generateAuditPack({
 
   const transactions = await fetchAllTransactions(token.mint);
 
+  const { csv: distributionsCsv, source: distSource } =
+    await buildDistributionsCsv(mintStr, token.decimals);
+
   zip.file("holders.csv", buildHoldersCsv(holders, token.decimals, token.supply));
   zip.file("transactions.csv", buildTransactionsCsv(transactions));
-  zip.file("distributions.csv", buildDistributionsCsv(mintStr, token.decimals));
+  zip.file("distributions.csv", distributionsCsv);
   zip.file("token_metadata.json", buildMetadataJson(token, holders));
   zip.file(
     "README.txt",
-    buildReadme(token, network, transactions.length, holders.length)
+    buildReadme(token, network, transactions.length, holders.length, distSource)
   );
 
   const blob = await zip.generateAsync({ type: "blob" });

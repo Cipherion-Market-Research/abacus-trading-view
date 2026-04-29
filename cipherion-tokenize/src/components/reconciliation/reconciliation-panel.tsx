@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import {
   Upload,
   Download,
@@ -28,30 +28,23 @@ import { PublicKey } from "@solana/web3.js";
 import { createAndThawAccount } from "@/lib/solana/account-service";
 import { useSendTransaction } from "@/hooks/use-send-transaction";
 import { useNetwork } from "@/hooks/use-network";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { toastSuccess, toastError } from "@/hooks/use-toast";
+import {
+  loadRegister,
+  saveRegisterLocal,
+  clearRegisterLocal,
+  saveRegisterToServer,
+  fetchRegisterFromServer,
+  type RegisterDocument,
+} from "@/lib/reconciliation";
+import { buildSignatureMessage } from "@/lib/api/auth-message";
 import type { TokenInfo, HolderInfo } from "@/types/token";
 
 interface ReconciliationPanelProps {
   token: TokenInfo;
   holders: HolderInfo[];
   onSuccess?: () => void;
-}
-
-const STORAGE_KEY = (mint: string) => `ciphex-atlas-register-${mint}`;
-
-function loadRegister(mint: string): RegisterEntry[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY(mint));
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveRegister(mint: string, entries: RegisterEntry[]): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY(mint), JSON.stringify(entries));
 }
 
 const DIFF_CONFIG: Record<
@@ -126,7 +119,6 @@ function DiffRowDisplay({
       </div>
 
       <div className="flex items-center gap-4 sm:gap-6 pl-5.5 sm:pl-0 text-[11px] font-mono">
-        {/* On-chain side */}
         <div className="min-w-[100px]">
           {row.onChain ? (
             <>
@@ -147,7 +139,6 @@ function DiffRowDisplay({
           )}
         </div>
 
-        {/* Status */}
         <span className={`text-[10px] font-medium ${config.color} min-w-[80px]`}>
           {config.label}
           {row.balanceDelta !== null && row.balanceDelta !== 0n && (
@@ -158,7 +149,6 @@ function DiffRowDisplay({
           )}
         </span>
 
-        {/* Register side */}
         <div className="min-w-[100px]">
           {row.register ? (
             <>
@@ -180,7 +170,6 @@ function DiffRowDisplay({
         </div>
       </div>
 
-      {/* Onboard action for missing_onchain */}
       {row.type === "missing_onchain" && onOnboard && (
         <Button
           variant="ghost"
@@ -207,18 +196,80 @@ export function ReconciliationPanel({
   onSuccess,
 }: ReconciliationPanelProps) {
   const mintStr = token.mint.toBase58();
-  const [register, setRegister] = useState<RegisterEntry[]>(() =>
-    loadRegister(mintStr)
-  );
+  const [register, setRegister] = useState<RegisterEntry[]>([]);
+  const [registerMeta, setRegisterMeta] = useState<RegisterDocument | null>(null);
   const [isOnboarding, setIsOnboarding] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { signAndSend, publicKey } = useSendTransaction();
+  const { signMessage } = useWallet();
   const { explorerTxUrl } = useNetwork();
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      const { register: serverDoc } = await fetchRegisterFromServer(mintStr);
+      if (cancelled) return;
+      if (serverDoc) {
+        setRegister(serverDoc.entries);
+        setRegisterMeta(serverDoc);
+        saveRegisterLocal(mintStr, serverDoc.entries);
+      } else {
+        const local = loadRegister(mintStr);
+        setRegister(local);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [mintStr]);
 
   const result: ReconcileResult | null = useMemo(() => {
     if (register.length === 0) return null;
     return reconcile(holders, register, token.decimals);
   }, [holders, register, token.decimals]);
+
+  const persistEntries = async (entries: RegisterEntry[]) => {
+    setRegister(entries);
+    saveRegisterLocal(mintStr, entries);
+
+    if (!publicKey || !signMessage) {
+      console.warn("[reconciliation] No wallet connected — register saved locally only.");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const nonce = crypto.randomUUID();
+      const timestamp = Date.now();
+      const msg = buildSignatureMessage("register", mintStr, nonce, timestamp);
+      const sigBytes = await signMessage(new TextEncoder().encode(msg));
+      const signature = Buffer.from(sigBytes).toString("base64");
+
+      const res = await saveRegisterToServer(mintStr, entries, {
+        wallet: publicKey.toBase58(),
+        nonce,
+        timestamp,
+        signature,
+      });
+
+      if (res.ok && res.version) {
+        setRegisterMeta({
+          version: res.version,
+          uploadedAt: timestamp,
+          uploadedBy: publicKey.toBase58(),
+          entries,
+        });
+        toastSuccess(`Register saved (v${res.version})`);
+      } else {
+        console.warn("[reconciliation] Server save failed:", res.error);
+        toastError(res.error ?? "Failed to save register to server — saved locally.");
+      }
+    } catch {
+      toastError("Wallet rejected or network error — register saved locally only.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -229,8 +280,7 @@ export function ReconciliationPanel({
       const text = ev.target?.result;
       if (typeof text !== "string") return;
       const entries = parseRegisterCsv(text);
-      setRegister(entries);
-      saveRegister(mintStr, entries);
+      persistEntries(entries);
     };
     reader.readAsText(file);
 
@@ -242,8 +292,7 @@ export function ReconciliationPanel({
       const text = await navigator.clipboard.readText();
       const entries = parseRegisterCsv(text);
       if (entries.length > 0) {
-        setRegister(entries);
-        saveRegister(mintStr, entries);
+        await persistEntries(entries);
         toastSuccess(`Parsed ${entries.length} register entries from clipboard`);
       } else {
         toastError("No valid entries found in clipboard");
@@ -257,12 +306,17 @@ export function ReconciliationPanel({
     if (!result) return;
     const csv = exportDiffCsv(result, token.decimals);
     const date = new Date().toISOString().slice(0, 10);
-    downloadCsv(csv, `${token.symbol}_reconciliation_${date}.csv`);
+    const versionSuffix = registerMeta ? `_v${registerMeta.version}` : "";
+    const header = registerMeta
+      ? `# Register version: ${registerMeta.version}, uploaded: ${new Date(registerMeta.uploadedAt).toISOString()}, by: ${registerMeta.uploadedBy}\n`
+      : "";
+    downloadCsv(header + csv, `${token.symbol}_reconciliation_${date}${versionSuffix}.csv`);
   };
 
   const handleClear = () => {
     setRegister([]);
-    localStorage.removeItem(STORAGE_KEY(mintStr));
+    setRegisterMeta(null);
+    clearRegisterLocal(mintStr);
   };
 
   const handleOnboard = async (address: string) => {
@@ -312,6 +366,7 @@ export function ReconciliationPanel({
             variant="outline"
             size="sm"
             onClick={() => fileInputRef.current?.click()}
+            disabled={isSaving}
             className="gap-1.5 border-[#30363d] bg-[#0d1117] text-[#8b949e] hover:text-[#f0f6fc]"
           >
             <Upload className="size-3" />
@@ -321,14 +376,22 @@ export function ReconciliationPanel({
             variant="outline"
             size="sm"
             onClick={handlePaste}
+            disabled={isSaving}
             className="gap-1.5 border-[#30363d] bg-[#0d1117] text-[#8b949e] hover:text-[#f0f6fc]"
           >
             Paste from clipboard
           </Button>
-          {register.length > 0 && (
+          {isSaving && (
+            <span className="inline-flex items-center gap-1 text-[10px] text-[#8b949e]">
+              <Loader2 className="size-3 animate-spin" />
+              Saving to server...
+            </span>
+          )}
+          {register.length > 0 && !isSaving && (
             <>
               <span className="text-[10px] text-[#3fb950] font-mono">
                 {register.length} entries loaded
+                {registerMeta && ` (v${registerMeta.version})`}
               </span>
               <Button
                 variant="ghost"
@@ -423,7 +486,7 @@ export function ReconciliationPanel({
             Upload your investor register to compare against on-chain state.
           </p>
           <p className="text-[10px] text-[#6e7681] mt-1">
-            Accepts CSV or tab-separated values. Persists across page reloads.
+            Accepts CSV or tab-separated values. Persisted server-side per token.
           </p>
         </div>
       )}

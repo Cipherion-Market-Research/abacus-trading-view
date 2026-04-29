@@ -31,8 +31,7 @@ function runRules(
   const results: RuleResult[] = [];
   const holder = holders.find((h) => h.owner.toBase58() === address);
 
-  // Rule: Token paused
-  const isPaused = token.extensions.pausable;
+  const isPaused = token.isPaused;
   if (isPaused) {
     results.push({
       id: "paused",

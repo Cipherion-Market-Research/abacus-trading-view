@@ -10,6 +10,8 @@ import {
   registerMint,
   type RegistryEntry,
 } from "@/lib/registry";
+import { mintRegisterSchema, walletAuthSchema } from "@/lib/api/schemas";
+import { verifyWalletSignature } from "@/lib/api/wallet-auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -25,14 +27,6 @@ function getRpcEndpoint(): string {
     : "https://api.devnet.solana.com";
 }
 
-interface RegisterBody {
-  mint?: string;
-  creator?: string;
-  assetType?: string;
-  imageUri?: string;
-  description?: string;
-}
-
 export async function POST(request: Request) {
   if (!isRegistryConfigured()) {
     return NextResponse.json(
@@ -44,7 +38,7 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: RegisterBody;
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
@@ -54,61 +48,64 @@ export async function POST(request: Request) {
     );
   }
 
-  const { mint: mintAddress, creator, assetType, imageUri, description } = body;
-  if (!mintAddress || !creator || !assetType) {
+  const inputParse = mintRegisterSchema.safeParse(
+    (body as Record<string, unknown>)?.input
+  );
+  if (!inputParse.success) {
     return NextResponse.json(
-      { error: "Missing required fields: mint, creator, assetType." },
+      { error: "Invalid registration input.", details: inputParse.error.flatten() },
       { status: 400 }
     );
   }
 
-  let mintPk: PublicKey;
-  let creatorPk: PublicKey;
-  try {
-    mintPk = new PublicKey(mintAddress);
-    creatorPk = new PublicKey(creator);
-  } catch {
+  const authParse = walletAuthSchema.safeParse(
+    (body as Record<string, unknown>)?.auth
+  );
+  if (!authParse.success) {
     return NextResponse.json(
-      { error: "Invalid mint or creator public key." },
-      { status: 400 }
+      { error: "Wallet signature required for registration." },
+      { status: 401 }
     );
+  }
+
+  const input = inputParse.data;
+  const auth = authParse.data;
+
+  const authResult = await verifyWalletSignature(auth, "register-mint", input.mint);
+  if (!authResult.ok) {
+    return NextResponse.json({ error: authResult.error }, { status: authResult.status });
   }
 
   const connection = new Connection(getRpcEndpoint(), "confirmed");
 
-  // On-chain verification: the mint must exist, be Token-2022, and have
-  // the claimed creator as mint authority. This prevents spam registrations.
   let mintInfo;
   try {
-    mintInfo = await getMint(connection, mintPk, "confirmed", TOKEN_2022_PROGRAM_ID);
+    mintInfo = await getMint(connection, new PublicKey(input.mint), "confirmed", TOKEN_2022_PROGRAM_ID);
   } catch (err) {
     return NextResponse.json(
       {
-        error: `Mint ${mintAddress} does not exist or is not a Token-2022 mint.`,
-        detail: err instanceof Error ? err.message : "lookup failed",
+        error: `Mint ${input.mint} does not exist or is not a Token-2022 mint.`,
       },
       { status: 404 }
     );
   }
 
-  if (!mintInfo.mintAuthority || !mintInfo.mintAuthority.equals(creatorPk)) {
+  if (!mintInfo.mintAuthority || !mintInfo.mintAuthority.equals(new PublicKey(auth.wallet))) {
     return NextResponse.json(
       {
         error:
-          "Creator does not match the on-chain mint authority. Registration rejected.",
+          "Wallet is not the mint authority. Registration rejected.",
       },
       { status: 403 }
     );
   }
 
-  // Pull name/symbol from on-chain metadata as source of truth — don't trust
-  // client-supplied values for display fields.
   let name = "";
   let symbol = "";
   try {
     const metadata = await getTokenMetadata(
       connection,
-      mintPk,
+      new PublicKey(input.mint),
       "confirmed",
       TOKEN_2022_PROGRAM_ID
     );
@@ -117,18 +114,17 @@ export async function POST(request: Request) {
       symbol = metadata.symbol;
     }
   } catch {
-    // Metadata read failed — non-fatal. Proceed with empty display fields;
-    // the Explorer UI handles empty name/symbol gracefully.
+    // Metadata read failed — non-fatal
   }
 
   const entry: RegistryEntry = {
-    mint: mintAddress,
+    mint: input.mint,
     name,
     symbol,
-    creator,
-    assetType,
-    imageUri: imageUri ?? "",
-    description: description ?? "",
+    creator: auth.wallet,
+    assetType: input.assetType,
+    imageUri: input.imageUri,
+    description: input.description,
     createdAt: Date.now(),
   };
 
@@ -136,13 +132,19 @@ export async function POST(request: Request) {
     await registerMint(entry);
   } catch (err) {
     return NextResponse.json(
-      {
-        error: "Failed to write to registry.",
-        detail: err instanceof Error ? err.message : "unknown",
-      },
+      { error: "Failed to write to registry." },
       { status: 500 }
     );
   }
+
+  const chain = `solana-${process.env.NEXT_PUBLIC_SOLANA_NETWORK ?? "devnet"}`;
+  console.info({
+    event: "mint.registered",
+    chain,
+    mint: input.mint,
+    actor: auth.wallet,
+    assetType: input.assetType,
+  });
 
   return NextResponse.json({ ok: true, entry });
 }

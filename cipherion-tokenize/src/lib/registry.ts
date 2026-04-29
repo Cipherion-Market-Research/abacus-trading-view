@@ -25,7 +25,7 @@ function resolveCreds(): { url: string; token: string } | null {
   return { url, token };
 }
 
-function getClient(): Redis {
+export function getClient(): Redis {
   if (client) return client;
   const creds = resolveCreds();
   if (!creds) {

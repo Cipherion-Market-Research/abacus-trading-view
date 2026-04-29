@@ -112,7 +112,7 @@ export function CompliancePanel({
           holder.owner,
           rawAmount,
           token.decimals,
-          publicKey,
+          token.extensions.permanentDelegate!,
           signAndSend
         );
         toastSuccess(`Tokens burned`, {
@@ -136,6 +136,11 @@ export function CompliancePanel({
     publicKey &&
     (token.freezeAuthority?.equals(publicKey) ||
       token.mintAuthority?.equals(publicKey));
+
+  const isPermanentDelegate =
+    publicKey &&
+    token.extensions.permanentDelegate != null &&
+    token.extensions.permanentDelegate.equals(publicKey);
 
   if (!isAuthority) {
     return (
@@ -283,7 +288,7 @@ export function CompliancePanel({
                       Freeze
                     </Button>
                   )}
-                  {holder.balance > 0n && (
+                  {isPermanentDelegate && holder.balance > 0n && (
                     <Button
                       variant="ghost"
                       size="sm"

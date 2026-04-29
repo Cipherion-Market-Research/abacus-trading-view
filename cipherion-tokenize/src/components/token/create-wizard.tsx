@@ -96,9 +96,43 @@ export function CreateWizard() {
       ? BigInt(Math.floor(parseFloat(compliance.transferFeeMax) * Number(multiplier)))
       : BigInt(10 ** decimals) * 1000n;
 
+    // Auto-pin a metadata JSON when an image is set but no external URI was provided.
+    // This populates the on-chain `uri` field so official explorers (Solana Explorer,
+    // Solscan) can fetch and display the token logo via the Metaplex standard.
+    let resolvedUri = metadata.externalUri || "";
+    if (basicInfo.imageUri && !resolvedUri) {
+      try {
+        const metaJson = JSON.stringify({
+          name: basicInfo.name.trim(),
+          symbol: basicInfo.symbol.trim(),
+          description: basicInfo.description || "",
+          image: basicInfo.imageUri,
+          attributes: [],
+        });
+        const jsonFile = new File([metaJson], "metadata.json", {
+          type: "application/json",
+        });
+        const form = new FormData();
+        form.append("file", jsonFile);
+        const res = await fetch("/api/ipfs/upload", {
+          method: "POST",
+          body: form,
+        });
+        if (res.ok) {
+          const { ipfsUri } = (await res.json()) as { ipfsUri: string };
+          resolvedUri = ipfsUri;
+        }
+      } catch {
+        // Non-fatal — token still creates without a metadata URI
+      }
+    }
+
     const allMetadata: TokenMetadataField[] = [
       { key: "description", value: basicInfo.description },
       { key: "asset_type", value: basicInfo.assetType },
+      ...(basicInfo.imageUri
+        ? [{ key: "image", value: basicInfo.imageUri }]
+        : []),
       ...(metadata.jurisdiction
         ? [{ key: "jurisdiction", value: metadata.jurisdiction }]
         : []),
@@ -112,7 +146,7 @@ export function CreateWizard() {
       name: basicInfo.name.trim(),
       symbol: basicInfo.symbol.trim(),
       decimals,
-      uri: metadata.externalUri || "",
+      uri: resolvedUri,
       description: basicInfo.description,
       assetType: basicInfo.assetType,
       jurisdiction: metadata.jurisdiction,
@@ -136,7 +170,6 @@ export function CreateWizard() {
       // handles missing registrations gracefully.
       void register({
         mint: result.mint.toBase58(),
-        creator: publicKey.toBase58(),
         assetType: basicInfo.assetType,
         imageUri: basicInfo.imageUri || "",
         description: basicInfo.description || "",

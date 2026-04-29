@@ -72,6 +72,7 @@ export interface TokenInfo {
   supply: bigint;
   mintAuthority: PublicKey | null;
   freezeAuthority: PublicKey | null;
+  isPaused: boolean;
   extensions: TokenExtensionConfig;
   metadata: TokenMetadataField[];
   uri: string;

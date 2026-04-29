@@ -57,12 +57,12 @@ export async function forceBurn(
   owner: PublicKey,
   amount: bigint,
   decimals: number,
-  authority: PublicKey,
+  permanentDelegate: PublicKey,
   signAndSend: (tx: Transaction, signers: Keypair[]) => Promise<string>
 ): Promise<string> {
   const ata = getAssociatedTokenAddressSync(mint, owner, false, TOKEN_2022_PROGRAM_ID);
   const tx = new Transaction().add(
-    createBurnCheckedInstruction(ata, mint, authority, amount, decimals, [], TOKEN_2022_PROGRAM_ID)
+    createBurnCheckedInstruction(ata, mint, permanentDelegate, amount, decimals, [], TOKEN_2022_PROGRAM_ID)
   );
   try {
     return await signAndSend(tx, []);

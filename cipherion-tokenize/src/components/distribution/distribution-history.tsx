@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Plus, ChevronDown, ChevronRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DistributionForm } from "@/components/distribution/distribution-form";
-import {
-  loadDistributions,
-  type DistributionRecord,
-} from "@/lib/distributions";
+import { PendingSyncBanner } from "@/components/distribution/pending-sync-banner";
+import { useDistributions } from "@/hooks/use-distributions";
+import type { DistributionRecord } from "@/lib/distributions";
 import { formatTokenAmount } from "@/lib/utils/format";
 import type { TokenInfo, HolderInfo } from "@/types/token";
 
@@ -54,17 +53,14 @@ export function DistributionHistory({
   holders,
   onAfterRun,
 }: DistributionHistoryProps) {
-  const [records, setRecords] = useState<DistributionRecord[]>([]);
+  const mintStr = token.mint.toBase58();
+  const { records, pendingSyncCount, refresh } = useDistributions(mintStr);
   const [showForm, setShowForm] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  useEffect(() => {
-    setRecords(loadDistributions(token.mint.toBase58()));
-  }, [token.mint]);
-
   const handleClose = () => {
     setShowForm(false);
-    setRecords(loadDistributions(token.mint.toBase58()));
+    refresh();
     onAfterRun();
   };
 
@@ -98,6 +94,11 @@ export function DistributionHistory({
 
   return (
     <div className="space-y-3">
+      <PendingSyncBanner
+        mintAddress={mintStr}
+        count={pendingSyncCount}
+        onSynced={refresh}
+      />
       <div className="flex items-center justify-between">
         <div>
           <p className="text-[11px] uppercase tracking-wider text-[#8b949e]">

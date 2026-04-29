@@ -17,10 +17,17 @@ import {
   type DistributionRecord,
   type RecipientStatus,
 } from "@/lib/distributions";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { useSendTransaction } from "@/hooks/use-send-transaction";
 import { useNetwork } from "@/hooks/use-network";
-import { toastSuccess, toastError } from "@/hooks/use-toast";
+import { toastSuccess, toastError, toastWarning } from "@/hooks/use-toast";
 import { formatTokenAmount } from "@/lib/utils/format";
+import { buildSignatureMessage } from "@/lib/api/auth-message";
+import {
+  postDistributionToServer,
+  markSyncComplete,
+  markSyncPending,
+} from "@/lib/distributions";
 import type { TokenInfo, HolderInfo } from "@/types/token";
 
 interface DistributionFormProps {
@@ -44,6 +51,7 @@ export function DistributionForm({
   onComplete,
 }: DistributionFormProps) {
   const { signAndSend, publicKey } = useSendTransaction();
+  const { signMessage } = useWallet();
   const { explorerTxUrl } = useNetwork();
 
   const [amountInput, setAmountInput] = useState("");
@@ -147,13 +155,48 @@ export function DistributionForm({
     };
     saveDistribution(record);
 
+    // Server sync — sign auth message + POST
+    let serverSynced = false;
+    if (signMessage && publicKey) {
+      try {
+        const nonce = crypto.randomUUID();
+        const ts = Date.now();
+        const msg = buildSignatureMessage("distribution", record.mintAddress, nonce, ts);
+        const sigBytes = await signMessage(new TextEncoder().encode(msg));
+        const sig = Buffer.from(sigBytes).toString("base64");
+
+        const syncResult = await postDistributionToServer(record, {
+          wallet: publicKey.toBase58(),
+          nonce,
+          timestamp: ts,
+          signature: sig,
+        });
+
+        if (syncResult.ok) {
+          markSyncComplete(record.mintAddress, record.id);
+          serverSynced = true;
+        } else {
+          markSyncPending(record.mintAddress, record.id);
+        }
+      } catch {
+        markSyncPending(record.mintAddress, record.id);
+      }
+    } else {
+      markSyncPending(record.mintAddress, record.id);
+    }
+
     setRunning(false);
+
+    if (!serverSynced) {
+      toastWarning("Distribution saved locally — server sync pending", {
+        description: "Use the retry banner to sync when ready.",
+      });
+    }
 
     if (status === "complete") {
       toastSuccess(`Distribution complete`, {
         description: `${totalDone} holders received their share.`,
       });
-      // Show final state briefly, then close
       setTimeout(() => {
         onComplete();
       }, 1500);
@@ -166,7 +209,7 @@ export function DistributionForm({
         description: `0 of ${eligibleAllocations.length} succeeded.`,
       });
     }
-  }, [result, publicKey, token.mint, signAndSend, memo, amountRaw, onComplete]);
+  }, [result, publicKey, token.mint, signAndSend, signMessage, memo, amountRaw, onComplete]);
 
   // Final progress view
   if (progress) {

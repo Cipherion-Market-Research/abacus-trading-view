@@ -23,6 +23,9 @@ import {
   AccountLayout,
   ExtensionType,
   AccountState,
+  getPausableConfig,
+  getDefaultAccountState,
+  getPermanentDelegate,
 } from "@solana/spl-token";
 import {
   createInitializeInstruction as createInitializeMetadataInstruction,
@@ -316,17 +319,22 @@ export async function getTokenInfo(mintAddress: PublicKey): Promise<TokenInfo> {
     const { getTokenMetadata } = await import("./metadata-service");
     const metadata = await getTokenMetadata(mintAddress);
 
-    // Detect extensions from the mint account
     const extensions: TokenInfo["extensions"] = {};
 
-    // Check if default account state extension exists
-    if (mintAccount.freezeAuthority) {
-      // If freeze authority is set, KYC gating is likely enabled
+    const dasState = getDefaultAccountState(mintAccount);
+    if (dasState && dasState.state === AccountState.Frozen) {
       extensions.defaultAccountState = "frozen";
     }
 
-    // Transfer fee detection would require reading extension data
-    // For now, basic info is sufficient
+    const pausableCfg = getPausableConfig(mintAccount);
+    if (pausableCfg) {
+      extensions.pausable = true;
+    }
+
+    const permanentDelegateCfg = getPermanentDelegate(mintAccount);
+    if (permanentDelegateCfg) {
+      extensions.permanentDelegate = permanentDelegateCfg.delegate;
+    }
 
     return {
       mint: mintAddress,
@@ -336,6 +344,7 @@ export async function getTokenInfo(mintAddress: PublicKey): Promise<TokenInfo> {
       supply: mintAccount.supply,
       mintAuthority: mintAccount.mintAuthority,
       freezeAuthority: mintAccount.freezeAuthority,
+      isPaused: pausableCfg?.paused ?? false,
       extensions,
       metadata: metadata.additionalFields,
       uri: metadata.uri,
@@ -371,11 +380,9 @@ export async function mintTokens(
     // the new ATA will start frozen and we need to thaw before minting.
     instructions.push(createAssociatedTokenAccountInstruction(payer, ata, destOwner, mint, TOKEN_2022_PROGRAM_ID));
 
-    // Check if this mint uses DefaultAccountState=Frozen
     const mintAccount = await getMint(connection, mint, "confirmed", TOKEN_2022_PROGRAM_ID);
-    if (mintAccount.freezeAuthority) {
-      // Mint has a freeze authority — likely uses DefaultAccountState=Frozen.
-      // Thaw the ATA so we can mint to it. Payer must be the freeze authority.
+    const dasState = getDefaultAccountState(mintAccount);
+    if (dasState && dasState.state === AccountState.Frozen) {
       needsThaw = true;
     }
   } else {
